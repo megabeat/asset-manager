@@ -11,6 +11,8 @@ import {
   ensureString,
   requireUserId
 } from "../shared/validators";
+import { parseJsonBody } from "../shared/request-body";
+
 
 function getQueryValue(req: HttpRequest, key: string): string | undefined {
   const query = req.query as unknown;
@@ -90,7 +92,7 @@ export async function assetsHandler(context: InvocationContext, req: HttpRequest
     case "POST": {
       let body: Record<string, unknown>;
       try {
-        body = (await req.json()) as Record<string, unknown>;
+        body = await parseJsonBody(req);
       } catch {
         return fail("INVALID_JSON", "Invalid JSON body", 400);
       }
@@ -132,7 +134,7 @@ export async function assetsHandler(context: InvocationContext, req: HttpRequest
 
       let body: Record<string, unknown>;
       try {
-        body = (await req.json()) as Record<string, unknown>;
+        body = await parseJsonBody(req);
       } catch {
         return fail("INVALID_JSON", "Invalid JSON body", 400);
       }

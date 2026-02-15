@@ -11,6 +11,8 @@ import {
   ensureString,
   requireUserId
 } from "../shared/validators";
+import { parseJsonBody } from "../shared/request-body";
+
 
 export async function educationPlansHandler(context: InvocationContext, req: HttpRequest): Promise<HttpResponseInit> {
   const { userId } = getAuthContext(req.headers);
@@ -61,7 +63,7 @@ export async function educationPlansHandler(context: InvocationContext, req: Htt
       if (action === "simulate") {
         let body: Record<string, unknown>;
         try {
-          body = (await req.json()) as Record<string, unknown>;
+          body = await parseJsonBody(req);
         } catch {
           return fail("INVALID_JSON", "Invalid JSON body", 400);
         }
@@ -97,7 +99,7 @@ export async function educationPlansHandler(context: InvocationContext, req: Htt
 
       let body: Record<string, unknown>;
       try {
-        body = (await req.json()) as Record<string, unknown>;
+        body = await parseJsonBody(req);
       } catch {
         return fail("INVALID_JSON", "Invalid JSON body", 400);
       }
@@ -139,7 +141,7 @@ export async function educationPlansHandler(context: InvocationContext, req: Htt
 
       let body: Record<string, unknown>;
       try {
-        body = (await req.json()) as Record<string, unknown>;
+        body = await parseJsonBody(req);
       } catch {
         return fail("INVALID_JSON", "Invalid JSON body", 400);
       }

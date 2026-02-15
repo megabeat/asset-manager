@@ -12,6 +12,8 @@ import {
   ensureString,
   requireUserId
 } from "../shared/validators";
+import { parseJsonBody } from "../shared/request-body";
+
 
 const expenseTypes = ["fixed", "subscription"];
 const billingCycles = ["monthly", "yearly"];
@@ -94,7 +96,7 @@ export async function expensesHandler(context: InvocationContext, req: HttpReque
     case "POST": {
       let body: Record<string, unknown>;
       try {
-        body = (await req.json()) as Record<string, unknown>;
+        body = await parseJsonBody(req);
       } catch {
         return fail("INVALID_JSON", "Invalid JSON body", 400);
       }
@@ -131,7 +133,7 @@ export async function expensesHandler(context: InvocationContext, req: HttpReque
 
       let body: Record<string, unknown>;
       try {
-        body = (await req.json()) as Record<string, unknown>;
+        body = await parseJsonBody(req);
       } catch {
         return fail("INVALID_JSON", "Invalid JSON body", 400);
       }

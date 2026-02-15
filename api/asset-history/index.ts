@@ -4,6 +4,8 @@ import { getAuthContext } from "../shared/auth";
 import { getContainer } from "../shared/cosmosClient";
 import { fail, ok } from "../shared/responses";
 import { ensureNumber, ensureOptionalNumber, ensureOptionalString, requireUserId } from "../shared/validators";
+import { parseJsonBody } from "../shared/request-body";
+
 
 function getQueryValue(req: HttpRequest, key: string): string | undefined {
   const query = req.query as unknown;
@@ -92,7 +94,7 @@ export async function assetHistoryHandler(context: InvocationContext, req: HttpR
 
       let body: Record<string, unknown>;
       try {
-        body = (await req.json()) as Record<string, unknown>;
+        body = await parseJsonBody(req);
       } catch {
         return fail("INVALID_JSON", "Invalid JSON body", 400);
       }

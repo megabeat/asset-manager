@@ -10,6 +10,8 @@ import {
   ensureString,
   requireUserId
 } from "../shared/validators";
+import { parseJsonBody } from "../shared/request-body";
+
 
 export async function liabilitiesHandler(
   context: InvocationContext,
@@ -60,7 +62,7 @@ export async function liabilitiesHandler(
     case "POST": {
       let body: Record<string, unknown>;
       try {
-        body = (await req.json()) as Record<string, unknown>;
+        body = await parseJsonBody(req);
       } catch {
         return fail("INVALID_JSON", "Invalid JSON body", 400);
       }
@@ -95,7 +97,7 @@ export async function liabilitiesHandler(
 
       let body: Record<string, unknown>;
       try {
-        body = (await req.json()) as Record<string, unknown>;
+        body = await parseJsonBody(req);
       } catch {
         return fail("INVALID_JSON", "Invalid JSON body", 400);
       }

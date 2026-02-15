@@ -6,6 +6,8 @@ import { getContainer } from "../shared/cosmosClient";
 import { getDeploymentName, getOpenAIClient } from "../shared/openai";
 import { fail, ok } from "../shared/responses";
 import { ensureString, requireUserId } from "../shared/validators";
+import { parseJsonBody } from "../shared/request-body";
+
 
 export async function aiMessagesHandler(context: InvocationContext, req: HttpRequest): Promise<HttpResponseInit> {
   const { userId } = getAuthContext(req.headers);
@@ -49,7 +51,7 @@ export async function aiMessagesHandler(context: InvocationContext, req: HttpReq
     case "POST": {
       let body: Record<string, unknown>;
       try {
-        body = (await req.json()) as Record<string, unknown>;
+        body = await parseJsonBody(req);
       } catch {
         return fail("INVALID_JSON", "Invalid JSON body", 400);
       }

@@ -6,6 +6,7 @@ const auth_1 = require("../shared/auth");
 const cosmosClient_1 = require("../shared/cosmosClient");
 const responses_1 = require("../shared/responses");
 const validators_1 = require("../shared/validators");
+const request_body_1 = require("../shared/request-body");
 async function aiConversationsHandler(context, req) {
     const { userId } = (0, auth_1.getAuthContext)(req.headers);
     try {
@@ -58,7 +59,7 @@ async function aiConversationsHandler(context, req) {
         case "POST": {
             let body;
             try {
-                body = (await req.json());
+                body = await (0, request_body_1.parseJsonBody)(req);
             }
             catch {
                 return (0, responses_1.fail)("INVALID_JSON", "Invalid JSON body", 400);

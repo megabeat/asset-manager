@@ -12,6 +12,8 @@ import {
   ensureString,
   requireUserId
 } from "../shared/validators";
+import { parseJsonBody } from "../shared/request-body";
+
 
 const incomeCycles = ["monthly", "yearly", "one_time"];
 
@@ -70,7 +72,7 @@ export async function incomesHandler(
     case "POST": {
       let body: Record<string, unknown>;
       try {
-        body = (await req.json()) as Record<string, unknown>;
+        body = await parseJsonBody(req);
       } catch {
         return fail("INVALID_JSON", "Invalid JSON body", 400);
       }
@@ -106,7 +108,7 @@ export async function incomesHandler(
 
       let body: Record<string, unknown>;
       try {
-        body = (await req.json()) as Record<string, unknown>;
+        body = await parseJsonBody(req);
       } catch {
         return fail("INVALID_JSON", "Invalid JSON body", 400);
       }
