@@ -43,6 +43,17 @@ function getQueryValue(req, key) {
     }
     return undefined;
 }
+async function listUserAssetIds(userId) {
+    const assetsContainer = (0, cosmosClient_1.getContainer)("assets");
+    const query = {
+        query: "SELECT c.id FROM c WHERE c.userId = @userId AND c.type = 'Asset'",
+        parameters: [{ name: "@userId", value: userId }]
+    };
+    const { resources } = await assetsContainer.items.query(query).fetchAll();
+    return resources
+        .map((item) => item.id)
+        .filter((id) => typeof id === "string" && id.length > 0);
+}
 async function dashboardHandler(context, req) {
     const { userId } = (0, auth_1.getAuthContext)(req.headers);
     try {
@@ -108,18 +119,27 @@ async function dashboardHandler(context, req) {
                     context.log(error);
                     return (0, responses_1.fail)("SERVER_ERROR", "Cosmos DB configuration error", 500);
                 }
-                const query = {
-                    query: "SELECT c.recordedAt, c.value FROM c WHERE c.userId = @userId AND c.recordedAt >= @from AND c.recordedAt <= @to",
-                    parameters: [
-                        { name: "@userId", value: userId },
-                        { name: "@from", value: range.from },
-                        { name: "@to", value: range.to }
-                    ]
-                };
-                const { resources } = await container.items.query(query).fetchAll();
+                const assetIds = await listUserAssetIds(userId);
+                if (assetIds.length === 0) {
+                    return (0, responses_1.ok)([]);
+                }
+                const historyResults = await Promise.all(assetIds.map(async (assetId) => {
+                    const partitionKey = [userId, assetId];
+                    const query = {
+                        query: "SELECT c.recordedAt, c.value FROM c WHERE c.type = 'AssetHistory' AND c.recordedAt >= @from AND c.recordedAt <= @to AND (NOT IS_DEFINED(c.isWindowRecord) OR c.isWindowRecord = false)",
+                        parameters: [
+                            { name: "@from", value: range.from },
+                            { name: "@to", value: range.to }
+                        ]
+                    };
+                    const { resources } = await container.items.query(query, { partitionKey }).fetchAll();
+                    return resources;
+                }));
+                const resources = historyResults.flat();
                 const buckets = new Map();
                 for (const entry of resources) {
-                    const bucket = toHourBucket(entry.recordedAt);
+                    const recordedAt = typeof entry.recordedAt === "string" ? entry.recordedAt : "";
+                    const bucket = toHourBucket(recordedAt);
                     if (!bucket) {
                         continue;
                     }
@@ -146,11 +166,22 @@ async function dashboardHandler(context, req) {
                     context.log(error);
                     return (0, responses_1.fail)("SERVER_ERROR", "Cosmos DB configuration error", 500);
                 }
-                const query = {
-                    query: "SELECT c.assetId, c.windowMonth, c.value, c.monthlyDelta, c.recordedAt FROM c WHERE c.userId = @userId AND c.type = 'AssetHistory' AND c.isWindowRecord = true ORDER BY c.recordedAt ASC",
-                    parameters: [{ name: "@userId", value: userId }]
-                };
-                const { resources } = await container.items.query(query).fetchAll();
+                const assetIds = await listUserAssetIds(userId);
+                if (assetIds.length === 0) {
+                    return (0, responses_1.ok)([]);
+                }
+                const historyResults = await Promise.all(assetIds.map(async (assetId) => {
+                    const partitionKey = [userId, assetId];
+                    const query = {
+                        query: "SELECT c.assetId, c.windowMonth, c.value, c.monthlyDelta, c.recordedAt FROM c WHERE c.type = 'AssetHistory' AND c.isWindowRecord = true",
+                        parameters: []
+                    };
+                    const { resources } = await container.items.query(query, { partitionKey }).fetchAll();
+                    return resources;
+                }));
+                const resources = historyResults
+                    .flat()
+                    .sort((a, b) => String(a.recordedAt ?? "").localeCompare(String(b.recordedAt ?? "")));
                 const latestByMonthAndAsset = new Map();
                 for (const row of resources) {
                     if (!row.assetId || !row.windowMonth) {

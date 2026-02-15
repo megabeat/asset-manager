@@ -15,6 +15,19 @@ type MonthlyAssetChange = {
   delta: number;
 };
 
+type AssetIdentity = {
+  id: string;
+};
+
+type AssetHistoryRow = {
+  assetId?: string;
+  recordedAt?: string;
+  value?: number;
+  windowMonth?: string;
+  monthlyDelta?: number;
+  isWindowRecord?: boolean;
+};
+
 function toHourBucket(isoString: string): string | null {
   const date = new Date(isoString);
   if (Number.isNaN(date.getTime())) {
@@ -59,6 +72,19 @@ function getQueryValue(req: HttpRequest, key: string): string | undefined {
   }
 
   return undefined;
+}
+
+async function listUserAssetIds(userId: string): Promise<string[]> {
+  const assetsContainer = getContainer("assets");
+  const query = {
+    query: "SELECT c.id FROM c WHERE c.userId = @userId AND c.type = 'Asset'",
+    parameters: [{ name: "@userId", value: userId }]
+  };
+
+  const { resources } = await assetsContainer.items.query(query).fetchAll();
+  return (resources as AssetIdentity[])
+    .map((item) => item.id)
+    .filter((id): id is string => typeof id === "string" && id.length > 0);
 }
 
 export async function dashboardHandler(context: InvocationContext, req: HttpRequest): Promise<HttpResponseInit> {
@@ -133,21 +159,34 @@ export async function dashboardHandler(context: InvocationContext, req: HttpRequ
           context.log(error);
           return fail("SERVER_ERROR", "Cosmos DB configuration error", 500);
         }
-        const query = {
-          query:
-            "SELECT c.recordedAt, c.value FROM c WHERE c.userId = @userId AND c.recordedAt >= @from AND c.recordedAt <= @to",
-          parameters: [
-            { name: "@userId", value: userId },
-            { name: "@from", value: range.from },
-            { name: "@to", value: range.to }
-          ]
-        };
+        const assetIds = await listUserAssetIds(userId);
+        if (assetIds.length === 0) {
+          return ok([]);
+        }
 
-        const { resources } = await container.items.query(query).fetchAll();
+        const historyResults = await Promise.all(
+          assetIds.map(async (assetId) => {
+            const partitionKey = [userId, assetId];
+            const query = {
+              query:
+                "SELECT c.recordedAt, c.value FROM c WHERE c.type = 'AssetHistory' AND c.recordedAt >= @from AND c.recordedAt <= @to AND (NOT IS_DEFINED(c.isWindowRecord) OR c.isWindowRecord = false)",
+              parameters: [
+                { name: "@from", value: range.from },
+                { name: "@to", value: range.to }
+              ]
+            };
+
+            const { resources } = await container.items.query(query, { partitionKey }).fetchAll();
+            return resources as AssetHistoryRow[];
+          })
+        );
+
+        const resources = historyResults.flat();
         const buckets = new Map<string, number>();
 
-        for (const entry of resources as Array<{ recordedAt: string; value: number }>) {
-          const bucket = toHourBucket(entry.recordedAt);
+        for (const entry of resources) {
+          const recordedAt = typeof entry.recordedAt === "string" ? entry.recordedAt : "";
+          const bucket = toHourBucket(recordedAt);
           if (!bucket) {
             continue;
           }
@@ -175,21 +214,31 @@ export async function dashboardHandler(context: InvocationContext, req: HttpRequ
           return fail("SERVER_ERROR", "Cosmos DB configuration error", 500);
         }
 
-        const query = {
-          query:
-            "SELECT c.assetId, c.windowMonth, c.value, c.monthlyDelta, c.recordedAt FROM c WHERE c.userId = @userId AND c.type = 'AssetHistory' AND c.isWindowRecord = true ORDER BY c.recordedAt ASC",
-          parameters: [{ name: "@userId", value: userId }]
-        };
+        const assetIds = await listUserAssetIds(userId);
+        if (assetIds.length === 0) {
+          return ok([]);
+        }
 
-        const { resources } = await container.items.query(query).fetchAll();
+        const historyResults = await Promise.all(
+          assetIds.map(async (assetId) => {
+            const partitionKey = [userId, assetId];
+            const query = {
+              query:
+                "SELECT c.assetId, c.windowMonth, c.value, c.monthlyDelta, c.recordedAt FROM c WHERE c.type = 'AssetHistory' AND c.isWindowRecord = true",
+              parameters: []
+            };
+
+            const { resources } = await container.items.query(query, { partitionKey }).fetchAll();
+            return resources as AssetHistoryRow[];
+          })
+        );
+
+        const resources = historyResults
+          .flat()
+          .sort((a, b) => String(a.recordedAt ?? "").localeCompare(String(b.recordedAt ?? "")));
         const latestByMonthAndAsset = new Map<string, { month: string; value: number; delta: number }>();
 
-        for (const row of resources as Array<{
-          assetId?: string;
-          windowMonth?: string;
-          value?: number;
-          monthlyDelta?: number;
-        }>) {
+        for (const row of resources) {
           if (!row.assetId || !row.windowMonth) {
             continue;
           }
