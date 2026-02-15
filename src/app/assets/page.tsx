@@ -12,6 +12,8 @@ type AssetForm = {
   category: AssetCategory;
   name: string;
   currentValue: number;
+  quantity: number;
+  acquiredValue: number;
   valuationDate: string;
   note: string;
   symbol: string;
@@ -26,6 +28,8 @@ const defaultForm: AssetForm = {
   category: 'cash',
   name: '',
   currentValue: 0,
+  quantity: 0,
+  acquiredValue: 0,
   valuationDate: new Date().toISOString().slice(0, 10),
   note: '',
   symbol: '',
@@ -51,6 +55,7 @@ export default function AssetsPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState<AssetForm>(defaultForm);
+  const [editingAssetId, setEditingAssetId] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [fxLoading, setFxLoading] = useState(false);
@@ -88,12 +93,24 @@ export default function AssetsPage() {
     loadUsdKrwRate();
   }, []);
 
+  const isStockCategory = form.category === 'stock_kr' || form.category === 'stock_us';
+
+  const effectiveUsdAmount = useMemo(() => {
+    if (form.category !== 'stock_us') {
+      return 0;
+    }
+    return Number(form.quantity || 0) * Number(form.acquiredValue || 0);
+  }, [form.category, form.quantity, form.acquiredValue]);
+
   const effectiveCurrentValue = useMemo(() => {
+    if (form.category === 'stock_kr') {
+      return Math.round((form.quantity || 0) * (form.acquiredValue || 0));
+    }
     if (form.category === 'stock_us') {
-      return Math.round((form.usdAmount || 0) * (form.exchangeRate || 0));
+      return Math.round(effectiveUsdAmount * (form.exchangeRate || 0));
     }
     return form.currentValue;
-  }, [form.category, form.currentValue, form.usdAmount, form.exchangeRate]);
+  }, [form.category, form.currentValue, form.quantity, form.acquiredValue, form.exchangeRate, effectiveUsdAmount]);
 
   const totalAssetValue = useMemo(
     () => assets.reduce((sum, asset) => sum + (asset.currentValue ?? 0), 0),
@@ -121,9 +138,13 @@ export default function AssetsPage() {
     if (!form.name.trim()) nextErrors.name = '자산명을 입력해주세요.';
     if (!form.valuationDate) nextErrors.valuationDate = '평가일을 선택해주세요.';
 
-    if (form.category === 'stock_us') {
+    if (isStockCategory) {
       if (!form.symbol.trim()) nextErrors.symbol = '종목코드를 입력해주세요.';
-      if (form.usdAmount <= 0) nextErrors.usdAmount = 'USD 평가액은 0보다 커야 합니다.';
+      if (form.quantity <= 0) nextErrors.quantity = '수량은 0보다 커야 합니다.';
+      if (form.acquiredValue <= 0) nextErrors.acquiredValue = '단가는 0보다 커야 합니다.';
+    }
+
+    if (form.category === 'stock_us') {
       if (form.exchangeRate <= 0) nextErrors.exchangeRate = '환율은 0보다 커야 합니다.';
     } else if (form.category === 'pension') {
       if (form.pensionMonthlyContribution < 0) nextErrors.pensionMonthlyContribution = '납입액은 0 이상이어야 합니다.';
@@ -143,25 +164,32 @@ export default function AssetsPage() {
     }
 
     setSaving(true);
-    const result = await api.createAsset({
+    const payload = {
       category: form.category,
       name: form.name.trim(),
       currentValue: Number(effectiveCurrentValue),
+      quantity: isStockCategory ? Number(form.quantity) : null,
+      acquiredValue: isStockCategory ? Number(form.acquiredValue) : null,
       valuationDate: form.valuationDate,
       note: form.note.trim(),
-      symbol: form.symbol.trim(),
-      usdAmount: form.category === 'stock_us' ? Number(form.usdAmount) : null,
+      symbol: isStockCategory ? form.symbol.trim() : null,
+      usdAmount: form.category === 'stock_us' ? Number(effectiveUsdAmount) : null,
       exchangeRate: form.category === 'stock_us' ? Number(form.exchangeRate) : null,
       pensionMonthlyContribution: form.category === 'pension' ? Number(form.pensionMonthlyContribution) : null,
       pensionReceiveAge: form.category === 'pension' ? Number(form.pensionReceiveAge) : null,
       pensionReceiveStart: form.category === 'pension' ? form.pensionReceiveStart : null
-    });
+    };
+
+    const result = editingAssetId
+      ? await api.updateAsset(editingAssetId, payload)
+      : await api.createAsset(payload);
 
     if (result.error) {
-      setMessage(`저장 실패: ${result.error.message}`);
+      setMessage(`${editingAssetId ? '수정' : '저장'} 실패: ${result.error.message}`);
     } else {
       setForm((prev) => ({ ...defaultForm, exchangeRate: prev.exchangeRate }));
-      setMessage('자산이 저장되었습니다.');
+      setEditingAssetId(null);
+      setMessage(editingAssetId ? '자산이 수정되었습니다.' : '자산이 저장되었습니다.');
       await loadAssets();
     }
 
@@ -178,6 +206,50 @@ export default function AssetsPage() {
 
     setAssets((prev) => prev.filter((asset) => asset.id !== id));
     setMessage('자산을 삭제했습니다.');
+  }
+
+  function onEdit(asset: Asset) {
+    const quantity = Number(asset.quantity ?? 0);
+    const acquiredValue = Number(asset.acquiredValue ?? 0);
+
+    setEditingAssetId(asset.id);
+    setErrors({});
+    setMessage(null);
+    setForm({
+      category: (asset.category as AssetCategory) ?? 'etc',
+      name: asset.name ?? '',
+      currentValue: Number(asset.currentValue ?? 0),
+      quantity:
+        quantity > 0
+          ? quantity
+          : asset.category === 'stock_us'
+            ? 1
+            : asset.category === 'stock_kr'
+              ? 1
+              : 0,
+      acquiredValue:
+        acquiredValue > 0
+          ? acquiredValue
+          : asset.category === 'stock_us'
+            ? Number(asset.usdAmount ?? 0)
+            : asset.category === 'stock_kr'
+              ? Number(asset.currentValue ?? 0)
+              : 0,
+      valuationDate: asset.valuationDate?.slice(0, 10) ?? new Date().toISOString().slice(0, 10),
+      note: asset.note ?? '',
+      symbol: asset.symbol ?? '',
+      usdAmount: Number(asset.usdAmount ?? 0),
+      exchangeRate: Number(asset.exchangeRate ?? form.exchangeRate ?? 0),
+      pensionMonthlyContribution: Number(asset.pensionMonthlyContribution ?? 0),
+      pensionReceiveAge: Number(asset.pensionReceiveAge ?? 60),
+      pensionReceiveStart: asset.pensionReceiveStart ?? ''
+    });
+  }
+
+  function onCancelEdit() {
+    setEditingAssetId(null);
+    setErrors({});
+    setForm((prev) => ({ ...defaultForm, exchangeRate: prev.exchangeRate }));
   }
 
   if (loading) {
@@ -228,7 +300,7 @@ export default function AssetsPage() {
             />
           </FormField>
 
-          {form.category === 'stock_us' ? (
+          {isStockCategory ? (
             <>
               <FormField label="종목코드" error={errors.symbol}>
                 <input
@@ -237,26 +309,51 @@ export default function AssetsPage() {
                   placeholder="예: AAPL"
                 />
               </FormField>
-              <FormField label="USD 평가액" error={errors.usdAmount}>
+              <FormField label="수량" error={errors.quantity}>
                 <input
                   type="number"
                   min={0}
-                  value={form.usdAmount}
-                  onChange={(event) => setForm((prev) => ({ ...prev, usdAmount: Number(event.target.value || 0) }))}
+                  step="0.0001"
+                  value={form.quantity}
+                  onChange={(event) => setForm((prev) => ({ ...prev, quantity: Number(event.target.value || 0) }))}
                 />
               </FormField>
-              <FormField label={`환율(USD/KRW)${fxLoading ? ' - 조회중' : ''}`} error={errors.exchangeRate}>
+              <FormField
+                label={form.category === 'stock_us' ? '단가(USD)' : '단가(원)'}
+                error={errors.acquiredValue}
+              >
                 <input
                   type="number"
                   min={0}
                   step="0.01"
-                  value={form.exchangeRate}
-                  onChange={(event) => setForm((prev) => ({ ...prev, exchangeRate: Number(event.target.value || 0) }))}
+                  value={form.acquiredValue}
+                  onChange={(event) => setForm((prev) => ({ ...prev, acquiredValue: Number(event.target.value || 0) }))}
                 />
               </FormField>
-              <FormField label="원화 평가액(자동 계산)">
-                <input value={effectiveCurrentValue.toLocaleString()} readOnly />
-              </FormField>
+
+              {form.category === 'stock_us' ? (
+                <>
+                  <FormField label={`환율(USD/KRW)${fxLoading ? ' - 조회중' : ''}`} error={errors.exchangeRate}>
+                    <input
+                      type="number"
+                      min={0}
+                      step="0.01"
+                      value={form.exchangeRate}
+                      onChange={(event) => setForm((prev) => ({ ...prev, exchangeRate: Number(event.target.value || 0) }))}
+                    />
+                  </FormField>
+                  <FormField label="USD 평가액(자동 계산)">
+                    <input value={effectiveUsdAmount.toLocaleString()} readOnly />
+                  </FormField>
+                  <FormField label="원화 평가액(자동 계산)">
+                    <input value={effectiveCurrentValue.toLocaleString()} readOnly />
+                  </FormField>
+                </>
+              ) : (
+                <FormField label="현재가치(원, 자동 계산)">
+                  <input value={effectiveCurrentValue.toLocaleString()} readOnly />
+                </FormField>
+              )}
             </>
           ) : (
             <FormField label="현재가치(원)" error={errors.currentValue}>
@@ -316,9 +413,16 @@ export default function AssetsPage() {
             />
           </FormField>
 
-          <button type="submit" disabled={saving} className="btn-primary" style={{ width: 180, alignSelf: 'end' }}>
-            {saving ? '저장 중...' : '자산 추가'}
-          </button>
+          <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'end' }}>
+            <button type="submit" disabled={saving} className="btn-primary" style={{ width: 180 }}>
+              {saving ? '저장 중...' : editingAssetId ? '자산 수정' : '자산 추가'}
+            </button>
+            {editingAssetId ? (
+              <button type="button" onClick={onCancelEdit} className="btn-danger-outline" style={{ width: 120 }}>
+                취소
+              </button>
+            ) : null}
+          </div>
         </form>
       </SectionCard>
 
@@ -360,9 +464,14 @@ export default function AssetsPage() {
               header: '관리',
               align: 'center',
               render: (asset) => (
-                <button onClick={() => onDelete(asset.id)} className="btn-danger-outline">
-                  삭제
-                </button>
+                <div style={{ display: 'flex', justifyContent: 'center', gap: '0.4rem' }}>
+                  <button onClick={() => onEdit(asset)} className="btn-primary">
+                    수정
+                  </button>
+                  <button onClick={() => onDelete(asset.id)} className="btn-danger-outline">
+                    삭제
+                  </button>
+                </div>
               ),
             },
           ]}

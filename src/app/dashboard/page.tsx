@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { api } from '@/lib/api';
+import { api, MonthlyAssetChange } from '@/lib/api';
 import {
   LineChart,
   Line,
@@ -43,13 +43,14 @@ const COLORS = ['#0b63ce', '#2e7d32', '#f57c00', '#7b1fa2', '#c2185b', '#00796b'
 export default function DashboardPage() {
   const [summary, setSummary] = useState<Summary | null>(null);
   const [trend, setTrend] = useState<TrendPoint[]>([]);
+  const [monthlyChanges, setMonthlyChanges] = useState<MonthlyAssetChange[]>([]);
   const [assets, setAssets] = useState<AssetItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    Promise.all([api.getDashboardSummary(), api.getAssetTrend('30d'), api.getAssets()]).then(
-      ([summaryResult, trendResult, assetsResult]) => {
+    Promise.all([api.getDashboardSummary(), api.getAssetTrend('30d'), api.getAssets(), api.getMonthlyAssetChanges()]).then(
+      ([summaryResult, trendResult, assetsResult, monthlyResult]) => {
         if (summaryResult.data) {
           setSummary(summaryResult.data);
         }
@@ -62,7 +63,11 @@ export default function DashboardPage() {
           setAssets(assetsResult.data as AssetItem[]);
         }
 
-        const firstError = summaryResult.error ?? trendResult.error ?? assetsResult.error;
+        if (monthlyResult.data) {
+          setMonthlyChanges(monthlyResult.data);
+        }
+
+        const firstError = summaryResult.error ?? trendResult.error ?? assetsResult.error ?? monthlyResult.error;
         if (firstError) {
           setError(firstError.message);
         }
@@ -263,6 +268,45 @@ export default function DashboardPage() {
                 </PieChart>
               </ResponsiveContainer>
             </div>
+          )}
+        </SectionCard>
+      </div>
+
+      <div style={{ marginTop: '1rem' }}>
+        <SectionCard>
+          <h3 style={{ marginTop: 0 }}>월별 자산 변화(월말 3일 기준)</h3>
+          {monthlyChanges.length === 0 ? (
+            <p>아직 월말 스냅샷 데이터가 없습니다.</p>
+          ) : (
+            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+              <thead>
+                <tr>
+                  <th style={{ textAlign: 'left', padding: '0.5rem 0' }}>월</th>
+                  <th style={{ textAlign: 'right', padding: '0.5rem 0' }}>월말 자산</th>
+                  <th style={{ textAlign: 'right', padding: '0.5rem 0' }}>전월 대비</th>
+                </tr>
+              </thead>
+              <tbody>
+                {monthlyChanges.map((item) => (
+                  <tr key={item.month}>
+                    <td style={{ padding: '0.4rem 0' }}>{item.month}</td>
+                    <td style={{ textAlign: 'right', padding: '0.4rem 0' }}>
+                      {item.totalValue.toLocaleString()}원
+                    </td>
+                    <td
+                      style={{
+                        textAlign: 'right',
+                        padding: '0.4rem 0',
+                        color: item.delta >= 0 ? '#388e3c' : '#d32f2f'
+                      }}
+                    >
+                      {item.delta >= 0 ? '+' : ''}
+                      {item.delta.toLocaleString()}원
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           )}
         </SectionCard>
       </div>

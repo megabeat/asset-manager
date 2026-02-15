@@ -9,6 +9,12 @@ type TrendPoint = {
   value: number;
 };
 
+type MonthlyAssetChange = {
+  month: string;
+  totalValue: number;
+  delta: number;
+};
+
 function toHourBucket(isoString: string): string | null {
   const date = new Date(isoString);
   if (Number.isNaN(date.getTime())) {
@@ -157,6 +163,67 @@ export async function dashboardHandler(context: InvocationContext, req: HttpRequ
       } catch (error: unknown) {
         context.log(error);
         return fail("SERVER_ERROR", "Failed to build asset trend", 500);
+      }
+    }
+    case "monthly-change": {
+      try {
+        let container;
+        try {
+          container = getContainer("assetHistory");
+        } catch (error: unknown) {
+          context.log(error);
+          return fail("SERVER_ERROR", "Cosmos DB configuration error", 500);
+        }
+
+        const query = {
+          query:
+            "SELECT c.assetId, c.windowMonth, c.value, c.monthlyDelta, c.recordedAt FROM c WHERE c.userId = @userId AND c.type = 'AssetHistory' AND c.isWindowRecord = true ORDER BY c.recordedAt ASC",
+          parameters: [{ name: "@userId", value: userId }]
+        };
+
+        const { resources } = await container.items.query(query).fetchAll();
+        const latestByMonthAndAsset = new Map<string, { month: string; value: number; delta: number }>();
+
+        for (const row of resources as Array<{
+          assetId?: string;
+          windowMonth?: string;
+          value?: number;
+          monthlyDelta?: number;
+        }>) {
+          if (!row.assetId || !row.windowMonth) {
+            continue;
+          }
+
+          const mapKey = `${row.windowMonth}|${row.assetId}`;
+          latestByMonthAndAsset.set(mapKey, {
+            month: row.windowMonth,
+            value: Number(row.value ?? 0),
+            delta: Number(row.monthlyDelta ?? 0)
+          });
+        }
+
+        const aggregateByMonth = new Map<string, MonthlyAssetChange>();
+
+        for (const entry of latestByMonthAndAsset.values()) {
+          const existing = aggregateByMonth.get(entry.month) ?? {
+            month: entry.month,
+            totalValue: 0,
+            delta: 0
+          };
+
+          existing.totalValue += entry.value;
+          existing.delta += entry.delta;
+          aggregateByMonth.set(entry.month, existing);
+        }
+
+        const monthlyChanges = Array.from(aggregateByMonth.values()).sort((a, b) =>
+          a.month.localeCompare(b.month)
+        );
+
+        return ok(monthlyChanges);
+      } catch (error: unknown) {
+        context.log(error);
+        return fail("SERVER_ERROR", "Failed to build monthly changes", 500);
       }
     }
     default:

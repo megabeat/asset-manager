@@ -19,6 +19,8 @@ export type Asset = {
   name: string;
   category: string;
   currentValue: number;
+  quantity?: number;
+  acquiredValue?: number;
   valuationDate: string;
   symbol?: string;
   exchangeRate?: number;
@@ -92,6 +94,12 @@ export type ChatMessage = {
   createdAt?: string;
 };
 
+export type MonthlyAssetChange = {
+  month: string;
+  totalValue: number;
+  delta: number;
+};
+
 async function fetchApi<T>(
   endpoint: string,
   options?: RequestInit
@@ -157,6 +165,8 @@ export const api = {
     fetchApi<{ totalAssets: number; totalLiabilities: number; netWorth: number; monthlyFixedExpense: number }>('/dashboard/summary'),
   getAssetTrend: (range: '24h' | '7d' | '30d') =>
     fetchApi<Array<{ time: string; value: number }>>(`/dashboard/asset-trend?range=${range}`),
+  getMonthlyAssetChanges: () =>
+    fetchApi<MonthlyAssetChange[]>('/dashboard/monthly-change'),
 
   // Children
   getChildren: () => fetchApi<Child[]>('/children'),

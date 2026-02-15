@@ -13,6 +13,115 @@ import {
 } from "../shared/validators";
 import { parseJsonBody } from "../shared/request-body";
 
+type AssetRecord = {
+  id: string;
+  userId: string;
+  currentValue?: number;
+};
+
+function getMonthKey(date: Date): string {
+  return `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, "0")}`;
+}
+
+function getMonthStartIso(date: Date): string {
+  const monthStart = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), 1, 0, 0, 0, 0));
+  return monthStart.toISOString();
+}
+
+function isInLastThreeDaysWindow(date: Date): boolean {
+  const year = date.getUTCFullYear();
+  const month = date.getUTCMonth();
+  const day = date.getUTCDate();
+  const lastDay = new Date(Date.UTC(year, month + 1, 0)).getUTCDate();
+  return day >= lastDay - 2;
+}
+
+async function createMonthEndHistorySnapshot(
+  userId: string,
+  asset: AssetRecord,
+  now: Date
+): Promise<void> {
+  let historyContainer;
+  try {
+    historyContainer = getContainer("assetHistory");
+  } catch {
+    return;
+  }
+
+  const monthKey = getMonthKey(now);
+  const recordedAt = now.toISOString();
+  const monthStartIso = getMonthStartIso(now);
+  const value = Number(asset.currentValue ?? 0);
+
+  const trendItem = {
+    id: randomUUID(),
+    userId,
+    assetId: asset.id,
+    type: "AssetHistory",
+    value,
+    quantity: null,
+    recordedAt,
+    note: "asset update",
+    isWindowRecord: false,
+    createdAt: recordedAt
+  };
+
+  await historyContainer.items.create(trendItem);
+
+  if (!isInLastThreeDaysWindow(now)) {
+    return;
+  }
+
+  const previousSnapshotQuery = {
+    query:
+      "SELECT TOP 1 c.value FROM c WHERE c.userId = @userId AND c.assetId = @assetId AND c.type = 'AssetHistory' AND c.isWindowRecord = true AND c.recordedAt < @monthStart ORDER BY c.recordedAt DESC",
+    parameters: [
+      { name: "@userId", value: userId },
+      { name: "@assetId", value: asset.id },
+      { name: "@monthStart", value: monthStartIso }
+    ]
+  };
+
+  const thisMonthSnapshotQuery = {
+    query:
+      "SELECT TOP 1 c.id FROM c WHERE c.userId = @userId AND c.assetId = @assetId AND c.type = 'AssetHistory' AND c.isWindowRecord = true AND c.windowMonth = @windowMonth ORDER BY c.recordedAt DESC",
+    parameters: [
+      { name: "@userId", value: userId },
+      { name: "@assetId", value: asset.id },
+      { name: "@windowMonth", value: monthKey }
+    ]
+  };
+
+  const [{ resources: previousResources }, { resources: thisMonthResources }] = await Promise.all([
+    historyContainer.items.query(previousSnapshotQuery).fetchAll(),
+    historyContainer.items.query(thisMonthSnapshotQuery).fetchAll()
+  ]);
+
+  if ((thisMonthResources?.length ?? 0) > 0) {
+    return;
+  }
+
+  const previousValue = Number((previousResources?.[0] as { value?: number } | undefined)?.value ?? 0);
+  const monthlyDelta = value - previousValue;
+
+  const historyItem = {
+    id: randomUUID(),
+    userId,
+    assetId: asset.id,
+    type: "AssetHistory",
+    value,
+    quantity: null,
+    recordedAt,
+    note: "month-end window snapshot",
+    isWindowRecord: true,
+    windowMonth: monthKey,
+    monthlyDelta,
+    createdAt: recordedAt
+  };
+
+  await historyContainer.items.create(historyItem);
+}
+
 
 function getQueryValue(req: HttpRequest, key: string): string | undefined {
   const query = req.query as unknown;
@@ -124,6 +233,15 @@ export async function assetsHandler(context: InvocationContext, req: HttpRequest
         };
 
         const { resource } = await container.items.create(asset);
+
+        if (resource) {
+          try {
+            await createMonthEndHistorySnapshot(userId, resource as AssetRecord, new Date());
+          } catch (historyError: unknown) {
+            context.log(historyError);
+          }
+        }
+
         return ok(resource, 201);
       } catch (error: unknown) {
         if (error instanceof Error && error.message.startsWith("Invalid")) {
@@ -178,6 +296,15 @@ export async function assetsHandler(context: InvocationContext, req: HttpRequest
         };
 
         const { resource: saved } = await container.item(assetId, userId).replace(updated);
+
+        if (saved) {
+          try {
+            await createMonthEndHistorySnapshot(userId, saved as AssetRecord, new Date());
+          } catch (historyError: unknown) {
+            context.log(historyError);
+          }
+        }
+
         return ok(saved);
       } catch (error: unknown) {
         const status = (error as { code?: number; statusCode?: number }).statusCode;

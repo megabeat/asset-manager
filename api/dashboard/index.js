@@ -136,6 +136,52 @@ async function dashboardHandler(context, req) {
                 return (0, responses_1.fail)("SERVER_ERROR", "Failed to build asset trend", 500);
             }
         }
+        case "monthly-change": {
+            try {
+                let container;
+                try {
+                    container = (0, cosmosClient_1.getContainer)("assetHistory");
+                }
+                catch (error) {
+                    context.log(error);
+                    return (0, responses_1.fail)("SERVER_ERROR", "Cosmos DB configuration error", 500);
+                }
+                const query = {
+                    query: "SELECT c.assetId, c.windowMonth, c.value, c.monthlyDelta, c.recordedAt FROM c WHERE c.userId = @userId AND c.type = 'AssetHistory' AND c.isWindowRecord = true ORDER BY c.recordedAt ASC",
+                    parameters: [{ name: "@userId", value: userId }]
+                };
+                const { resources } = await container.items.query(query).fetchAll();
+                const latestByMonthAndAsset = new Map();
+                for (const row of resources) {
+                    if (!row.assetId || !row.windowMonth) {
+                        continue;
+                    }
+                    const mapKey = `${row.windowMonth}|${row.assetId}`;
+                    latestByMonthAndAsset.set(mapKey, {
+                        month: row.windowMonth,
+                        value: Number(row.value ?? 0),
+                        delta: Number(row.monthlyDelta ?? 0)
+                    });
+                }
+                const aggregateByMonth = new Map();
+                for (const entry of latestByMonthAndAsset.values()) {
+                    const existing = aggregateByMonth.get(entry.month) ?? {
+                        month: entry.month,
+                        totalValue: 0,
+                        delta: 0
+                    };
+                    existing.totalValue += entry.value;
+                    existing.delta += entry.delta;
+                    aggregateByMonth.set(entry.month, existing);
+                }
+                const monthlyChanges = Array.from(aggregateByMonth.values()).sort((a, b) => a.month.localeCompare(b.month));
+                return (0, responses_1.ok)(monthlyChanges);
+            }
+            catch (error) {
+                context.log(error);
+                return (0, responses_1.fail)("SERVER_ERROR", "Failed to build monthly changes", 500);
+            }
+        }
         default:
             context.log(`Unsupported dashboard action: ${action}`);
             return (0, responses_1.fail)("NOT_FOUND", "Unknown dashboard action", 404);
