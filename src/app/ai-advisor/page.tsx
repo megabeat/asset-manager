@@ -64,7 +64,11 @@ export default function AIAdvisorPage() {
     const result = await api.createConversation();
     if (result.data?.id) {
       setConversationId(result.data.id);
-      setMessages([]);
+      if (result.data.greetingMessage) {
+        setMessages([result.data.greetingMessage]);
+      } else {
+        await loadMessages(result.data.id);
+      }
       await loadConversations();
     } else if (result.error) {
       setMessage(`대화 시작 실패: ${result.error.message}`);

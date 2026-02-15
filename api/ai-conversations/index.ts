@@ -76,7 +76,28 @@ export async function aiConversationsHandler(context: InvocationContext, req: Ht
         };
 
         const { resource } = await container.items.create(conversation);
-        return ok(resource, 201);
+
+        const messagesContainer = getContainer("aiMessages");
+        const greetingMessage = {
+          id: randomUUID(),
+          userId,
+          conversationId: conversation.id,
+          type: "AiMessage",
+          role: "assistant",
+          content:
+            "Kevin님, 안녕하세요! 저는 Mr. Money입니다. 현재 자산/지출 데이터를 바탕으로 실행 가능한 전략을 같이 정리해드릴게요. 우선 가장 고민되는 목표(예: 투자 비중, 은퇴 준비, 현금흐름 개선)를 한 가지만 알려주세요.",
+          createdAt: now
+        };
+
+        await messagesContainer.items.create(greetingMessage);
+
+        return ok(
+          {
+            ...(resource ?? {}),
+            greetingMessage
+          },
+          201
+        );
       } catch (error: unknown) {
         if (error instanceof Error && error.message.startsWith("Invalid")) {
           return fail("VALIDATION_ERROR", error.message, 400);

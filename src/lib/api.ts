@@ -219,7 +219,11 @@ export const api = {
 
   // AI Conversations
   getConversations: () => fetchApi<Conversation[]>('/ai/conversations'),
-  createConversation: () => fetchApi<{ id: string }>('/ai/conversations', { method: 'POST', body: JSON.stringify({}) }),
+  createConversation: () =>
+    fetchApi<{ id: string; greetingMessage?: ChatMessage }>('/ai/conversations', {
+      method: 'POST',
+      body: JSON.stringify({})
+    }),
   getMessages: (conversationId: string) => fetchApi<ChatMessage[]>(`/ai/conversations/${conversationId}/messages`),
   sendMessage: (conversationId: string, message: string) =>
     fetchApi(`/ai/conversations/${conversationId}/messages`, { method: 'POST', body: JSON.stringify({ message }) })
