@@ -1,19 +1,28 @@
-import { AzureOpenAI } from "@azure/openai";
+import OpenAI from "openai";
 
-let client: AzureOpenAI | null = null;
+let client: OpenAI | null = null;
 
-export function getOpenAIClient(): AzureOpenAI {
+export function getOpenAIClient(): OpenAI {
   if (!client) {
     const endpoint = process.env.AZURE_OPENAI_ENDPOINT;
     const apiKey = process.env.AZURE_OPENAI_API_KEY;
+    const apiVersion = process.env.AZURE_OPENAI_API_VERSION ?? "2024-10-21";
     
     if (!endpoint || !apiKey) {
       throw new Error("Missing Azure OpenAI configuration");
     }
+
+    const normalizedEndpoint = endpoint.replace(/\/+$/, "");
     
-    client = new AzureOpenAI({
-      endpoint,
-      apiKey
+    client = new OpenAI({
+      apiKey,
+      baseURL: `${normalizedEndpoint}/openai/deployments`,
+      defaultQuery: {
+        "api-version": apiVersion
+      },
+      defaultHeaders: {
+        "api-key": apiKey
+      }
     });
   }
   

@@ -6,7 +6,7 @@ import { fail, ok } from "../shared/responses";
 import { ensureNumber, ensureOptionalNumber, ensureOptionalString, requireUserId } from "../shared/validators";
 
 export async function assetHistoryHandler(req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
-  const { userId } = getAuthContext(req.headers as Record<string, string | undefined>);
+  const { userId } = getAuthContext(req.headers);
 
   try {
     requireUserId(userId);
@@ -95,7 +95,7 @@ export async function assetHistoryHandler(req: HttpRequest, context: InvocationC
           createdAt: new Date().toISOString()
         };
 
-        const { resource } = await container.items.create(historyItem, { partitionKey });
+        const { resource } = await container.items.create(historyItem);
         return ok(resource, 201);
       } catch (error: unknown) {
         if (error instanceof Error && error.message.startsWith("Invalid")) {

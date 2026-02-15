@@ -41,7 +41,7 @@ function resolveRange(range: string | null): { from: string; to: string } | null
 }
 
 export async function dashboardHandler(req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
-  const { userId } = getAuthContext(req.headers as Record<string, string | undefined>);
+  const { userId } = getAuthContext(req.headers);
 
   try {
     requireUserId(userId);

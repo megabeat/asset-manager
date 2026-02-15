@@ -8,7 +8,7 @@ import { fail, ok } from "../shared/responses";
 import { ensureString, requireUserId } from "../shared/validators";
 
 export async function aiMessagesHandler(req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
-  const { userId } = getAuthContext(req.headers as Record<string, string | undefined>);
+  const { userId } = getAuthContext(req.headers);
 
   try {
     requireUserId(userId);
@@ -80,7 +80,7 @@ export async function aiMessagesHandler(req: HttpRequest, context: InvocationCon
           createdAt: now
         };
 
-        await messagesContainer.items.create(userMessage, { partitionKey });
+        await messagesContainer.items.create(userMessage);
 
         // Fetch user context
         const assetsContainer = getContainer("assets");
@@ -169,7 +169,7 @@ ${userContext.topExpenses.map((e) => `- ${e.name}: ${e.amount.toLocaleString()}ì
           createdAt: new Date().toISOString()
         };
 
-        await messagesContainer.items.create(assistantMessage, { partitionKey });
+        await messagesContainer.items.create(assistantMessage);
 
         return ok({ userMessage, assistantMessage }, 201);
       } catch (error: unknown) {

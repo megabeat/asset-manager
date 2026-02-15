@@ -1,8 +1,7 @@
-export function requireUserId(userId: string | null): string {
+export function requireUserId(userId: string | null): asserts userId is string {
   if (!userId) {
     throw new Error("UNAUTHORIZED");
   }
-  return userId;
 }
 
 export function ensureString(value: unknown, fieldName: string): string {

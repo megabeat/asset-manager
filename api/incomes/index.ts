@@ -19,7 +19,7 @@ export async function incomesHandler(
   req: HttpRequest,
   context: InvocationContext
 ): Promise<HttpResponseInit> {
-  const { userId } = getAuthContext(req.headers as Record<string, string | undefined>);
+  const { userId } = getAuthContext(req.headers);
 
   try {
     requireUserId(userId);
@@ -83,7 +83,7 @@ export async function incomesHandler(
           updatedAt: new Date().toISOString()
         };
 
-        const { resource } = await container.items.create(income, { partitionKey: userId });
+        const { resource } = await container.items.create(income);
         return ok(resource, 201);
       } catch (error: unknown) {
         if (error instanceof Error && error.message.startsWith("Invalid")) {

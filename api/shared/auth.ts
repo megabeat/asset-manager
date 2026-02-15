@@ -11,8 +11,19 @@ export type AuthContext = {
   userDetails: string | null;
 };
 
-export function getAuthContext(headers: Record<string, string | undefined>): AuthContext {
-  const principal = headers["x-ms-client-principal"];
+type HeaderMap = { get(name: string): string | null } | Record<string, string | undefined>;
+
+function readHeader(headers: HeaderMap, key: string): string | undefined {
+  if (typeof (headers as { get?: (name: string) => string | null }).get === "function") {
+    return (headers as { get(name: string): string | null }).get(key) ?? undefined;
+  }
+
+  const record = headers as Record<string, string | undefined>;
+  return record[key] ?? record[key.toLowerCase()] ?? record[key.toUpperCase()];
+}
+
+export function getAuthContext(headers: HeaderMap): AuthContext {
+  const principal = readHeader(headers, "x-ms-client-principal");
   if (!principal) {
     return { userId: null, roles: [], userDetails: null };
   }

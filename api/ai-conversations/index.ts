@@ -6,7 +6,7 @@ import { fail, ok } from "../shared/responses";
 import { ensureOptionalString, requireUserId } from "../shared/validators";
 
 export async function aiConversationsHandler(req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
-  const { userId } = getAuthContext(req.headers as Record<string, string | undefined>);
+  const { userId } = getAuthContext(req.headers);
 
   try {
     requireUserId(userId);
@@ -67,7 +67,7 @@ export async function aiConversationsHandler(req: HttpRequest, context: Invocati
           updatedAt: now
         };
 
-        const { resource } = await container.items.create(conversation, { partitionKey: userId });
+        const { resource } = await container.items.create(conversation);
         return ok(resource, 201);
       } catch (error: unknown) {
         if (error instanceof Error && error.message.startsWith("Invalid")) {

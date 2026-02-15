@@ -11,7 +11,7 @@ import {
 } from "../shared/validators";
 
 export async function profileHandler(req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
-  const { userId } = getAuthContext(req.headers as Record<string, string | undefined>);
+  const { userId } = getAuthContext(req.headers);
 
   try {
     requireUserId(userId);
@@ -59,7 +59,7 @@ export async function profileHandler(req: HttpRequest, context: InvocationContex
           updatedAt: new Date().toISOString()
         };
 
-        const { resource } = await container.items.create(profile, { partitionKey: userId });
+        const { resource } = await container.items.create(profile);
         return ok(resource, 201);
       } catch (error: unknown) {
         const status = (error as { code?: number; statusCode?: number }).statusCode;

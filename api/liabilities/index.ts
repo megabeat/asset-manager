@@ -15,7 +15,7 @@ export async function liabilitiesHandler(
   req: HttpRequest,
   context: InvocationContext
 ): Promise<HttpResponseInit> {
-  const { userId } = getAuthContext(req.headers as Record<string, string | undefined>);
+  const { userId } = getAuthContext(req.headers);
 
   try {
     requireUserId(userId);
@@ -78,7 +78,7 @@ export async function liabilitiesHandler(
           updatedAt: new Date().toISOString()
         };
 
-        const { resource } = await container.items.create(liability, { partitionKey: userId });
+        const { resource } = await container.items.create(liability);
         return ok(resource, 201);
       } catch (error: unknown) {
         if (error instanceof Error && error.message.startsWith("Invalid")) {

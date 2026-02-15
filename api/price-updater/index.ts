@@ -116,9 +116,7 @@ export async function priceUpdater(timer: Timer, context: InvocationContext): Pr
       createdAt: updatedAt
     };
 
-    await historyContainer.items.create(historyItem, {
-      partitionKey: [asset.userId, asset.id]
-    });
+    await historyContainer.items.create(historyItem);
   }
 }
 
