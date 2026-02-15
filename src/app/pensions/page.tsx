@@ -5,6 +5,7 @@ import { api, Asset } from '@/lib/api';
 import { SectionCard } from '@/components/ui/SectionCard';
 import { FormField } from '@/components/ui/FormField';
 import { DataTable } from '@/components/ui/DataTable';
+import { PieChart, Pie, Cell, Legend, Tooltip, ResponsiveContainer } from 'recharts';
 
 type NumericInput = number | '';
 type PensionCategory = 'pension_national' | 'pension_personal' | 'pension_retirement';
@@ -36,6 +37,8 @@ const defaultForm: PensionForm = {
   pensionReceiveStart: '',
   note: ''
 };
+
+const COLORS = ['#0b63ce', '#2e7d32', '#f57c00'];
 
 function isPensionCategory(category?: string): boolean {
   return (
@@ -102,6 +105,15 @@ export default function PensionsPage() {
         .filter((item) => normalizePensionCategory(item.category) === 'pension_retirement')
         .reduce((sum, item) => sum + Number(item.currentValue ?? 0), 0),
     [pensions]
+  );
+
+  const pensionSplitData = useMemo(
+    () => [
+      { name: '국민연금', value: nationalPensionValue },
+      { name: '개인연금', value: personalPensionValue },
+      { name: '퇴직연금(IPA)', value: retirementPensionValue }
+    ].filter((item) => item.value > 0),
+    [nationalPensionValue, personalPensionValue, retirementPensionValue]
   );
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
@@ -359,6 +371,34 @@ export default function PensionsPage() {
             },
           ]}
         />
+      </SectionCard>
+
+      <SectionCard style={{ marginTop: '1rem' }}>
+        <h3 style={{ marginTop: 0, marginBottom: '0.75rem' }}>연금 유형별 비중</h3>
+        {pensionSplitData.length === 0 ? (
+          <p>연금 데이터가 없습니다.</p>
+        ) : (
+          <div style={{ width: '100%', height: 300 }}>
+            <ResponsiveContainer>
+              <PieChart>
+                <Pie
+                  data={pensionSplitData}
+                  dataKey="value"
+                  nameKey="name"
+                  innerRadius={55}
+                  outerRadius={95}
+                  paddingAngle={2}
+                >
+                  {pensionSplitData.map((_, index) => (
+                    <Cell key={index} fill={COLORS[index % COLORS.length]} />
+                  ))}
+                </Pie>
+                <Tooltip formatter={(value: number) => `${Number(value).toLocaleString()}원`} />
+                <Legend />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
+        )}
       </SectionCard>
     </div>
   );
