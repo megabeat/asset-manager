@@ -23,6 +23,52 @@ export type Asset = {
   note?: string;
 };
 
+export type Expense = {
+  id: string;
+  name: string;
+  amount: number;
+  expenseType: 'fixed' | 'subscription';
+  cycle: 'monthly' | 'yearly';
+  billingDay?: number | null;
+  category?: string;
+};
+
+export type Child = {
+  id: string;
+  name: string;
+  birthYear: number;
+  grade: string;
+  targetUniversityYear: number;
+};
+
+export type EducationPlan = {
+  id: string;
+  childId: string;
+  annualCost: number;
+  inflationRate: number;
+  startYear: number;
+  endYear: number;
+};
+
+export type EducationSimulationResult = {
+  totalCost: number;
+  yearly: Array<{ year: number; cost: number }>;
+};
+
+export type Conversation = {
+  id: string;
+  title: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type ChatMessage = {
+  id: string;
+  role: 'user' | 'assistant' | string;
+  content: string;
+  createdAt?: string;
+};
+
 async function fetchApi<T>(
   endpoint: string,
   options?: RequestInit
@@ -90,23 +136,33 @@ export const api = {
     fetchApi<Array<{ time: string; value: number }>>(`/dashboard/asset-trend?range=${range}`),
 
   // Children
-  getChildren: () => fetchApi<Array<{ id: string; name: string; birthYear: number; grade: string }>>('/children'),
+  getChildren: () => fetchApi<Child[]>('/children'),
   createChild: (data: unknown) => fetchApi('/children', { method: 'POST', body: JSON.stringify(data) }),
 
   // Expenses
-  getExpenses: (type?: string) => fetchApi<Array<{ id: string; name: string; amount: number }>>(`/expenses${type ? `?type=${type}` : ''}`),
+  getExpenses: (type?: string) => fetchApi<Expense[]>(`/expenses${type ? `?type=${type}` : ''}`),
   createExpense: (data: unknown) => fetchApi('/expenses', { method: 'POST', body: JSON.stringify(data) }),
+  updateExpense: (id: string, data: unknown) =>
+    fetchApi(`/expenses/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+  deleteExpense: (id: string) => fetchApi(`/expenses/${id}`, { method: 'DELETE' }),
 
   // Education Plans
-  getEducationPlans: () => fetchApi<Array<{ id: string; childId: string; annualCost: number }>>('/education-plans'),
+  getEducationPlans: () => fetchApi<EducationPlan[]>('/education-plans'),
+  createEducationPlan: (data: unknown) =>
+    fetchApi('/education-plans', { method: 'POST', body: JSON.stringify(data) }),
+  updateEducationPlan: (id: string, data: unknown) =>
+    fetchApi(`/education-plans/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+  deleteEducationPlan: (id: string) => fetchApi(`/education-plans/${id}`, { method: 'DELETE' }),
   simulateEducation: (planId: string, data: unknown) =>
-    fetchApi(`/education-plans/${planId}/simulate`, { method: 'POST', body: JSON.stringify(data) }),
+    fetchApi<EducationSimulationResult>(`/education-plans/${planId}/simulate`, {
+      method: 'POST',
+      body: JSON.stringify(data)
+    }),
 
   // AI Conversations
-  getConversations: () => fetchApi<Array<{ id: string; title: string; createdAt: string }>>('/ai/conversations'),
+  getConversations: () => fetchApi<Conversation[]>('/ai/conversations'),
   createConversation: () => fetchApi<{ id: string }>('/ai/conversations', { method: 'POST', body: JSON.stringify({}) }),
-  getMessages: (conversationId: string) =>
-    fetchApi<Array<{ id: string; role: string; content: string }>>(`/ai/conversations/${conversationId}/messages`),
+  getMessages: (conversationId: string) => fetchApi<ChatMessage[]>(`/ai/conversations/${conversationId}/messages`),
   sendMessage: (conversationId: string, message: string) =>
     fetchApi(`/ai/conversations/${conversationId}/messages`, { method: 'POST', body: JSON.stringify({ message }) })
 };
