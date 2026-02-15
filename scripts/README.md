@@ -56,3 +56,25 @@ export COSMOS_KEY="C2y6yDjf5/R+ob0N8A7Cgv30VRDJIWEHLM+4QDU5DE2nQ9nDuVTqobD4b8mGG
 ```
 
 Emulator 다운로드: https://learn.microsoft.com/azure/cosmos-db/emulator
+
+## 6. 자산 카테고리 데이터 정규화
+
+카테고리 값이 영문/한글/혼합으로 들어간 경우, 아래 스크립트로 표준 카테고리 코드로 정리할 수 있습니다.
+
+```bash
+cd scripts
+npm install
+
+# 변경사항 미리보기 (DB 반영 없음)
+npm run normalize-asset-categories
+
+# 실제 반영
+npm run normalize-asset-categories:apply
+```
+
+정규화 대상 예시:
+- `현금`, `cash` → `cash`
+- `예금`, `입출금` → `deposit`
+- `국내주식`, `stock_kr`, `stock` → `stock_kr`
+- `미국주식`, `stock_us`, `us_stock` → `stock_us`
+- `부동산`, `realestate` → `real_estate`
