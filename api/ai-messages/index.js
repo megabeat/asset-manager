@@ -128,7 +128,6 @@ ${userContext.topExpenses.map((e) => `- ${e.name}: ${e.amount.toLocaleString()}ì
                         { role: "user", content }
                     ];
                     const completion = await client.getChatCompletions(deploymentName, messages, {
-                        maxTokens: 800,
                         temperature: 0.7
                     });
                     assistantContent = completion.choices[0]?.message?.content ?? assistantContent;

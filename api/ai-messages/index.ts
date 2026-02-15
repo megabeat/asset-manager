@@ -159,7 +159,6 @@ ${userContext.topExpenses.map((e) => `- ${e.name}: ${e.amount.toLocaleString()}ì
             deploymentName,
             messages,
             {
-              maxTokens: 800,
               temperature: 0.7
             }
           );
