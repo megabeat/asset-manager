@@ -224,3 +224,35 @@ td {
   margin: 0 auto;
   padding: 1.15rem 1rem 1.6rem;
 }
+
+.kpi-card {
+  background: linear-gradient(180deg, #ffffff 0%, #fbfdff 100%);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 1rem;
+  box-shadow: 0 10px 26px rgba(15, 23, 42, 0.045);
+}
+
+.kpi-label {
+  margin: 0;
+  color: #4b5563;
+  font-size: 0.84rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+.kpi-value {
+  margin: 0.5rem 0 0;
+  font-size: clamp(1.18rem, 1.9vw, 1.62rem);
+  font-weight: 800;
+  line-height: 1.2;
+  color: #0f172a;
+}
+
+.kpi-value.kpi-negative {
+  color: #c62828;
+}
+
+.kpi-value.kpi-positive {
+  color: #2e7d32;
+}

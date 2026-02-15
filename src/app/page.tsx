@@ -95,52 +95,45 @@ export default function Home() {
           gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))'
         }}
       >
-        <div style={{ background: '#fff', border: '1px solid #ececec', borderRadius: 10, padding: '1rem' }}>
-          <h3 style={{ margin: 0, color: '#666', fontSize: '0.9rem' }}>총 자산(연금 제외)</h3>
-          <p style={{ margin: '0.45rem 0 0', fontWeight: 700, fontSize: '1.25rem' }}>
+        <div className="kpi-card">
+          <h3 className="kpi-label">총 자산(연금 제외)</h3>
+          <p className="kpi-value">
             {summary?.totalAssets?.toLocaleString() ?? '-'}원
           </p>
         </div>
-        <div style={{ background: '#fff', border: '1px solid #ececec', borderRadius: 10, padding: '1rem' }}>
-          <h3 style={{ margin: 0, color: '#666', fontSize: '0.9rem' }}>현금성 자산(입출금/현금)</h3>
-          <p style={{ margin: '0.45rem 0 0', fontWeight: 700, fontSize: '1.25rem' }}>
+        <div className="kpi-card">
+          <h3 className="kpi-label">현금성 자산(입출금/현금)</h3>
+          <p className="kpi-value">
             {liquidAssetsTotal.toLocaleString()}원
           </p>
         </div>
-        <div style={{ background: '#fff', border: '1px solid #ececec', borderRadius: 10, padding: '1rem' }}>
-          <h3 style={{ margin: 0, color: '#666', fontSize: '0.9rem' }}>총 부채</h3>
-          <p style={{ margin: '0.45rem 0 0', fontWeight: 700, fontSize: '1.25rem', color: '#d32f2f' }}>
+        <div className="kpi-card">
+          <h3 className="kpi-label">총 부채</h3>
+          <p className="kpi-value kpi-negative">
             {summary?.totalLiabilities?.toLocaleString() ?? '-'}원
           </p>
         </div>
-        <div style={{ background: '#fff', border: '1px solid #ececec', borderRadius: 10, padding: '1rem' }}>
-          <h3 style={{ margin: 0, color: '#666', fontSize: '0.9rem' }}>순자산</h3>
-          <p style={{ margin: '0.45rem 0 0', fontWeight: 700, fontSize: '1.25rem', color: '#2e7d32' }}>
+        <div className="kpi-card">
+          <h3 className="kpi-label">순자산</h3>
+          <p className="kpi-value kpi-positive">
             {summary?.netWorth?.toLocaleString() ?? '-'}원
           </p>
         </div>
-        <div style={{ background: '#fff', border: '1px solid #ececec', borderRadius: 10, padding: '1rem' }}>
-          <h3 style={{ margin: 0, color: '#666', fontSize: '0.9rem' }}>월 지출(환산)</h3>
-          <p style={{ margin: '0.45rem 0 0', fontWeight: 700, fontSize: '1.25rem' }}>
+        <div className="kpi-card">
+          <h3 className="kpi-label">월 지출(환산)</h3>
+          <p className="kpi-value">
             {Math.round(monthlyExpense).toLocaleString()}원
           </p>
         </div>
-        <div style={{ background: '#fff', border: '1px solid #ececec', borderRadius: 10, padding: '1rem' }}>
-          <h3 style={{ margin: 0, color: '#666', fontSize: '0.9rem' }}>월 수입(환산)</h3>
-          <p style={{ margin: '0.45rem 0 0', fontWeight: 700, fontSize: '1.25rem' }}>
+        <div className="kpi-card">
+          <h3 className="kpi-label">월 수입(환산)</h3>
+          <p className="kpi-value">
             {Math.round(monthlyIncome).toLocaleString()}원
           </p>
         </div>
-        <div style={{ background: '#fff', border: '1px solid #ececec', borderRadius: 10, padding: '1rem' }}>
-          <h3 style={{ margin: 0, color: '#666', fontSize: '0.9rem' }}>월 잉여자금</h3>
-          <p
-            style={{
-              margin: '0.45rem 0 0',
-              fontWeight: 700,
-              fontSize: '1.25rem',
-              color: monthlySurplus >= 0 ? '#2e7d32' : '#d32f2f'
-            }}
-          >
+        <div className="kpi-card">
+          <h3 className="kpi-label">월 잉여자금</h3>
+          <p className={`kpi-value ${monthlySurplus >= 0 ? 'kpi-positive' : 'kpi-negative'}`}>
             {Math.round(monthlySurplus).toLocaleString()}원
           </p>
         </div>

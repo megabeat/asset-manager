@@ -158,26 +158,26 @@ export default function DashboardPage() {
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginTop: '1rem' }}>
         <SectionCard style={{ padding: '1.25rem' }}>
-          <h3 style={{ margin: 0, fontSize: '0.9rem', color: '#666' }}>총 자산(연금 제외)</h3>
-          <p style={{ margin: '0.5rem 0 0', fontSize: '1.5rem', fontWeight: 'bold' }}>
+          <h3 className="kpi-label">총 자산(연금 제외)</h3>
+          <p className="kpi-value">
             {summary.totalAssets.toLocaleString()}원
           </p>
         </SectionCard>
         <SectionCard style={{ padding: '1.25rem' }}>
-          <h3 style={{ margin: 0, fontSize: '0.9rem', color: '#666' }}>총 부채</h3>
-          <p style={{ margin: '0.5rem 0 0', fontSize: '1.5rem', fontWeight: 'bold', color: '#d32f2f' }}>
+          <h3 className="kpi-label">총 부채</h3>
+          <p className="kpi-value kpi-negative">
             {summary.totalLiabilities.toLocaleString()}원
           </p>
         </SectionCard>
         <SectionCard style={{ padding: '1.25rem' }}>
-          <h3 style={{ margin: 0, fontSize: '0.9rem', color: '#666' }}>순자산</h3>
-          <p style={{ margin: '0.5rem 0 0', fontSize: '1.5rem', fontWeight: 'bold', color: '#388e3c' }}>
+          <h3 className="kpi-label">순자산</h3>
+          <p className="kpi-value kpi-positive">
             {summary.netWorth.toLocaleString()}원
           </p>
         </SectionCard>
         <SectionCard style={{ padding: '1.25rem' }}>
-          <h3 style={{ margin: 0, fontSize: '0.9rem', color: '#666' }}>월 고정지출</h3>
-          <p style={{ margin: '0.5rem 0 0', fontSize: '1.5rem', fontWeight: 'bold' }}>
+          <h3 className="kpi-label">월 고정지출</h3>
+          <p className="kpi-value">
             {summary.monthlyFixedExpense.toLocaleString()}원
           </p>
         </SectionCard>
