@@ -15,6 +15,7 @@ import {
   Cell,
   Legend
 } from 'recharts';
+import { SectionCard } from '@/components/ui/SectionCard';
 
 type Summary = {
   totalAssets: number;
@@ -33,6 +34,8 @@ type AssetItem = {
   name: string;
   category: string;
   currentValue: number;
+  usdAmount?: number;
+  exchangeRate?: number;
 };
 
 const COLORS = ['#0b63ce', '#2e7d32', '#f57c00', '#7b1fa2', '#c2185b', '#00796b'];
@@ -85,41 +88,86 @@ export default function DashboardPage() {
     }, {})
   ).map(([name, value]) => ({ name, value }));
 
+  const pensionValue = assets
+    .filter((asset) => asset.category === 'pension')
+    .reduce((sum, asset) => sum + (asset.currentValue ?? 0), 0);
+
+  const krStockValue = assets
+    .filter((asset) => asset.category === 'stock_kr')
+    .reduce((sum, asset) => sum + (asset.currentValue ?? 0), 0);
+
+  const usStockValue = assets
+    .filter((asset) => asset.category === 'stock_us')
+    .reduce((sum, asset) => sum + (asset.currentValue ?? 0), 0);
+
+  const stockSplitData = [
+    { name: '국내주식', value: krStockValue },
+    { name: '미국주식', value: usStockValue }
+  ].filter((item) => item.value > 0);
+
+  const usStockAssets = assets.filter(
+    (asset) => asset.category === 'stock_us' && (asset.exchangeRate ?? 0) > 0
+  );
+  const fxAverageRate =
+    usStockAssets.length > 0
+      ? usStockAssets.reduce((sum, asset) => sum + Number(asset.exchangeRate ?? 0), 0) / usStockAssets.length
+      : null;
+
   return (
-    <div style={{ padding: '2rem', fontFamily: 'system-ui, sans-serif' }}>
+    <div style={{ padding: '1rem 0' }}>
       <h1>대시보드</h1>
 
       {error && <p style={{ marginTop: '0.75rem' }}>일부 데이터 로드 실패: {error}</p>}
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginTop: '2rem' }}>
-        <div style={{ padding: '1.5rem', border: '1px solid #ddd', borderRadius: '8px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginTop: '1rem' }}>
+        <SectionCard style={{ padding: '1.25rem' }}>
           <h3 style={{ margin: 0, fontSize: '0.9rem', color: '#666' }}>총 자산</h3>
           <p style={{ margin: '0.5rem 0 0', fontSize: '1.5rem', fontWeight: 'bold' }}>
             {summary.totalAssets.toLocaleString()}원
           </p>
-        </div>
-        <div style={{ padding: '1.5rem', border: '1px solid #ddd', borderRadius: '8px' }}>
+        </SectionCard>
+        <SectionCard style={{ padding: '1.25rem' }}>
           <h3 style={{ margin: 0, fontSize: '0.9rem', color: '#666' }}>총 부채</h3>
           <p style={{ margin: '0.5rem 0 0', fontSize: '1.5rem', fontWeight: 'bold', color: '#d32f2f' }}>
             {summary.totalLiabilities.toLocaleString()}원
           </p>
-        </div>
-        <div style={{ padding: '1.5rem', border: '1px solid #ddd', borderRadius: '8px' }}>
+        </SectionCard>
+        <SectionCard style={{ padding: '1.25rem' }}>
           <h3 style={{ margin: 0, fontSize: '0.9rem', color: '#666' }}>순자산</h3>
           <p style={{ margin: '0.5rem 0 0', fontSize: '1.5rem', fontWeight: 'bold', color: '#388e3c' }}>
             {summary.netWorth.toLocaleString()}원
           </p>
-        </div>
-        <div style={{ padding: '1.5rem', border: '1px solid #ddd', borderRadius: '8px' }}>
+        </SectionCard>
+        <SectionCard style={{ padding: '1.25rem' }}>
           <h3 style={{ margin: 0, fontSize: '0.9rem', color: '#666' }}>월 고정지출</h3>
           <p style={{ margin: '0.5rem 0 0', fontSize: '1.5rem', fontWeight: 'bold' }}>
             {summary.monthlyFixedExpense.toLocaleString()}원
           </p>
-        </div>
+        </SectionCard>
+      </div>
+
+      <div style={{ marginTop: '1rem', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '1rem' }}>
+        <SectionCard>
+          <h3 style={{ marginTop: 0 }}>연금 자산</h3>
+          <p style={{ margin: 0, fontSize: '1.35rem', fontWeight: 700 }}>{pensionValue.toLocaleString()}원</p>
+          <p className="helper-text" style={{ marginTop: '0.5rem' }}>
+            국민연금/개인연금 등 연금 카테고리 합산 기준
+          </p>
+        </SectionCard>
+
+        <SectionCard>
+          <h3 style={{ marginTop: 0 }}>미국주식 환율 기준</h3>
+          <p style={{ margin: 0, fontSize: '1.35rem', fontWeight: 700 }}>
+            {fxAverageRate ? `${fxAverageRate.toFixed(2)} KRW/USD` : '-'}
+          </p>
+          <p className="helper-text" style={{ marginTop: '0.5rem' }}>
+            입력된 미국주식 건의 평균 환율 기준 (없으면 표시 안함)
+          </p>
+        </SectionCard>
       </div>
 
       <div style={{ marginTop: '2rem', display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '1rem' }}>
-        <div style={{ border: '1px solid #ddd', borderRadius: 8, padding: '1rem' }}>
+        <SectionCard>
           <h3 style={{ marginTop: 0 }}>자산 추이 (30일)</h3>
           {trend.length === 0 ? (
             <p>추이 데이터가 없습니다.</p>
@@ -136,9 +184,9 @@ export default function DashboardPage() {
               </ResponsiveContainer>
             </div>
           )}
-        </div>
+        </SectionCard>
 
-        <div style={{ border: '1px solid #ddd', borderRadius: 8, padding: '1rem' }}>
+        <SectionCard>
           <h3 style={{ marginTop: 0 }}>자산 카테고리 비중</h3>
           {categoryData.length === 0 ? (
             <p>카테고리 데이터가 없습니다.</p>
@@ -164,7 +212,37 @@ export default function DashboardPage() {
               </ResponsiveContainer>
             </div>
           )}
-        </div>
+        </SectionCard>
+      </div>
+
+      <div style={{ marginTop: '1rem' }}>
+        <SectionCard>
+          <h3 style={{ marginTop: 0 }}>국내/미국 주식 비중</h3>
+          {stockSplitData.length === 0 ? (
+            <p>주식 데이터가 없습니다.</p>
+          ) : (
+            <div style={{ width: '100%', height: 280 }}>
+              <ResponsiveContainer>
+                <PieChart>
+                  <Pie
+                    data={stockSplitData}
+                    dataKey="value"
+                    nameKey="name"
+                    innerRadius={45}
+                    outerRadius={85}
+                    paddingAngle={2}
+                  >
+                    {stockSplitData.map((_, index) => (
+                      <Cell key={index} fill={COLORS[(index + 2) % COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip formatter={(value: number) => `${Number(value).toLocaleString()}원`} />
+                  <Legend />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+          )}
+        </SectionCard>
       </div>
     </div>
   );
