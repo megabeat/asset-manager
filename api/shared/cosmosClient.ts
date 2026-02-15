@@ -1,6 +1,14 @@
-import { CosmosClient, Container } from "@azure/cosmos";
+import { webcrypto } from "node:crypto";
 
-let client: CosmosClient | null = null;
+if (!(globalThis as { crypto?: Crypto }).crypto) {
+  (globalThis as { crypto: Crypto }).crypto = webcrypto as unknown as Crypto;
+}
+
+const { CosmosClient } = require("@azure/cosmos") as typeof import("@azure/cosmos");
+type CosmosClientType = import("@azure/cosmos").CosmosClient;
+type Container = import("@azure/cosmos").Container;
+
+let client: CosmosClientType | null = null;
 
 function firstDefined(...values: Array<string | undefined>): string | undefined {
   return values.find((value) => typeof value === "string" && value.trim().length > 0)?.trim();
@@ -22,7 +30,7 @@ function normalizeKey(rawKey: string | undefined): string | undefined {
   return normalized.length > 0 ? normalized : undefined;
 }
 
-function getClient(): CosmosClient {
+function getClient(): CosmosClientType {
   if (!client) {
     const connectionString = firstDefined(
       process.env.COSMOS_CONNECTION_STRING,

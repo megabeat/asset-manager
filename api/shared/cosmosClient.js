@@ -1,7 +1,11 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.getContainer = getContainer;
-const cosmos_1 = require("@azure/cosmos");
+const node_crypto_1 = require("node:crypto");
+if (!globalThis.crypto) {
+    globalThis.crypto = node_crypto_1.webcrypto;
+}
+const { CosmosClient } = require("@azure/cosmos");
 let client = null;
 function firstDefined(...values) {
     return values.find((value) => typeof value === "string" && value.trim().length > 0)?.trim();
@@ -19,7 +23,7 @@ function getClient() {
     if (!client) {
         const connectionString = firstDefined(process.env.COSMOS_CONNECTION_STRING, process.env.COSMOSDB_CONNECTION_STRING);
         if (connectionString) {
-            client = new cosmos_1.CosmosClient(connectionString);
+            client = new CosmosClient(connectionString);
             return client;
         }
         const endpoint = firstDefined(process.env.COSMOS_ENDPOINT, process.env.COSMOSDB_ENDPOINT, process.env.ACCOUNT_ENDPOINT, process.env.COSMOS_URI);
@@ -27,7 +31,7 @@ function getClient() {
         if (!endpoint || !key) {
             throw new Error("Missing Cosmos DB configuration. Set COSMOS_CONNECTION_STRING or COSMOS_ENDPOINT + COSMOS_KEY.");
         }
-        client = new cosmos_1.CosmosClient({ endpoint, key });
+        client = new CosmosClient({ endpoint, key });
     }
     return client;
 }
