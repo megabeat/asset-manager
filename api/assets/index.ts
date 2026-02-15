@@ -109,6 +109,12 @@ export async function assetsHandler(context: InvocationContext, req: HttpRequest
           quantity: ensureOptionalNumber(body.quantity, "quantity") ?? null,
           valuationDate: ensureString(body.valuationDate, "valuationDate"),
           symbol: ensureOptionalString(body.symbol, "symbol") ?? "",
+          exchangeRate: ensureOptionalNumber(body.exchangeRate, "exchangeRate") ?? null,
+          usdAmount: ensureOptionalNumber(body.usdAmount, "usdAmount") ?? null,
+          pensionMonthlyContribution:
+            ensureOptionalNumber(body.pensionMonthlyContribution, "pensionMonthlyContribution") ?? null,
+          pensionReceiveStart: ensureOptionalString(body.pensionReceiveStart, "pensionReceiveStart") ?? "",
+          pensionReceiveAge: ensureOptionalNumber(body.pensionReceiveAge, "pensionReceiveAge") ?? null,
           exchange: ensureOptionalString(body.exchange, "exchange") ?? "",
           priceSource: ensureOptionalString(body.priceSource, "priceSource") ?? "",
           autoUpdate: ensureOptionalBoolean(body.autoUpdate, "autoUpdate") ?? false,
@@ -154,6 +160,16 @@ export async function assetsHandler(context: InvocationContext, req: HttpRequest
           quantity: ensureOptionalNumber(body.quantity, "quantity") ?? resource.quantity,
           valuationDate: ensureOptionalString(body.valuationDate, "valuationDate") ?? resource.valuationDate,
           symbol: ensureOptionalString(body.symbol, "symbol") ?? resource.symbol,
+          exchangeRate: ensureOptionalNumber(body.exchangeRate, "exchangeRate") ?? resource.exchangeRate,
+          usdAmount: ensureOptionalNumber(body.usdAmount, "usdAmount") ?? resource.usdAmount,
+          pensionMonthlyContribution:
+            ensureOptionalNumber(body.pensionMonthlyContribution, "pensionMonthlyContribution") ??
+            resource.pensionMonthlyContribution,
+          pensionReceiveStart:
+            ensureOptionalString(body.pensionReceiveStart, "pensionReceiveStart") ??
+            resource.pensionReceiveStart,
+          pensionReceiveAge:
+            ensureOptionalNumber(body.pensionReceiveAge, "pensionReceiveAge") ?? resource.pensionReceiveAge,
           exchange: ensureOptionalString(body.exchange, "exchange") ?? resource.exchange,
           priceSource: ensureOptionalString(body.priceSource, "priceSource") ?? resource.priceSource,
           autoUpdate: ensureOptionalBoolean(body.autoUpdate, "autoUpdate") ?? resource.autoUpdate,

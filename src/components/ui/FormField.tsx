@@ -12,7 +12,7 @@ export function FormField({ label, error, fullWidth = false, children }: FormFie
     <label style={fullWidth ? { gridColumn: '1 / -1' } : undefined}>
       <span className="helper-text">{label}</span>
       {children}
-      {error ? <div className="error-text">{error}</div> : null}
+      {error ? <div className="form-error">{error}</div> : null}
     </label>
   );
 }

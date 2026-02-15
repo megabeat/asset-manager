@@ -20,6 +20,12 @@ export type Asset = {
   category: string;
   currentValue: number;
   valuationDate: string;
+  symbol?: string;
+  exchangeRate?: number;
+  usdAmount?: number;
+  pensionMonthlyContribution?: number;
+  pensionReceiveStart?: string;
+  pensionReceiveAge?: number;
   note?: string;
 };
 
