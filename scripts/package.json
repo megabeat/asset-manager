@@ -1,0 +1,11 @@
+{
+  "name": "asset-scripts",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "setup-cosmos": "node setup-cosmos.js"
+  },
+  "dependencies": {
+    "@azure/cosmos": "^4.3.1"
+  }
+}
