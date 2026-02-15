@@ -23,7 +23,13 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
-          node-version: '18'
+          node-version: '20'
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Build Next.js app
+        run: npm run build
       
       - name: Build And Deploy
         id: builddeploy
@@ -34,9 +40,9 @@ jobs:
           action: "upload"
           app_location: "/"
           api_location: "api"
-          output_location: ".next"
-          app_build_command: "npm run build"
-          api_build_command: "cd api && npm install"
+          output_location: "out"
+          skip_app_build: true
+          skip_api_build: false
 
   close_pull_request_job:
     if: github.event_name == 'pull_request' && github.event.action == 'closed'
