@@ -29,14 +29,17 @@ const defaultForm: ExpenseForm = {
   category: ''
 };
 
+const CARD_ISSUERS = ['신한', '삼성', '현대'] as const;
+type CardIssuer = (typeof CARD_ISSUERS)[number];
+
   type CardQuickForm = {
-    cardName: string;
+    cardName: CardIssuer;
     amount: number;
     occurredAt: string;
   };
 
   const defaultCardQuickForm: CardQuickForm = {
-    cardName: '',
+    cardName: '신한',
     amount: 0,
     occurredAt: new Date().toISOString().slice(0, 10),
   };
@@ -93,6 +96,50 @@ export default function ExpensesPage() {
 
     return cardRows[0]?.amount ?? 0;
   }, [expenses, cardQuickForm.cardName]);
+
+  const cardIssuerMonthlyStats = useMemo(() => {
+    const cardExpenses = expenses.filter((item) => {
+      const category = item.category ?? '';
+      const name = item.name ?? '';
+      return category.includes('카드') || name.includes('카드대금');
+    });
+
+    const monthSet = new Set<string>();
+    const amountByIssuerMonth = new Map<string, number>();
+
+    for (const expense of cardExpenses) {
+      const occurredAt = String(expense.occurredAt ?? '').slice(0, 7);
+      if (!occurredAt || occurredAt.length < 7) {
+        continue;
+      }
+
+      const issuer = CARD_ISSUERS.find((cardIssuer) => (expense.name ?? '').includes(cardIssuer));
+      if (!issuer) {
+        continue;
+      }
+
+      monthSet.add(occurredAt);
+      const key = `${issuer}|${occurredAt}`;
+      amountByIssuerMonth.set(key, (amountByIssuerMonth.get(key) ?? 0) + Number(expense.amount ?? 0));
+    }
+
+    const months = Array.from(monthSet.values()).sort((a, b) => a.localeCompare(b));
+    const currentMonth = months.length > 0 ? months[months.length - 1] : null;
+    const previousMonth = months.length > 1 ? months[months.length - 2] : null;
+
+    const rows = CARD_ISSUERS.map((issuer) => {
+      const currentAmount = currentMonth ? amountByIssuerMonth.get(`${issuer}|${currentMonth}`) ?? 0 : 0;
+      const previousAmount = previousMonth ? amountByIssuerMonth.get(`${issuer}|${previousMonth}`) ?? 0 : 0;
+      return {
+        issuer,
+        currentAmount,
+        previousAmount,
+        delta: currentAmount - previousAmount,
+      };
+    });
+
+    return { rows, currentMonth, previousMonth };
+  }, [expenses]);
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -329,11 +376,16 @@ export default function ExpensesPage() {
         <h3 style={{ marginTop: 0, marginBottom: '0.75rem' }}>이번 달 카드대금 빠른입력</h3>
         <div className="form-grid">
           <FormField label="카드명">
-            <input
+            <select
               value={cardQuickForm.cardName}
-              placeholder="예: 신한, 삼성"
-              onChange={(event) => setCardQuickForm((prev) => ({ ...prev, cardName: event.target.value }))}
-            />
+              onChange={(event) =>
+                setCardQuickForm((prev) => ({ ...prev, cardName: event.target.value as CardIssuer }))
+              }
+            >
+              {CARD_ISSUERS.map((issuer) => (
+                <option key={issuer} value={issuer}>{issuer}</option>
+              ))}
+            </select>
           </FormField>
           <FormField label="청구금액(원)">
             <input
@@ -357,6 +409,42 @@ export default function ExpensesPage() {
         <p className="helper-text" style={{ marginBottom: 0 }}>
           최근 카드대금 참고: {Math.round(previousCardAmount).toLocaleString()}원
         </p>
+      </SectionCard>
+
+      <SectionCard style={{ marginTop: '1rem', maxWidth: 980 }}>
+        <h3 style={{ marginTop: 0, marginBottom: '0.75rem' }}>카드사별 월간 비교</h3>
+        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+          <thead>
+            <tr>
+              <th style={{ textAlign: 'left', padding: '0.5rem 0' }}>카드사</th>
+              <th style={{ textAlign: 'right', padding: '0.5rem 0' }}>
+                {cardIssuerMonthlyStats.currentMonth ?? '이번달'}
+              </th>
+              <th style={{ textAlign: 'right', padding: '0.5rem 0' }}>
+                {cardIssuerMonthlyStats.previousMonth ?? '전월'}
+              </th>
+              <th style={{ textAlign: 'right', padding: '0.5rem 0' }}>증감</th>
+            </tr>
+          </thead>
+          <tbody>
+            {cardIssuerMonthlyStats.rows.map((row) => (
+              <tr key={row.issuer}>
+                <td style={{ padding: '0.4rem 0' }}>{row.issuer}</td>
+                <td style={{ textAlign: 'right', padding: '0.4rem 0' }}>{Math.round(row.currentAmount).toLocaleString()}원</td>
+                <td style={{ textAlign: 'right', padding: '0.4rem 0' }}>{Math.round(row.previousAmount).toLocaleString()}원</td>
+                <td
+                  style={{
+                    textAlign: 'right',
+                    padding: '0.4rem 0',
+                    color: row.delta >= 0 ? '#d32f2f' : '#2e7d32'
+                  }}
+                >
+                  {row.delta >= 0 ? '+' : ''}{Math.round(row.delta).toLocaleString()}원
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </SectionCard>
 
       <SectionCard style={{ marginTop: '1rem', display: 'flex', gap: '0.5rem', alignItems: 'center', maxWidth: 520 }}>
