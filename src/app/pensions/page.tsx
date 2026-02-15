@@ -107,6 +107,10 @@ export default function PensionsPage() {
     [pensions]
   );
 
+  const nationalPensionRatio = totalPensionValue > 0 ? (nationalPensionValue / totalPensionValue) * 100 : 0;
+  const personalPensionRatio = totalPensionValue > 0 ? (personalPensionValue / totalPensionValue) * 100 : 0;
+  const retirementPensionRatio = totalPensionValue > 0 ? (retirementPensionValue / totalPensionValue) * 100 : 0;
+
   const pensionSplitData = useMemo(
     () => [
       { name: '국민연금', value: nationalPensionValue },
@@ -204,28 +208,36 @@ export default function PensionsPage() {
 
   return (
     <div style={{ padding: '1rem 0' }}>
-      <h1>연금 관리</h1>
+      <h1>연금관리</h1>
+      <p className="helper-text" style={{ marginTop: '0.4rem' }}>
+        국민연금 / 개인연금 / 퇴직연금(IPA)을 분리 관리하고, 총액과 비중을 한 화면에서 확인합니다.
+      </p>
 
       <div className="form-grid" style={{ marginTop: '1rem' }}>
         <SectionCard>
           <p className="helper-text">전체 연금 자산</p>
           <h2 style={{ margin: 0 }}>{totalPensionValue.toLocaleString()}원</h2>
+          <p className="helper-text" style={{ marginTop: '0.4rem' }}>연금 3유형 합산</p>
         </SectionCard>
         <SectionCard>
           <p className="helper-text">국민연금</p>
           <h2 style={{ margin: 0 }}>{nationalPensionValue.toLocaleString()}원</h2>
+          <p className="helper-text" style={{ marginTop: '0.4rem' }}>{nationalPensionRatio.toFixed(1)}%</p>
         </SectionCard>
         <SectionCard>
           <p className="helper-text">개인연금</p>
           <h2 style={{ margin: 0 }}>{personalPensionValue.toLocaleString()}원</h2>
+          <p className="helper-text" style={{ marginTop: '0.4rem' }}>{personalPensionRatio.toFixed(1)}%</p>
         </SectionCard>
         <SectionCard>
           <p className="helper-text">퇴직연금(IPA)</p>
           <h2 style={{ margin: 0 }}>{retirementPensionValue.toLocaleString()}원</h2>
+          <p className="helper-text" style={{ marginTop: '0.4rem' }}>{retirementPensionRatio.toFixed(1)}%</p>
         </SectionCard>
       </div>
 
       <SectionCard style={{ marginTop: '1rem' }}>
+        <h3 style={{ marginTop: 0, marginBottom: '0.75rem' }}>연금 자산 입력</h3>
         <form onSubmit={onSubmit} className="form-grid">
           <FormField label="연금 유형">
             <select
@@ -336,6 +348,7 @@ export default function PensionsPage() {
       {message && <p style={{ marginTop: '1rem' }}>{message}</p>}
 
       <SectionCard style={{ marginTop: '1rem' }}>
+        <h3 style={{ marginTop: 0, marginBottom: '0.75rem' }}>연금 자산 목록</h3>
         <DataTable
           rows={pensions}
           rowKey={(asset) => asset.id}
@@ -350,7 +363,13 @@ export default function PensionsPage() {
             {
               key: 'meta',
               header: '상세',
-              render: (asset) => `월납입 ${Number(asset.pensionMonthlyContribution ?? 0).toLocaleString()}원`,
+              render: (asset) =>
+                `월납입 ${Number(asset.pensionMonthlyContribution ?? 0).toLocaleString()}원 / 수령 ${Number(asset.pensionReceiveAge ?? 0)}세`,
+            },
+            {
+              key: 'start',
+              header: '수령시작',
+              render: (asset) => asset.pensionReceiveStart || '-',
             },
             {
               key: 'value',

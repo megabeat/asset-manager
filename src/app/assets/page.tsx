@@ -330,6 +330,9 @@ export default function AssetsPage() {
   return (
     <div style={{ padding: '1rem 0' }}>
       <h1>자산 관리</h1>
+        <p className="helper-text" style={{ marginTop: '0.4rem' }}>
+          연금 관련 자산은 연금관리 메뉴에서 별도로 관리합니다.
+        </p>
 
       <div className="form-grid" style={{ marginTop: '1rem' }}>
         <SectionCard>
