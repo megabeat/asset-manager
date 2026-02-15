@@ -8,6 +8,13 @@ import { fail, ok } from "../shared/responses";
 import { ensureString, requireUserId } from "../shared/validators";
 import { parseJsonBody } from "../shared/request-body";
 
+function toErrorDetails(error: unknown): string {
+  if (error instanceof Error) {
+    return `${error.name}: ${error.message}`;
+  }
+  return String(error);
+}
+
 
 export async function aiMessagesHandler(context: InvocationContext, req: HttpRequest): Promise<HttpResponseInit> {
   const { userId } = getAuthContext(req.headers);
@@ -178,7 +185,7 @@ ${userContext.topExpenses.map((e) => `- ${e.name}: ${e.amount.toLocaleString()}ì
         return ok({ userMessage, assistantMessage }, 201);
       } catch (error: unknown) {
         context.log(error);
-        return fail("SERVER_ERROR", "Failed to create message", 500);
+        return fail("SERVER_ERROR", "Failed to create message", 500, toErrorDetails(error));
       }
     }
     default:

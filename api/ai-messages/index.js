@@ -9,6 +9,12 @@ const openai_1 = require("../shared/openai");
 const responses_1 = require("../shared/responses");
 const validators_1 = require("../shared/validators");
 const request_body_1 = require("../shared/request-body");
+function toErrorDetails(error) {
+    if (error instanceof Error) {
+        return `${error.name}: ${error.message}`;
+    }
+    return String(error);
+}
 async function aiMessagesHandler(context, req) {
     const { userId } = (0, auth_1.getAuthContext)(req.headers);
     try {
@@ -145,7 +151,7 @@ ${userContext.topExpenses.map((e) => `- ${e.name}: ${e.amount.toLocaleString()}ì
             }
             catch (error) {
                 context.log(error);
-                return (0, responses_1.fail)("SERVER_ERROR", "Failed to create message", 500);
+                return (0, responses_1.fail)("SERVER_ERROR", "Failed to create message", 500, toErrorDetails(error));
             }
         }
         default:
