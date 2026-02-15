@@ -54,9 +54,17 @@ export async function dashboardHandler(req: HttpRequest, context: InvocationCont
   switch (action) {
     case "summary":
       try {
-        const assetsContainer = getContainer("assets");
-        const expensesContainer = getContainer("expenses");
-        const liabilitiesContainer = getContainer("liabilities");
+        let assetsContainer;
+        let expensesContainer;
+        let liabilitiesContainer;
+        try {
+          assetsContainer = getContainer("assets");
+          expensesContainer = getContainer("expenses");
+          liabilitiesContainer = getContainer("liabilities");
+        } catch (error: unknown) {
+          context.log(error);
+          return fail("SERVER_ERROR", "Cosmos DB configuration error", 500);
+        }
 
         const assetsQuery = {
           query: "SELECT VALUE SUM(c.currentValue) FROM c WHERE c.userId = @userId AND c.type = 'Asset'",
@@ -97,7 +105,13 @@ export async function dashboardHandler(req: HttpRequest, context: InvocationCont
       }
 
       try {
-        const container = getContainer("assetHistory");
+        let container;
+        try {
+          container = getContainer("assetHistory");
+        } catch (error: unknown) {
+          context.log(error);
+          return fail("SERVER_ERROR", "Cosmos DB configuration error", 500);
+        }
         const query = {
           query:
             "SELECT c.recordedAt, c.value FROM c WHERE c.userId = @userId AND c.recordedAt >= @from AND c.recordedAt <= @to",

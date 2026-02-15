@@ -25,7 +25,13 @@ export async function expensesHandler(req: HttpRequest, context: InvocationConte
     return fail("UNAUTHORIZED", "Authentication required", 401);
   }
 
-  const container = getContainer("expenses");
+  let container;
+  try {
+    container = getContainer("expenses");
+  } catch (error: unknown) {
+    context.log(error);
+    return fail("SERVER_ERROR", "Cosmos DB configuration error", 500);
+  }
   const expenseId = req.params.expenseId;
 
   switch (req.method.toUpperCase()) {

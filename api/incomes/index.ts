@@ -27,7 +27,13 @@ export async function incomesHandler(
     return fail("UNAUTHORIZED", "Authentication required", 401);
   }
 
-  const container = getContainer("incomes");
+  let container;
+  try {
+    container = getContainer("incomes");
+  } catch (error: unknown) {
+    context.log(error);
+    return fail("SERVER_ERROR", "Cosmos DB configuration error", 500);
+  }
   const incomeId = req.params.incomeId;
 
   switch (req.method.toUpperCase()) {

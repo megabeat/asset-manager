@@ -21,7 +21,13 @@ export async function assetsHandler(req: HttpRequest, context: InvocationContext
     return fail("UNAUTHORIZED", "Authentication required", 401);
   }
 
-  const container = getContainer("assets");
+  let container;
+  try {
+    container = getContainer("assets");
+  } catch (error: unknown) {
+    context.log(error);
+    return fail("SERVER_ERROR", "Cosmos DB configuration error", 500);
+  }
   const assetId = req.params.assetId;
 
   switch (req.method.toUpperCase()) {

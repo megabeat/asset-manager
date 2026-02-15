@@ -19,7 +19,13 @@ export async function profileHandler(req: HttpRequest, context: InvocationContex
     return fail("UNAUTHORIZED", "Authentication required", 401);
   }
 
-  const container = getContainer("users");
+  let container;
+  try {
+    container = getContainer("users");
+  } catch (error: unknown) {
+    context.log(error);
+    return fail("SERVER_ERROR", "Cosmos DB configuration error", 500);
+  }
 
   switch (req.method.toUpperCase()) {
     case "GET": {

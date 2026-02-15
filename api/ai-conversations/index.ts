@@ -14,7 +14,13 @@ export async function aiConversationsHandler(req: HttpRequest, context: Invocati
     return fail("UNAUTHORIZED", "Authentication required", 401);
   }
 
-  const container = getContainer("aiConversations");
+  let container;
+  try {
+    container = getContainer("aiConversations");
+  } catch (error: unknown) {
+    context.log(error);
+    return fail("SERVER_ERROR", "Cosmos DB configuration error", 500);
+  }
   const conversationId = req.params.conversationId;
 
   switch (req.method.toUpperCase()) {
