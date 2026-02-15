@@ -9,6 +9,7 @@ const openai_1 = require("../shared/openai");
 const responses_1 = require("../shared/responses");
 const validators_1 = require("../shared/validators");
 const request_body_1 = require("../shared/request-body");
+const webSearch_1 = require("../shared/webSearch");
 function toErrorDetails(error) {
     if (error instanceof Error) {
         return `${error.name}: ${error.message}`;
@@ -89,6 +90,18 @@ async function aiMessagesHandler(context, req) {
                 const expensesContainer = (0, cosmosClient_1.getContainer)("expenses");
                 const incomesContainer = (0, cosmosClient_1.getContainer)("incomes");
                 const userContext = await (0, context_builder_1.buildUserContext)(userId, assetsContainer, liabilitiesContainer, expensesContainer, incomesContainer);
+                let webSearchContext = "웹 검색 결과 없음";
+                try {
+                    const webResults = await (0, webSearch_1.searchWeb)(content, 4);
+                    if (webResults.length > 0) {
+                        webSearchContext = webResults
+                            .map((item, index) => `${index + 1}. ${item.title}\n- 요약: ${item.snippet}\n- URL: ${item.url}`)
+                            .join("\n\n");
+                    }
+                }
+                catch (searchError) {
+                    context.log("Web search error:", searchError);
+                }
                 // Build system prompt with context
                 const systemPrompt = `당신의 이름은 Mr. Money 입니다.
 
@@ -115,6 +128,7 @@ async function aiMessagesHandler(context, req) {
 - 항상 한국어로 답변합니다.
 - 필요한 경우 항목별로 구조화하여 제시합니다.
 - 구체적인 행동 단계(예: 오늘/이번 달/분기)를 함께 제안합니다.
+- 웹 검색 결과를 사용한 경우, 답변 끝에 "참고한 출처" 섹션을 만들고 URL을 1개 이상 포함합니다.
 
 현재 사용자 재무 상황:
 - 총 자산: ${userContext.totalAssets.toLocaleString()}원
@@ -132,6 +146,9 @@ ${(userContext.assetBreakdown.length > 0 ? userContext.assetBreakdown : [{ categ
 ${(userContext.topExpenses.length > 0 ? userContext.topExpenses : [{ name: "데이터 없음", amount: 0 }])
                     .map((e) => `- ${e.name}: ${e.amount.toLocaleString()}원`)
                     .join("\n")}
+
+웹 검색 결과(최신 정보 참고용):
+${webSearchContext}
 
 사용자 질문에 대해 구체적이고 실용적인 조언을 제공하세요.`;
                 // Fetch conversation history

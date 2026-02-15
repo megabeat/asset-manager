@@ -68,6 +68,9 @@ COSMOS_DATABASE_ID=AssetManagement
 AZURE_OPENAI_ENDPOINT=https://your-resource.openai.azure.com/
 AZURE_OPENAI_API_KEY=your-api-key
 AZURE_OPENAI_DEPLOYMENT_NAME=gpt-4
+BING_SEARCH_API_KEY=your-bing-api-key
+# 선택: 기본값 이미 있음
+# BING_SEARCH_ENDPOINT=https://api.bing.microsoft.com/v7.0/search
 AUTH_ALLOWED_USERS=your-login-email@example.com
 ALLOW_DEV_HEADER_AUTH=false
 ```

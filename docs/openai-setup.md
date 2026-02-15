@@ -8,6 +8,9 @@ AI 상담 기능을 사용하려면 다음 환경 변수를 설정해야 합니�
 AZURE_OPENAI_ENDPOINT=https://your-resource.openai.azure.com/
 AZURE_OPENAI_API_KEY=your-api-key
 AZURE_OPENAI_DEPLOYMENT_NAME=your-deployment-name
+BING_SEARCH_API_KEY=your-bing-api-key
+# Optional (default already set)
+# BING_SEARCH_ENDPOINT=https://api.bing.microsoft.com/v7.0/search
 ```
 
 ## Azure OpenAI 리소스 생성
@@ -24,6 +27,7 @@ AZURE_OPENAI_DEPLOYMENT_NAME=your-deployment-name
 - 자산 구성 (카테고리별)
 - 주요 지출 항목 (상위 5개)
 - 최근 대화 이력 (최대 10개)
+- (옵션) Bing 웹 검색 결과 요약 및 출처 URL
 
 ### 사용 예시
 ```bash
@@ -50,7 +54,8 @@ AI는 사용자의 실제 재무 데이터를 기반으로 맞춤형 조언을 �
   "Values": {
     "AZURE_OPENAI_ENDPOINT": "https://...",
     "AZURE_OPENAI_API_KEY": "...",
-    "AZURE_OPENAI_DEPLOYMENT_NAME": "..."
+    "AZURE_OPENAI_DEPLOYMENT_NAME": "...",
+    "BING_SEARCH_API_KEY": "..."
   }
 }
 ```
