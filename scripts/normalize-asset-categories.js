@@ -56,6 +56,9 @@ const CATEGORY_MAP = {
   etc: "etc",
   기타: "etc",
   other: "etc",
+  investment: "etc",
+  invest: "etc",
+  투자: "etc",
 
   pension: "pension",
   연금: "pension",
