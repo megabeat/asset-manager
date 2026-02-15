@@ -7,7 +7,7 @@ const cosmosClient_1 = require("../shared/cosmosClient");
 const responses_1 = require("../shared/responses");
 const validators_1 = require("../shared/validators");
 const request_body_1 = require("../shared/request-body");
-const expenseTypes = ["fixed", "subscription"];
+const expenseTypes = ["fixed", "subscription", "one_time"];
 const billingCycles = ["monthly", "yearly", "one_time"];
 function resolveOccurredAt(value) {
     const candidate = (0, validators_1.ensureOptionalString)(value, "occurredAt") ?? new Date().toISOString().slice(0, 10);

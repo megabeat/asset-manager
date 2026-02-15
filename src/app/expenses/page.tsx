@@ -12,7 +12,7 @@ type NumericInput = number | '';
 type ExpenseForm = {
   name: string;
   amount: NumericInput;
-  type: 'fixed' | 'subscription';
+  type: 'fixed' | 'subscription' | 'one_time';
   cycle: 'monthly' | 'yearly' | 'one_time';
   billingDay: NumericInput;
   occurredAt: string;
@@ -51,13 +51,13 @@ export default function ExpensesPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [entryMode, setEntryMode] = useState<'card' | 'general'>('card');
-  const [filter, setFilter] = useState<'all' | 'fixed' | 'subscription'>('all');
+  const [filter, setFilter] = useState<'all' | 'fixed' | 'subscription' | 'one_time'>('all');
   const [form, setForm] = useState<ExpenseForm>(defaultForm);
   const [cardQuickForm, setCardQuickForm] = useState<CardQuickForm>(defaultCardQuickForm);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const { message, clearMessage, setMessageText, setSuccessMessage, setErrorMessage } = useFeedbackMessage();
 
-  async function loadExpenses(selectedType: 'all' | 'fixed' | 'subscription' = filter) {
+  async function loadExpenses(selectedType: 'all' | 'fixed' | 'subscription' | 'one_time' = filter) {
     const result = await api.getExpenses(selectedType === 'all' ? undefined : selectedType);
     if (result.data) {
       setExpenses(result.data);
@@ -205,7 +205,7 @@ export default function ExpensesPage() {
     const result = await api.createExpense({
       name: `${cardQuickForm.cardName.trim()} 카드대금`,
       amount: cardAmountValue,
-      type: 'fixed',
+      type: 'one_time',
       cycle: 'one_time',
       billingDay: null,
       occurredAt: cardQuickForm.occurredAt,
@@ -232,7 +232,7 @@ export default function ExpensesPage() {
     setExpenses((prev) => prev.filter((item) => item.id !== id));
   }
 
-  async function onChangeFilter(nextFilter: 'all' | 'fixed' | 'subscription') {
+  async function onChangeFilter(nextFilter: 'all' | 'fixed' | 'subscription' | 'one_time') {
     setFilter(nextFilter);
     setLoading(true);
     await loadExpenses(nextFilter);
@@ -293,10 +293,19 @@ export default function ExpensesPage() {
           <FormField label="유형">
             <select
               value={form.type}
-              onChange={(event) => setForm((prev) => ({ ...prev, type: event.target.value as 'fixed' | 'subscription' }))}
+              onChange={(event) => {
+                const nextType = event.target.value as 'fixed' | 'subscription' | 'one_time';
+                setForm((prev) => ({
+                  ...prev,
+                  type: nextType,
+                  cycle: nextType === 'one_time' ? 'one_time' : prev.cycle,
+                  reflectToLiquidAsset: nextType === 'one_time' ? true : prev.reflectToLiquidAsset,
+                }));
+              }}
             >
               <option value="fixed">고정지출</option>
               <option value="subscription">구독지출</option>
+              <option value="one_time">일회성</option>
             </select>
           </FormField>
 
@@ -458,6 +467,7 @@ export default function ExpensesPage() {
         <button className="btn-subtle" onClick={() => onChangeFilter('all')}>전체</button>
         <button className="btn-subtle" onClick={() => onChangeFilter('fixed')}>고정</button>
         <button className="btn-subtle" onClick={() => onChangeFilter('subscription')}>구독</button>
+        <button className="btn-subtle" onClick={() => onChangeFilter('one_time')}>일회성</button>
       </SectionCard>
 
       <p style={{ marginTop: '0.75rem', fontWeight: 600 }}>

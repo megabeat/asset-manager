@@ -16,7 +16,7 @@ import {
 import { parseJsonBody } from "../shared/request-body";
 
 
-const expenseTypes = ["fixed", "subscription"];
+const expenseTypes = ["fixed", "subscription", "one_time"];
 const billingCycles = ["monthly", "yearly", "one_time"];
 
 type ExpenseRecord = {

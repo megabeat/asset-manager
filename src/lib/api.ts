@@ -35,7 +35,7 @@ export type Expense = {
   id: string;
   name: string;
   amount: number;
-  expenseType: 'fixed' | 'subscription';
+  expenseType: 'fixed' | 'subscription' | 'one_time';
   cycle: 'monthly' | 'yearly' | 'one_time';
   occurredAt?: string;
   reflectToLiquidAsset?: boolean;
