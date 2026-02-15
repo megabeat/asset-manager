@@ -1,4 +1,4 @@
-import { webcrypto } from "node:crypto";
+import { webcrypto } from "crypto";
 
 if (!(globalThis as { crypto?: Crypto }).crypto) {
   (globalThis as { crypto: Crypto }).crypto = webcrypto as unknown as Crypto;

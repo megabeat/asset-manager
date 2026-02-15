@@ -1,7 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.educationPlansHandler = educationPlansHandler;
-const node_crypto_1 = require("node:crypto");
+const crypto_1 = require("crypto");
 const auth_1 = require("../shared/auth");
 const cosmosClient_1 = require("../shared/cosmosClient");
 const responses_1 = require("../shared/responses");
@@ -98,7 +98,7 @@ async function educationPlansHandler(req, context) {
                     return (0, responses_1.fail)("VALIDATION_ERROR", "endYear must be >= startYear", 400);
                 }
                 const plan = {
-                    id: (0, node_crypto_1.randomUUID)(),
+                    id: (0, crypto_1.randomUUID)(),
                     userId,
                     type: "EducationPlan",
                     childId: (0, validators_1.ensureString)(body.childId, "childId"),

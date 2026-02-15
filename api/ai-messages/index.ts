@@ -1,5 +1,5 @@
 import { HttpRequest, HttpResponseInit, InvocationContext } from "@azure/functions";
-import { randomUUID } from "node:crypto";
+import { randomUUID } from "crypto";
 import { getAuthContext } from "../shared/auth";
 import { buildUserContext } from "../shared/context-builder";
 import { getContainer } from "../shared/cosmosClient";

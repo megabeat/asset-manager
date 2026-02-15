@@ -1,7 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.aiMessagesHandler = aiMessagesHandler;
-const node_crypto_1 = require("node:crypto");
+const crypto_1 = require("crypto");
 const auth_1 = require("../shared/auth");
 const context_builder_1 = require("../shared/context-builder");
 const cosmosClient_1 = require("../shared/cosmosClient");
@@ -67,7 +67,7 @@ async function aiMessagesHandler(req, context) {
                 }
                 const now = new Date().toISOString();
                 const userMessage = {
-                    id: (0, node_crypto_1.randomUUID)(),
+                    id: (0, crypto_1.randomUUID)(),
                     userId,
                     conversationId,
                     type: "AiMessage",
@@ -131,7 +131,7 @@ ${userContext.topExpenses.map((e) => `- ${e.name}: ${e.amount.toLocaleString()}�
                     assistantContent = "AI 응답 생성 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.";
                 }
                 const assistantMessage = {
-                    id: (0, node_crypto_1.randomUUID)(),
+                    id: (0, crypto_1.randomUUID)(),
                     userId,
                     conversationId,
                     type: "AiMessage",

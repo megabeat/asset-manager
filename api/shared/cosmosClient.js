@@ -1,9 +1,9 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.getContainer = getContainer;
-const node_crypto_1 = require("node:crypto");
+const crypto_1 = require("crypto");
 if (!globalThis.crypto) {
-    globalThis.crypto = node_crypto_1.webcrypto;
+    globalThis.crypto = crypto_1.webcrypto;
 }
 let client = null;
 function createClient(config) {

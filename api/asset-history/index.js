@@ -1,7 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.assetHistoryHandler = assetHistoryHandler;
-const node_crypto_1 = require("node:crypto");
+const crypto_1 = require("crypto");
 const auth_1 = require("../shared/auth");
 const cosmosClient_1 = require("../shared/cosmosClient");
 const responses_1 = require("../shared/responses");
@@ -80,7 +80,7 @@ async function assetHistoryHandler(req, context) {
             }
             try {
                 const historyItem = {
-                    id: (0, node_crypto_1.randomUUID)(),
+                    id: (0, crypto_1.randomUUID)(),
                     userId,
                     assetId,
                     type: "AssetHistory",

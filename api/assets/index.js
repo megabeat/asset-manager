@@ -1,7 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.assetsHandler = assetsHandler;
-const node_crypto_1 = require("node:crypto");
+const crypto_1 = require("crypto");
 const auth_1 = require("../shared/auth");
 const cosmosClient_1 = require("../shared/cosmosClient");
 const responses_1 = require("../shared/responses");
@@ -74,7 +74,7 @@ async function assetsHandler(req, context) {
             }
             try {
                 const asset = {
-                    id: (0, node_crypto_1.randomUUID)(),
+                    id: (0, crypto_1.randomUUID)(),
                     userId,
                     type: "Asset",
                     category: (0, validators_1.ensureString)(body.category, "category"),
