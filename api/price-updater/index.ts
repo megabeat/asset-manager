@@ -120,7 +120,9 @@ export async function priceUpdater(timer: Timer, context: InvocationContext): Pr
   }
 }
 
-app.timer("priceUpdater", {
-  schedule: "0 0 22 * * *",
-  handler: priceUpdater
-});
+if (process.env.ENABLE_TIMER_FUNCTIONS === "true") {
+  app.timer("priceUpdater", {
+    schedule: "0 0 22 * * *",
+    handler: priceUpdater
+  });
+}
