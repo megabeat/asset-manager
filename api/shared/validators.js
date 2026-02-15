@@ -26,6 +26,9 @@ function ensureOptionalString(value, fieldName) {
     if (value === undefined || value === null) {
         return undefined;
     }
+    if (typeof value === "string" && value.trim().length === 0) {
+        return undefined;
+    }
     return ensureString(value, fieldName);
 }
 function ensureNumber(value, fieldName) {

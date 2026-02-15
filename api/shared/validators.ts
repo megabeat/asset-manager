@@ -15,6 +15,9 @@ export function ensureOptionalString(value: unknown, fieldName: string): string 
   if (value === undefined || value === null) {
     return undefined;
   }
+  if (typeof value === "string" && value.trim().length === 0) {
+    return undefined;
+  }
   return ensureString(value, fieldName);
 }
 
