@@ -4,6 +4,9 @@
 ✅ Git 저장소 초기화 완료
 ✅ 초기 커밋 완료 (55개 파일)
 ✅ 원격 저장소 추가 완료
+✅ GitHub에 푸시 완료  
+✅ Azure Static Web Apps 생성 (WaitingForDeployment)
+✅ Cosmos DB 초기화 완료 (모든 컨테이너 생성됨)
 
 ## 다음 단계
 
@@ -84,6 +87,28 @@ npm run setup-cosmos
 
 ## 트러블슈팅
 
+### 배포는 성공했는데 화면이 예전 상태일 때 (중요)
+
+`코드는 최신인데 UI가 안 바뀌는` 대부분의 원인은 **다른 Static Web App으로 배포**되고 있는 경우입니다.
+
+아래를 반드시 같은 대상으로 맞추세요.
+
+1. **GitHub Actions 시크릿**
+   - 이름: `AZURE_STATIC_WEB_APPS_API_TOKEN`
+   - 값: 지금 실제로 접속 중인 SWA 리소스의 Deployment Token
+
+2. **접속 URL 확인**
+   - 브라우저에서 보는 URL이 위 토큰의 SWA URL과 동일해야 함
+
+3. **워크플로우 확인**
+   - `.github/workflows/azure-static-web-apps-*.yml`에서
+   - `azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN }}` 사용 중인지 확인
+
+4. **검증 방법**
+   - `main`에 커밋 푸시 후 배포 완료 대기
+   - `Ctrl+Shift+R` 강력 새로고침
+   - 메뉴/페이지(` /pensions ` 등) 반영 확인
+
 ### Git 푸시 인증 실패
 ```bash
 # SSH 키 사용 (권장)
@@ -111,5 +136,34 @@ git log --oneline
 git remote -v
 
 # 강제 푸시 (주의: 기존 내용 덮어씀)
+git push -f origin main
+```
+
+## 배포 요약
+
+### 완료된 작업
+1. ✅ GitHub 저장소 생성 및 푸시
+2. ✅ Azure Static Web Apps 자동 생성 (GitHub Actions 설정 완료)
+3. ✅ Cosmos DB 초기화 (모든 컨테이너 생성)
+
+### 리소스 정보
+- **Static Web App**: asset-manager-1771119196
+- **Cosmos DB**: asset-cosmos-1771118151
+- **Region**: Korea Central
+- **Resource Group**: asset-mgmt-rg
+
+### 필수 환경 변수 설정 (Azure Portal)
+Static Web App → Configuration → Application settings에 다음을 추가하세요:
+
+```
+COSMOS_ENDPOINT=https://asset-cosmos-1771118151.documents.azure.com:443/
+COSMOS_KEY=your-primary-key
+COSMOS_DATABASE_ID=AssetManagement
+```
+
+### 다음 단계
+1. Azure Portal에서 Static Web App의 환경 변수 설정 완료 대기
+2. 배포 완료 후 앱 URL에서 정상 작동 확인
+3. (선택) Azure OpenAI 사용 시 AZURE_OPENAI_* 환경 변수 추가
 git push -f origin main
 ```
