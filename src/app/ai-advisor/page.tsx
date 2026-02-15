@@ -192,6 +192,24 @@ export default function AIAdvisorPage() {
                     </div>
                   );
                 })}
+                {loading ? (
+                  <div style={{ display: 'grid', justifyItems: 'start' }}>
+                    <div
+                      style={{
+                        maxWidth: '82%',
+                        border: '1px solid #e5e7eb',
+                        borderRadius: 12,
+                        padding: '0.7rem 0.8rem',
+                        background: '#f8fafc'
+                      }}
+                    >
+                      <div style={{ fontSize: '0.8rem', color: '#4b5563', marginBottom: '0.35rem' }}>
+                        Mr. Money
+                      </div>
+                      <div style={{ color: '#475569' }}>답변 작성 중...</div>
+                    </div>
+                  </div>
+                ) : null}
                 <div ref={messagesEndRef} />
               </div>
             )}
