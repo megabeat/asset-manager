@@ -108,10 +108,32 @@ export default function DashboardPage() {
   const usStockAssets = assets.filter(
     (asset) => asset.category === 'stock_us' && (asset.exchangeRate ?? 0) > 0
   );
-  const fxAverageRate =
-    usStockAssets.length > 0
-      ? usStockAssets.reduce((sum, asset) => sum + Number(asset.exchangeRate ?? 0), 0) / usStockAssets.length
-      : null;
+  const fxWeightedRate = (() => {
+    const weighted = usStockAssets.reduce(
+      (acc, asset) => {
+        const rate = Number(asset.exchangeRate ?? 0);
+        if (rate <= 0) {
+          return acc;
+        }
+
+        const usdBase = Number(asset.usdAmount ?? 0) > 0
+          ? Number(asset.usdAmount ?? 0)
+          : Number(asset.currentValue ?? 0) / rate;
+
+        if (usdBase <= 0) {
+          return acc;
+        }
+
+        return {
+          weightedSum: acc.weightedSum + (rate * usdBase),
+          usdTotal: acc.usdTotal + usdBase
+        };
+      },
+      { weightedSum: 0, usdTotal: 0 }
+    );
+
+    return weighted.usdTotal > 0 ? weighted.weightedSum / weighted.usdTotal : null;
+  })();
 
   return (
     <div style={{ padding: '1rem 0' }}>
@@ -158,10 +180,10 @@ export default function DashboardPage() {
         <SectionCard>
           <h3 style={{ marginTop: 0 }}>미국주식 환율 기준</h3>
           <p style={{ margin: 0, fontSize: '1.35rem', fontWeight: 700 }}>
-            {fxAverageRate ? `${fxAverageRate.toFixed(2)} KRW/USD` : '-'}
+            {fxWeightedRate ? `${fxWeightedRate.toFixed(2)} KRW/USD` : '-'}
           </p>
           <p className="helper-text" style={{ marginTop: '0.5rem' }}>
-            입력된 미국주식 건의 평균 환율 기준 (없으면 표시 안함)
+            미국주식 USD 평가액 가중 평균 환율 기준 (없으면 표시 안함)
           </p>
         </SectionCard>
       </div>
