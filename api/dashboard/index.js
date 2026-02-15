@@ -32,7 +32,7 @@ function resolveRange(range) {
     }
     return { from: fromDate.toISOString(), to };
 }
-async function dashboardHandler(req, context) {
+async function dashboardHandler(context, req) {
     const { userId } = (0, auth_1.getAuthContext)(req.headers);
     try {
         (0, validators_1.requireUserId)(userId);

@@ -5,7 +5,7 @@ const auth_1 = require("../shared/auth");
 const cosmosClient_1 = require("../shared/cosmosClient");
 const responses_1 = require("../shared/responses");
 const validators_1 = require("../shared/validators");
-async function profileHandler(req, context) {
+async function profileHandler(context, req) {
     const { userId } = (0, auth_1.getAuthContext)(req.headers);
     try {
         (0, validators_1.requireUserId)(userId);

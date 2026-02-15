@@ -5,7 +5,7 @@ import { getContainer } from "../shared/cosmosClient";
 import { fail, ok } from "../shared/responses";
 import { ensureOptionalString, requireUserId } from "../shared/validators";
 
-export async function aiConversationsHandler(req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
+export async function aiConversationsHandler(context: InvocationContext, req: HttpRequest): Promise<HttpResponseInit> {
   const { userId } = getAuthContext(req.headers);
 
   try {

@@ -7,7 +7,7 @@ function toErrorMessage(error) {
     }
     return String(error);
 }
-async function diagCosmosHandler(req, _context) {
+async function diagCosmosHandler(_context, req) {
     const results = [];
     try {
         const { getAuthContext } = require("../shared/auth");

@@ -16,7 +16,7 @@ import {
 const expenseTypes = ["fixed", "subscription"];
 const billingCycles = ["monthly", "yearly"];
 
-export async function expensesHandler(req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
+export async function expensesHandler(context: InvocationContext, req: HttpRequest): Promise<HttpResponseInit> {
   const { userId } = getAuthContext(req.headers);
 
   try {

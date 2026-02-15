@@ -8,7 +8,7 @@ const cosmosClient_1 = require("../shared/cosmosClient");
 const openai_1 = require("../shared/openai");
 const responses_1 = require("../shared/responses");
 const validators_1 = require("../shared/validators");
-async function aiMessagesHandler(req, context) {
+async function aiMessagesHandler(context, req) {
     const { userId } = (0, auth_1.getAuthContext)(req.headers);
     try {
         (0, validators_1.requireUserId)(userId);

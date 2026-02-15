@@ -12,7 +12,7 @@ import {
   requireUserId
 } from "../shared/validators";
 
-export async function educationPlansHandler(req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
+export async function educationPlansHandler(context: InvocationContext, req: HttpRequest): Promise<HttpResponseInit> {
   const { userId } = getAuthContext(req.headers);
 
   try {

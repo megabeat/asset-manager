@@ -13,7 +13,7 @@ function toErrorMessage(error: unknown): string {
   return String(error);
 }
 
-export async function diagCosmosHandler(req: HttpRequest, _context: InvocationContext): Promise<HttpResponseInit> {
+export async function diagCosmosHandler(_context: InvocationContext, req: HttpRequest): Promise<HttpResponseInit> {
   const results: StepResult[] = [];
 
   try {

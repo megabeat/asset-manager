@@ -5,7 +5,7 @@ import { getContainer } from "../shared/cosmosClient";
 import { fail, ok } from "../shared/responses";
 import { ensureNumber, ensureOptionalNumber, ensureOptionalString, requireUserId } from "../shared/validators";
 
-export async function assetHistoryHandler(req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
+export async function assetHistoryHandler(context: InvocationContext, req: HttpRequest): Promise<HttpResponseInit> {
   const { userId } = getAuthContext(req.headers);
 
   try {

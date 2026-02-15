@@ -11,7 +11,7 @@ import {
   requireUserId
 } from "../shared/validators";
 
-export async function childrenHandler(req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
+export async function childrenHandler(context: InvocationContext, req: HttpRequest): Promise<HttpResponseInit> {
   const { userId } = getAuthContext(req.headers);
 
   try {

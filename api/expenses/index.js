@@ -8,7 +8,7 @@ const responses_1 = require("../shared/responses");
 const validators_1 = require("../shared/validators");
 const expenseTypes = ["fixed", "subscription"];
 const billingCycles = ["monthly", "yearly"];
-async function expensesHandler(req, context) {
+async function expensesHandler(context, req) {
     const { userId } = (0, auth_1.getAuthContext)(req.headers);
     try {
         (0, validators_1.requireUserId)(userId);

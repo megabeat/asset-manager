@@ -40,7 +40,7 @@ function resolveRange(range: string | null): { from: string; to: string } | null
   return { from: fromDate.toISOString(), to };
 }
 
-export async function dashboardHandler(req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
+export async function dashboardHandler(context: InvocationContext, req: HttpRequest): Promise<HttpResponseInit> {
   const { userId } = getAuthContext(req.headers);
 
   try {

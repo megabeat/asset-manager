@@ -16,8 +16,8 @@ import {
 const incomeCycles = ["monthly", "yearly", "one_time"];
 
 export async function incomesHandler(
-  req: HttpRequest,
-  context: InvocationContext
+  context: InvocationContext,
+  req: HttpRequest
 ): Promise<HttpResponseInit> {
   const { userId } = getAuthContext(req.headers);
 

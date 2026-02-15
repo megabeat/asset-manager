@@ -12,7 +12,7 @@ import {
   requireUserId
 } from "../shared/validators";
 
-export async function assetsHandler(req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
+export async function assetsHandler(context: InvocationContext, req: HttpRequest): Promise<HttpResponseInit> {
   const { userId } = getAuthContext(req.headers);
 
   try {

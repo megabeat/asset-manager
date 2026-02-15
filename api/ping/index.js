@@ -1,7 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.pingHandler = pingHandler;
-async function pingHandler(_req, _context) {
+async function pingHandler(_context, _req) {
     return {
         status: 200,
         jsonBody: {

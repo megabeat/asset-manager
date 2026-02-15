@@ -12,8 +12,8 @@ import {
 } from "../shared/validators";
 
 export async function liabilitiesHandler(
-  req: HttpRequest,
-  context: InvocationContext
+  context: InvocationContext,
+  req: HttpRequest
 ): Promise<HttpResponseInit> {
   const { userId } = getAuthContext(req.headers);
 

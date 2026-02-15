@@ -1,6 +1,6 @@
 import { HttpRequest, HttpResponseInit, InvocationContext } from "@azure/functions";
 
-export async function pingHandler(_req: HttpRequest, _context: InvocationContext): Promise<HttpResponseInit> {
+export async function pingHandler(_context: InvocationContext, _req: HttpRequest): Promise<HttpResponseInit> {
   return {
     status: 200,
     jsonBody: {

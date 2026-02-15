@@ -7,7 +7,7 @@ import { getDeploymentName, getOpenAIClient } from "../shared/openai";
 import { fail, ok } from "../shared/responses";
 import { ensureString, requireUserId } from "../shared/validators";
 
-export async function aiMessagesHandler(req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
+export async function aiMessagesHandler(context: InvocationContext, req: HttpRequest): Promise<HttpResponseInit> {
   const { userId } = getAuthContext(req.headers);
 
   try {

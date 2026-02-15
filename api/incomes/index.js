@@ -7,7 +7,7 @@ const cosmosClient_1 = require("../shared/cosmosClient");
 const responses_1 = require("../shared/responses");
 const validators_1 = require("../shared/validators");
 const incomeCycles = ["monthly", "yearly", "one_time"];
-async function incomesHandler(req, context) {
+async function incomesHandler(context, req) {
     const { userId } = (0, auth_1.getAuthContext)(req.headers);
     try {
         (0, validators_1.requireUserId)(userId);
