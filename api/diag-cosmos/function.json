@@ -1,0 +1,19 @@
+{
+  "scriptFile": "index.js",
+  "entryPoint": "diagCosmosHandler",
+  "bindings": [
+    {
+      "authLevel": "anonymous",
+      "type": "httpTrigger",
+      "direction": "in",
+      "name": "req",
+      "methods": ["get"],
+      "route": "diag-cosmos"
+    },
+    {
+      "type": "http",
+      "direction": "out",
+      "name": "res"
+    }
+  ]
+}
