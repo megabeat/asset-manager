@@ -29,7 +29,7 @@ async function buildUserContext(userId, assetsContainer, liabilitiesContainer, e
             .fetchAll(),
         assetsContainer.items
             .query({
-            query: "SELECT c.category, SUM(c.currentValue) as value FROM c WHERE c.userId = @userId AND c.type = 'Asset' GROUP BY c.category",
+            query: "SELECT c.category, SUM(c.currentValue) as totalValue FROM c WHERE c.userId = @userId AND c.type = 'Asset' GROUP BY c.category",
             parameters: [{ name: "@userId", value: userId }]
         })
             .fetchAll()
@@ -40,7 +40,7 @@ async function buildUserContext(userId, assetsContainer, liabilitiesContainer, e
     const monthlyIncome = incomesResult.resources[0] ?? 0;
     const assetBreakdown = assetsByCategory.resources.map((item) => ({
         category: item.category,
-        value: item.value
+        value: item.totalValue
     }));
     const topExpensesQuery = await expensesContainer.items
         .query({
