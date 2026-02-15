@@ -46,6 +46,12 @@ export default function Home() {
     [assets]
   );
 
+  const liquidAssetsTotal = useMemo(() => {
+    return assets
+      .filter((asset) => asset.category === 'cash' || asset.category === 'deposit')
+      .reduce((sum, asset) => sum + (asset.currentValue ?? 0), 0);
+  }, [assets]);
+
   const monthlyExpense = useMemo(() => {
     return expenses.reduce((sum, item) => sum + (item.cycle === 'yearly' ? item.amount / 12 : item.amount), 0);
   }, [expenses]);
@@ -88,6 +94,12 @@ export default function Home() {
           <h3 style={{ margin: 0, color: '#666', fontSize: '0.9rem' }}>총 자산</h3>
           <p style={{ margin: '0.45rem 0 0', fontWeight: 700, fontSize: '1.25rem' }}>
             {summary?.totalAssets?.toLocaleString() ?? '-'}원
+          </p>
+        </div>
+        <div style={{ background: '#fff', border: '1px solid #ececec', borderRadius: 10, padding: '1rem' }}>
+          <h3 style={{ margin: 0, color: '#666', fontSize: '0.9rem' }}>현금성 자산(입출금/현금)</h3>
+          <p style={{ margin: '0.45rem 0 0', fontWeight: 700, fontSize: '1.25rem' }}>
+            {liquidAssetsTotal.toLocaleString()}원
           </p>
         </div>
         <div style={{ background: '#fff', border: '1px solid #ececec', borderRadius: 10, padding: '1rem' }}>
