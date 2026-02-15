@@ -7,9 +7,11 @@ import { FormField } from '@/components/ui/FormField';
 import { DataTable } from '@/components/ui/DataTable';
 import { useFeedbackMessage } from '@/hooks/useFeedbackMessage';
 
+type NumericInput = number | '';
+
 type IncomeForm = {
   name: string;
-  amount: number;
+  amount: NumericInput;
   cycle: 'monthly' | 'yearly' | 'one_time';
   occurredAt: string;
   reflectToLiquidAsset: boolean;
@@ -19,7 +21,7 @@ type IncomeForm = {
 
 const defaultForm: IncomeForm = {
   name: '',
-  amount: 0,
+  amount: '',
   cycle: 'monthly',
   occurredAt: new Date().toISOString().slice(0, 10),
   reflectToLiquidAsset: false,
@@ -61,9 +63,10 @@ export default function IncomesPage() {
     event.preventDefault();
     clearMessage();
     const nextErrors: Record<string, string> = {};
+    const amountValue = Number(form.amount || 0);
 
     if (!form.name.trim()) nextErrors.name = '수입명을 입력해주세요.';
-    if (!Number.isFinite(form.amount) || form.amount < 0) {
+    if (!Number.isFinite(amountValue) || amountValue < 0) {
       nextErrors.amount = '금액은 0 이상이어야 합니다.';
     }
 
@@ -77,7 +80,7 @@ export default function IncomesPage() {
     setSaving(true);
     const result = await api.createIncome({
       name: form.name.trim(),
-      amount: Number(form.amount),
+      amount: amountValue,
       cycle: form.cycle,
       occurredAt: form.occurredAt,
       reflectToLiquidAsset: form.reflectToLiquidAsset,
@@ -129,7 +132,12 @@ export default function IncomesPage() {
               min={0}
               placeholder="금액"
               value={form.amount}
-              onChange={(event) => setForm((prev) => ({ ...prev, amount: Number(event.target.value || 0) }))}
+              onChange={(event) =>
+                setForm((prev) => ({
+                  ...prev,
+                  amount: event.target.value === '' ? '' : Number(event.target.value)
+                }))
+              }
               style={errors.amount ? { borderColor: '#b91c1c' } : undefined}
             />
           </FormField>

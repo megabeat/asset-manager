@@ -7,12 +7,14 @@ import { FormField } from '@/components/ui/FormField';
 import { DataTable } from '@/components/ui/DataTable';
 import { useFeedbackMessage } from '@/hooks/useFeedbackMessage';
 
+type NumericInput = number | '';
+
 type ExpenseForm = {
   name: string;
-  amount: number;
+  amount: NumericInput;
   type: 'fixed' | 'subscription';
   cycle: 'monthly' | 'yearly' | 'one_time';
-  billingDay: number;
+  billingDay: NumericInput;
   occurredAt: string;
   reflectToLiquidAsset: boolean;
   category: string;
@@ -20,10 +22,10 @@ type ExpenseForm = {
 
 const defaultForm: ExpenseForm = {
   name: '',
-  amount: 0,
+  amount: '',
   type: 'fixed',
   cycle: 'monthly',
-  billingDay: 1,
+  billingDay: '',
   occurredAt: new Date().toISOString().slice(0, 10),
   reflectToLiquidAsset: false,
   category: ''
@@ -34,13 +36,13 @@ type CardIssuer = (typeof CARD_ISSUERS)[number];
 
   type CardQuickForm = {
     cardName: CardIssuer;
-    amount: number;
+    amount: NumericInput;
     occurredAt: string;
   };
 
   const defaultCardQuickForm: CardQuickForm = {
     cardName: '신한',
-    amount: 0,
+    amount: '',
     occurredAt: new Date().toISOString().slice(0, 10),
   };
 
@@ -146,12 +148,14 @@ export default function ExpensesPage() {
     event.preventDefault();
     clearMessage();
     const nextErrors: Record<string, string> = {};
+    const amountValue = Number(form.amount || 0);
+    const billingDayValue = Number(form.billingDay || 0);
 
     if (!form.name.trim()) nextErrors.name = '항목명을 입력해주세요.';
-    if (!Number.isFinite(form.amount) || form.amount < 0) {
+    if (!Number.isFinite(amountValue) || amountValue < 0) {
       nextErrors.amount = '금액은 0 이상이어야 합니다.';
     }
-    if (form.cycle !== 'one_time' && (!Number.isFinite(form.billingDay) || form.billingDay < 1 || form.billingDay > 31)) {
+    if (form.cycle !== 'one_time' && (!Number.isFinite(billingDayValue) || billingDayValue < 1 || billingDayValue > 31)) {
       nextErrors.billingDay = '청구일은 1~31 사이여야 합니다.';
     }
 
@@ -165,10 +169,10 @@ export default function ExpensesPage() {
     setSaving(true);
     const result = await api.createExpense({
       name: form.name.trim(),
-      amount: Number(form.amount),
+      amount: amountValue,
       type: form.type,
       cycle: form.cycle,
-      billingDay: form.cycle === 'one_time' ? null : form.billingDay,
+      billingDay: form.cycle === 'one_time' ? null : billingDayValue,
       occurredAt: form.occurredAt,
       reflectToLiquidAsset: form.reflectToLiquidAsset,
       category: form.category.trim()
@@ -191,7 +195,8 @@ export default function ExpensesPage() {
       setMessageText('카드명을 입력해주세요.');
       return;
     }
-    if (!Number.isFinite(cardQuickForm.amount) || cardQuickForm.amount <= 0) {
+    const cardAmountValue = Number(cardQuickForm.amount || 0);
+    if (!Number.isFinite(cardAmountValue) || cardAmountValue <= 0) {
       setMessageText('카드대금은 0보다 커야 합니다.');
       return;
     }
@@ -199,7 +204,7 @@ export default function ExpensesPage() {
     setSaving(true);
     const result = await api.createExpense({
       name: `${cardQuickForm.cardName.trim()} 카드대금`,
-      amount: Number(cardQuickForm.amount),
+      amount: cardAmountValue,
       type: 'fixed',
       cycle: 'one_time',
       billingDay: null,
@@ -275,7 +280,12 @@ export default function ExpensesPage() {
               type="number"
               min={0}
               value={form.amount}
-              onChange={(event) => setForm((prev) => ({ ...prev, amount: Number(event.target.value || 0) }))}
+              onChange={(event) =>
+                setForm((prev) => ({
+                  ...prev,
+                  amount: event.target.value === '' ? '' : Number(event.target.value)
+                }))
+              }
               style={errors.amount ? { borderColor: '#b91c1c' } : undefined}
             />
           </FormField>
@@ -308,7 +318,12 @@ export default function ExpensesPage() {
                 min={1}
                 max={31}
                 value={form.billingDay}
-                onChange={(event) => setForm((prev) => ({ ...prev, billingDay: Number(event.target.value || 1) }))}
+                onChange={(event) =>
+                  setForm((prev) => ({
+                    ...prev,
+                    billingDay: event.target.value === '' ? '' : Number(event.target.value)
+                  }))
+                }
                 style={errors.billingDay ? { borderColor: '#b91c1c' } : undefined}
               />
             </FormField>
@@ -371,7 +386,12 @@ export default function ExpensesPage() {
                 type="number"
                 min={0}
                 value={cardQuickForm.amount}
-                onChange={(event) => setCardQuickForm((prev) => ({ ...prev, amount: Number(event.target.value || 0) }))}
+                onChange={(event) =>
+                  setCardQuickForm((prev) => ({
+                    ...prev,
+                    amount: event.target.value === '' ? '' : Number(event.target.value)
+                  }))
+                }
               />
             </FormField>
             <FormField label="출금일">
