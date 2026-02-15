@@ -127,9 +127,7 @@ ${userContext.topExpenses.map((e) => `- ${e.name}: ${e.amount.toLocaleString()}ì
                         ...history.map((h) => ({ role: h.role, content: h.content })),
                         { role: "user", content }
                     ];
-                    const completion = await client.getChatCompletions(deploymentName, messages, {
-                        temperature: 0.7
-                    });
+                    const completion = await client.getChatCompletions(deploymentName, messages);
                     assistantContent = completion.choices[0]?.message?.content ?? assistantContent;
                 }
                 catch (aiError) {
