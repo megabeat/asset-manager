@@ -7,20 +7,21 @@ import { FormField } from '@/components/ui/FormField';
 import { DataTable } from '@/components/ui/DataTable';
 
 type AssetCategory = 'cash' | 'deposit' | 'pension' | 'stock_kr' | 'stock_us' | 'real_estate' | 'etc';
+type NumericInput = number | '';
 
 type AssetForm = {
   category: AssetCategory;
   name: string;
-  currentValue: number;
-  quantity: number;
-  acquiredValue: number;
+  currentValue: NumericInput;
+  quantity: NumericInput;
+  acquiredValue: NumericInput;
   valuationDate: string;
   note: string;
   symbol: string;
-  usdAmount: number;
-  exchangeRate: number;
-  pensionMonthlyContribution: number;
-  pensionReceiveAge: number;
+  usdAmount: NumericInput;
+  exchangeRate: NumericInput;
+  pensionMonthlyContribution: NumericInput;
+  pensionReceiveAge: NumericInput;
   pensionReceiveStart: string;
 };
 
@@ -34,15 +35,15 @@ type QuickPreset = {
 const defaultForm: AssetForm = {
   category: 'cash',
   name: '',
-  currentValue: 0,
-  quantity: 0,
-  acquiredValue: 0,
+  currentValue: '',
+  quantity: '',
+  acquiredValue: '',
   valuationDate: new Date().toISOString().slice(0, 10),
   note: '',
   symbol: '',
-  usdAmount: 0,
-  exchangeRate: 0,
-  pensionMonthlyContribution: 0,
+  usdAmount: '',
+  exchangeRate: '',
+  pensionMonthlyContribution: '',
   pensionReceiveAge: 60,
   pensionReceiveStart: ''
 };
@@ -141,7 +142,7 @@ export default function AssetsPage() {
 
   const isStockCategory = form.category === 'stock_kr' || form.category === 'stock_us';
 
-  function resetFormWithRate(rate: number) {
+  function resetFormWithRate(rate: NumericInput) {
     setForm({
       ...defaultForm,
       exchangeRate: rate,
@@ -220,20 +221,21 @@ export default function AssetsPage() {
 
     if (isStockCategory) {
       if (!form.symbol.trim()) nextErrors.symbol = '종목코드를 입력해주세요.';
-      if (form.quantity <= 0) nextErrors.quantity = '수량은 0보다 커야 합니다.';
-      if (form.acquiredValue <= 0) nextErrors.acquiredValue = '단가는 0보다 커야 합니다.';
+      if (Number(form.quantity || 0) <= 0) nextErrors.quantity = '수량은 0보다 커야 합니다.';
+      if (Number(form.acquiredValue || 0) <= 0) nextErrors.acquiredValue = '단가는 0보다 커야 합니다.';
     }
 
     if (form.category === 'stock_us') {
-      if (form.exchangeRate <= 0) nextErrors.exchangeRate = '환율은 0보다 커야 합니다.';
+      if (Number(form.exchangeRate || 0) <= 0) nextErrors.exchangeRate = '환율은 0보다 커야 합니다.';
     } else if (form.category === 'pension') {
-      if (form.pensionMonthlyContribution < 0) nextErrors.pensionMonthlyContribution = '납입액은 0 이상이어야 합니다.';
-      if (form.pensionReceiveAge < 40 || form.pensionReceiveAge > 100) {
+      if (Number(form.pensionMonthlyContribution || 0) < 0) nextErrors.pensionMonthlyContribution = '납입액은 0 이상이어야 합니다.';
+      const pensionAge = Number(form.pensionReceiveAge || 0);
+      if (pensionAge < 40 || pensionAge > 100) {
         nextErrors.pensionReceiveAge = '수령 나이는 40~100 범위로 입력해주세요.';
       }
       if (!form.pensionReceiveStart) nextErrors.pensionReceiveStart = '수령 시작 시기를 입력해주세요.';
-      if (form.currentValue < 0) nextErrors.currentValue = '현재가치는 0 이상이어야 합니다.';
-    } else if (form.currentValue < 0) {
+      if (Number(form.currentValue || 0) < 0) nextErrors.currentValue = '현재가치는 0 이상이어야 합니다.';
+    } else if (Number(form.currentValue || 0) < 0) {
       nextErrors.currentValue = '금액은 0 이상이어야 합니다.';
     }
 
@@ -413,7 +415,12 @@ export default function AssetsPage() {
                   min={0}
                   step="0.0001"
                   value={form.quantity}
-                  onChange={(event) => setForm((prev) => ({ ...prev, quantity: Number(event.target.value || 0) }))}
+                  onChange={(event) =>
+                    setForm((prev) => ({
+                      ...prev,
+                      quantity: event.target.value === '' ? '' : Number(event.target.value)
+                    }))
+                  }
                 />
               </FormField>
               <FormField
@@ -425,7 +432,12 @@ export default function AssetsPage() {
                   min={0}
                   step="0.01"
                   value={form.acquiredValue}
-                  onChange={(event) => setForm((prev) => ({ ...prev, acquiredValue: Number(event.target.value || 0) }))}
+                  onChange={(event) =>
+                    setForm((prev) => ({
+                      ...prev,
+                      acquiredValue: event.target.value === '' ? '' : Number(event.target.value)
+                    }))
+                  }
                 />
               </FormField>
 
@@ -437,7 +449,12 @@ export default function AssetsPage() {
                       min={0}
                       step="0.01"
                       value={form.exchangeRate}
-                      onChange={(event) => setForm((prev) => ({ ...prev, exchangeRate: Number(event.target.value || 0) }))}
+                      onChange={(event) =>
+                        setForm((prev) => ({
+                          ...prev,
+                          exchangeRate: event.target.value === '' ? '' : Number(event.target.value)
+                        }))
+                      }
                     />
                   </FormField>
                   <FormField label="USD 평가액(자동 계산)">
@@ -467,7 +484,12 @@ export default function AssetsPage() {
                 type="number"
                 min={0}
                 value={form.currentValue}
-                onChange={(event) => setForm((prev) => ({ ...prev, currentValue: Number(event.target.value || 0) }))}
+                onChange={(event) =>
+                  setForm((prev) => ({
+                    ...prev,
+                    currentValue: event.target.value === '' ? '' : Number(event.target.value)
+                  }))
+                }
               />
             </FormField>
           )}
@@ -480,7 +502,10 @@ export default function AssetsPage() {
                   min={0}
                   value={form.pensionMonthlyContribution}
                   onChange={(event) =>
-                    setForm((prev) => ({ ...prev, pensionMonthlyContribution: Number(event.target.value || 0) }))
+                    setForm((prev) => ({
+                      ...prev,
+                      pensionMonthlyContribution: event.target.value === '' ? '' : Number(event.target.value)
+                    }))
                   }
                 />
               </FormField>
@@ -490,7 +515,12 @@ export default function AssetsPage() {
                   min={40}
                   max={100}
                   value={form.pensionReceiveAge}
-                  onChange={(event) => setForm((prev) => ({ ...prev, pensionReceiveAge: Number(event.target.value || 60) }))}
+                  onChange={(event) =>
+                    setForm((prev) => ({
+                      ...prev,
+                      pensionReceiveAge: event.target.value === '' ? '' : Number(event.target.value)
+                    }))
+                  }
                 />
               </FormField>
               <FormField label="수령 시작 시기" error={errors.pensionReceiveStart}>
