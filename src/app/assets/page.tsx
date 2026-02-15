@@ -24,6 +24,13 @@ type AssetForm = {
   pensionReceiveStart: string;
 };
 
+type QuickPreset = {
+  id: string;
+  label: string;
+  category: AssetCategory;
+  values: Partial<AssetForm>;
+};
+
 const defaultForm: AssetForm = {
   category: 'cash',
   name: '',
@@ -49,6 +56,45 @@ const categoryLabel: Record<AssetCategory, string> = {
   real_estate: '부동산',
   etc: '기타'
 };
+
+const quickPresets: QuickPreset[] = [
+  {
+    id: 'cash-wallet',
+    label: '현금-지갑',
+    category: 'cash',
+    values: { name: '생활비 현금' }
+  },
+  {
+    id: 'deposit-cma',
+    label: '예금-CMA',
+    category: 'deposit',
+    values: { name: 'CMA 통장' }
+  },
+  {
+    id: 'pension-national',
+    label: '국민연금',
+    category: 'pension',
+    values: { name: '국민연금', pensionReceiveAge: 63 }
+  },
+  {
+    id: 'stock-kr',
+    label: '국내주식',
+    category: 'stock_kr',
+    values: { name: '국내주식', symbol: '005930', quantity: 1 }
+  },
+  {
+    id: 'stock-us',
+    label: '미국주식',
+    category: 'stock_us',
+    values: { name: '미국주식', symbol: 'AAPL', quantity: 1 }
+  },
+  {
+    id: 'real-estate',
+    label: '부동산',
+    category: 'real_estate',
+    values: { name: '아파트' }
+  }
+];
 
 export default function AssetsPage() {
   const [assets, setAssets] = useState<Asset[]>([]);
@@ -94,6 +140,40 @@ export default function AssetsPage() {
   }, []);
 
   const isStockCategory = form.category === 'stock_kr' || form.category === 'stock_us';
+
+  function resetFormWithRate(rate: number) {
+    setForm({
+      ...defaultForm,
+      exchangeRate: rate,
+      valuationDate: new Date().toISOString().slice(0, 10)
+    });
+  }
+
+  function applyPreset(preset: QuickPreset) {
+    const preservedRate = form.exchangeRate;
+    setEditingAssetId(null);
+    setErrors({});
+    setMessage(null);
+    setForm({
+      ...defaultForm,
+      exchangeRate: preservedRate,
+      valuationDate: new Date().toISOString().slice(0, 10),
+      category: preset.category,
+      ...preset.values
+    });
+  }
+
+  function changeCategory(category: AssetCategory) {
+    const preservedRate = form.exchangeRate;
+    setForm((prev) => ({
+      ...defaultForm,
+      exchangeRate: preservedRate,
+      valuationDate: prev.valuationDate,
+      category,
+      name: prev.category === category ? prev.name : ''
+    }));
+    setErrors({});
+  }
 
   const effectiveUsdAmount = useMemo(() => {
     if (form.category !== 'stock_us') {
@@ -187,7 +267,7 @@ export default function AssetsPage() {
     if (result.error) {
       setMessage(`${editingAssetId ? '수정' : '저장'} 실패: ${result.error.message}`);
     } else {
-      setForm((prev) => ({ ...defaultForm, exchangeRate: prev.exchangeRate }));
+      resetFormWithRate(form.exchangeRate);
       setEditingAssetId(null);
       setMessage(editingAssetId ? '자산이 수정되었습니다.' : '자산이 저장되었습니다.');
       await loadAssets();
@@ -249,7 +329,7 @@ export default function AssetsPage() {
   function onCancelEdit() {
     setEditingAssetId(null);
     setErrors({});
-    setForm((prev) => ({ ...defaultForm, exchangeRate: prev.exchangeRate }));
+    resetFormWithRate(form.exchangeRate);
   }
 
   if (loading) {
@@ -276,20 +356,38 @@ export default function AssetsPage() {
       </div>
 
       <SectionCard style={{ marginTop: '1rem' }}>
+        <div style={{ marginBottom: '0.75rem' }}>
+          <p className="helper-text" style={{ margin: 0 }}>빠른 입력 템플릿</p>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem', marginTop: '0.5rem' }}>
+            {quickPresets.map((preset) => (
+              <button
+                key={preset.id}
+                type="button"
+                onClick={() => applyPreset(preset)}
+                className="btn-danger-outline"
+                style={{ minWidth: 100 }}
+              >
+                {preset.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
         <form onSubmit={onSubmit} className="form-grid">
-          <FormField label="카테고리">
-            <select
-              value={form.category}
-              onChange={(event) => setForm((prev) => ({ ...prev, category: event.target.value as AssetCategory }))}
-            >
-              <option value="cash">현금</option>
-              <option value="deposit">예금</option>
-              <option value="pension">연금(국민연금 포함)</option>
-              <option value="stock_kr">국내주식</option>
-              <option value="stock_us">미국주식</option>
-              <option value="real_estate">부동산</option>
-              <option value="etc">기타</option>
-            </select>
+          <FormField label="카테고리" fullWidth>
+            <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
+              {(Object.keys(categoryLabel) as AssetCategory[]).map((category) => (
+                <button
+                  key={category}
+                  type="button"
+                  onClick={() => changeCategory(category)}
+                  className={form.category === category ? 'btn-primary' : 'btn-danger-outline'}
+                  style={{ minWidth: 92 }}
+                >
+                  {categoryLabel[category]}
+                </button>
+              ))}
+            </div>
           </FormField>
 
           <FormField label="자산명" error={errors.name}>
@@ -348,11 +446,19 @@ export default function AssetsPage() {
                   <FormField label="원화 평가액(자동 계산)">
                     <input value={effectiveCurrentValue.toLocaleString()} readOnly />
                   </FormField>
+                  <FormField label="계산식" fullWidth>
+                    <input value={`${form.quantity || 0}주 × ${form.acquiredValue || 0} USD × ${form.exchangeRate || 0} = ${effectiveCurrentValue.toLocaleString()}원`} readOnly />
+                  </FormField>
                 </>
               ) : (
-                <FormField label="현재가치(원, 자동 계산)">
-                  <input value={effectiveCurrentValue.toLocaleString()} readOnly />
-                </FormField>
+                <>
+                  <FormField label="현재가치(원, 자동 계산)">
+                    <input value={effectiveCurrentValue.toLocaleString()} readOnly />
+                  </FormField>
+                  <FormField label="계산식" fullWidth>
+                    <input value={`${form.quantity || 0}주 × ${form.acquiredValue || 0}원 = ${effectiveCurrentValue.toLocaleString()}원`} readOnly />
+                  </FormField>
+                </>
               )}
             </>
           ) : (
@@ -409,7 +515,13 @@ export default function AssetsPage() {
             <input
               value={form.note}
               onChange={(event) => setForm((prev) => ({ ...prev, note: event.target.value }))}
-              placeholder="선택 입력"
+              placeholder={
+                form.category === 'pension'
+                  ? '예: 추납 포함, 예상 수령액 재확인 필요'
+                  : isStockCategory
+                    ? '예: 분할매수 2차'
+                    : '선택 입력'
+              }
             />
           </FormField>
 
