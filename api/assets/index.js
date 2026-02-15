@@ -14,7 +14,14 @@ async function assetsHandler(req, context) {
     catch {
         return (0, responses_1.fail)("UNAUTHORIZED", "Authentication required", 401);
     }
-    const container = (0, cosmosClient_1.getContainer)("assets");
+    let container;
+    try {
+        container = (0, cosmosClient_1.getContainer)("assets");
+    }
+    catch (error) {
+        context.log(error);
+        return (0, responses_1.fail)("SERVER_ERROR", "Cosmos DB configuration error", 500);
+    }
     const assetId = req.params.assetId;
     switch (req.method.toUpperCase()) {
         case "GET": {

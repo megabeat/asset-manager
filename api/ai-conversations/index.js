@@ -14,7 +14,14 @@ async function aiConversationsHandler(req, context) {
     catch {
         return (0, responses_1.fail)("UNAUTHORIZED", "Authentication required", 401);
     }
-    const container = (0, cosmosClient_1.getContainer)("aiConversations");
+    let container;
+    try {
+        container = (0, cosmosClient_1.getContainer)("aiConversations");
+    }
+    catch (error) {
+        context.log(error);
+        return (0, responses_1.fail)("SERVER_ERROR", "Cosmos DB configuration error", 500);
+    }
     const conversationId = req.params.conversationId;
     switch (req.method.toUpperCase()) {
         case "GET": {

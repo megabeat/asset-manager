@@ -44,9 +44,18 @@ async function dashboardHandler(req, context) {
     switch (action) {
         case "summary":
             try {
-                const assetsContainer = (0, cosmosClient_1.getContainer)("assets");
-                const expensesContainer = (0, cosmosClient_1.getContainer)("expenses");
-                const liabilitiesContainer = (0, cosmosClient_1.getContainer)("liabilities");
+                let assetsContainer;
+                let expensesContainer;
+                let liabilitiesContainer;
+                try {
+                    assetsContainer = (0, cosmosClient_1.getContainer)("assets");
+                    expensesContainer = (0, cosmosClient_1.getContainer)("expenses");
+                    liabilitiesContainer = (0, cosmosClient_1.getContainer)("liabilities");
+                }
+                catch (error) {
+                    context.log(error);
+                    return (0, responses_1.fail)("SERVER_ERROR", "Cosmos DB configuration error", 500);
+                }
                 const assetsQuery = {
                     query: "SELECT VALUE SUM(c.currentValue) FROM c WHERE c.userId = @userId AND c.type = 'Asset'",
                     parameters: [{ name: "@userId", value: userId }]
@@ -80,7 +89,14 @@ async function dashboardHandler(req, context) {
                 return (0, responses_1.fail)("VALIDATION_ERROR", "Invalid range", 400);
             }
             try {
-                const container = (0, cosmosClient_1.getContainer)("assetHistory");
+                let container;
+                try {
+                    container = (0, cosmosClient_1.getContainer)("assetHistory");
+                }
+                catch (error) {
+                    context.log(error);
+                    return (0, responses_1.fail)("SERVER_ERROR", "Cosmos DB configuration error", 500);
+                }
                 const query = {
                     query: "SELECT c.recordedAt, c.value FROM c WHERE c.userId = @userId AND c.recordedAt >= @from AND c.recordedAt <= @to",
                     parameters: [

@@ -13,7 +13,14 @@ async function profileHandler(req, context) {
     catch {
         return (0, responses_1.fail)("UNAUTHORIZED", "Authentication required", 401);
     }
-    const container = (0, cosmosClient_1.getContainer)("users");
+    let container;
+    try {
+        container = (0, cosmosClient_1.getContainer)("users");
+    }
+    catch (error) {
+        context.log(error);
+        return (0, responses_1.fail)("SERVER_ERROR", "Cosmos DB configuration error", 500);
+    }
     switch (req.method.toUpperCase()) {
         case "GET": {
             try {
