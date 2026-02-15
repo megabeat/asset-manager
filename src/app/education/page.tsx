@@ -1,17 +1,17 @@
 'use client';
 
 import { FormEvent, useEffect, useMemo, useState } from 'react';
-import { api, Child, EducationPlan, EducationSimulationResult } from '@/lib/api';
+import { api, EducationPlan, EducationSimulationResult, Profile } from '@/lib/api';
 import { SectionCard } from '@/components/ui/SectionCard';
 import { FormField } from '@/components/ui/FormField';
 import { DataTable } from '@/components/ui/DataTable';
 import { useFeedbackMessage } from '@/hooks/useFeedbackMessage';
 
-type ChildForm = {
+type ProfileChild = {
+  id: string;
   name: string;
-  birthYear: number;
-  grade: string;
-  targetUniversityYear: number;
+  birthDate: string;
+  age: number | null;
 };
 
 type PlanForm = {
@@ -24,13 +24,6 @@ type PlanForm = {
 
 const currentYear = new Date().getFullYear();
 
-const defaultChildForm: ChildForm = {
-  name: '',
-  birthYear: currentYear - 10,
-  grade: '초등 4',
-  targetUniversityYear: currentYear + 8
-};
-
 const defaultPlanForm: PlanForm = {
   childId: '',
   annualCost: 10000000,
@@ -40,15 +33,52 @@ const defaultPlanForm: PlanForm = {
 };
 
 export default function EducationPage() {
-  const [children, setChildren] = useState<Child[]>([]);
+  const [children, setChildren] = useState<ProfileChild[]>([]);
   const [plans, setPlans] = useState<EducationPlan[]>([]);
-  const [childForm, setChildForm] = useState<ChildForm>(defaultChildForm);
   const [planForm, setPlanForm] = useState<PlanForm>(defaultPlanForm);
   const [simulation, setSimulation] = useState<EducationSimulationResult | null>(null);
   const [loading, setLoading] = useState(true);
-  const [childErrors, setChildErrors] = useState<Record<string, string>>({});
   const [planErrors, setPlanErrors] = useState<Record<string, string>>({});
   const { message, clearMessage, setMessageText, setSuccessMessage, setErrorMessage } = useFeedbackMessage();
+
+  function getAgeFromBirthDate(birthDate?: string): number | null {
+    if (!birthDate) return null;
+    const birth = new Date(birthDate);
+    if (Number.isNaN(birth.getTime())) return null;
+    const today = new Date();
+    let age = today.getFullYear() - birth.getFullYear();
+    const monthDiff = today.getMonth() - birth.getMonth();
+    const dayDiff = today.getDate() - birth.getDate();
+    if (monthDiff < 0 || (monthDiff === 0 && dayDiff < 0)) {
+      age -= 1;
+    }
+    return age >= 0 ? age : null;
+  }
+
+  function buildProfileChildren(profile: Profile | null): ProfileChild[] {
+    if (!profile) return [];
+
+    const rows: ProfileChild[] = [];
+    if (profile.child1Name && profile.child1BirthDate) {
+      rows.push({
+        id: 'profile-child-1',
+        name: profile.child1Name,
+        birthDate: profile.child1BirthDate,
+        age: getAgeFromBirthDate(profile.child1BirthDate)
+      });
+    }
+
+    if (profile.child2Name && profile.child2BirthDate) {
+      rows.push({
+        id: 'profile-child-2',
+        name: profile.child2Name,
+        birthDate: profile.child2BirthDate,
+        age: getAgeFromBirthDate(profile.child2BirthDate)
+      });
+    }
+
+    return rows;
+  }
 
   const selectedChildName = useMemo(
     () => children.find((child) => child.id === planForm.childId)?.name ?? '-',
@@ -56,24 +86,27 @@ export default function EducationPage() {
   );
 
   async function loadAll() {
-    const [childrenResult, plansResult] = await Promise.all([
-      api.getChildren(),
+    const [profileResult, plansResult] = await Promise.all([
+      api.getProfile(),
       api.getEducationPlans()
     ]);
 
-    if (childrenResult.data) {
-      const childrenData = childrenResult.data;
+    if (profileResult.data) {
+      const childrenData = buildProfileChildren(profileResult.data);
       setChildren(childrenData);
       if (!planForm.childId && childrenData.length > 0) {
         setPlanForm((prev) => ({ ...prev, childId: childrenData[0].id }));
       }
+    } else {
+      setChildren([]);
     }
 
     if (plansResult.data) {
       setPlans(plansResult.data);
     }
 
-    const firstError = childrenResult.error ?? plansResult.error;
+    const profileError = profileResult.error?.code === 'NOT_FOUND' ? null : profileResult.error;
+    const firstError = profileError ?? plansResult.error;
     if (firstError) {
       setErrorMessage('조회 실패', firstError);
     }
@@ -84,43 +117,6 @@ export default function EducationPage() {
       setLoading(false);
     });
   }, []);
-
-  async function onCreateChild(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    clearMessage();
-    const nextErrors: Record<string, string> = {};
-
-    if (!childForm.name.trim()) nextErrors.name = '이름을 입력해주세요.';
-    if (!Number.isFinite(childForm.birthYear) || childForm.birthYear < 1900 || childForm.birthYear > currentYear + 30) {
-      nextErrors.birthYear = '출생연도를 확인해주세요.';
-    }
-    if (!childForm.grade.trim()) nextErrors.grade = '학년을 입력해주세요.';
-    if (!Number.isFinite(childForm.targetUniversityYear) || childForm.targetUniversityYear < currentYear) {
-      nextErrors.targetUniversityYear = '대학진학 예상연도를 확인해주세요.';
-    }
-
-    setChildErrors(nextErrors);
-    if (Object.keys(nextErrors).length > 0) {
-      setMessageText('자녀 입력값을 확인해주세요.');
-      return;
-    }
-
-    const result = await api.createChild({
-      name: childForm.name.trim(),
-      birthYear: childForm.birthYear,
-      grade: childForm.grade.trim(),
-      targetUniversityYear: childForm.targetUniversityYear
-    });
-
-    if (result.error) {
-      setErrorMessage('자녀 저장 실패', result.error);
-      return;
-    }
-
-    setChildForm(defaultChildForm);
-    setSuccessMessage('자녀 정보가 저장되었습니다.');
-    await loadAll();
-  }
 
   async function onCreatePlan(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -193,22 +189,21 @@ export default function EducationPage() {
       <h1>교육비 시뮬레이션</h1>
 
       <SectionCard style={{ marginTop: '1.25rem', maxWidth: 980 }}>
-        <h3 style={{ marginTop: 0, marginBottom: '0.75rem' }}>자녀 등록</h3>
-        <form onSubmit={onCreateChild} className="form-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))' }}>
-          <FormField label="이름" error={childErrors.name}>
-            <input placeholder="이름" value={childForm.name} onChange={(e) => setChildForm((p) => ({ ...p, name: e.target.value }))} style={childErrors.name ? { borderColor: '#b91c1c' } : undefined} />
-          </FormField>
-          <FormField label="출생연도" error={childErrors.birthYear}>
-            <input type="number" placeholder="출생연도" value={childForm.birthYear} onChange={(e) => setChildForm((p) => ({ ...p, birthYear: Number(e.target.value || currentYear) }))} style={childErrors.birthYear ? { borderColor: '#b91c1c' } : undefined} />
-          </FormField>
-          <FormField label="학년" error={childErrors.grade}>
-            <input placeholder="학년" value={childForm.grade} onChange={(e) => setChildForm((p) => ({ ...p, grade: e.target.value }))} style={childErrors.grade ? { borderColor: '#b91c1c' } : undefined} />
-          </FormField>
-          <FormField label="대학진학 예상연도" error={childErrors.targetUniversityYear}>
-            <input type="number" placeholder="대학진학 예상연도" value={childForm.targetUniversityYear} onChange={(e) => setChildForm((p) => ({ ...p, targetUniversityYear: Number(e.target.value || currentYear) }))} style={childErrors.targetUniversityYear ? { borderColor: '#b91c1c' } : undefined} />
-          </FormField>
-          <button type="submit" className="btn-primary" style={{ width: 140, alignSelf: 'end' }}>자녀 추가</button>
-        </form>
+        <h3 style={{ marginTop: 0, marginBottom: '0.75rem' }}>설정에서 불러온 자녀 정보</h3>
+        {children.length === 0 ? (
+          <p className="helper-text">설정 페이지에서 자녀 이름/생년월일을 입력하면 여기 자동 반영됩니다.</p>
+        ) : (
+          <div style={{ display: 'grid', gap: '0.7rem' }}>
+            {children.map((child) => (
+              <div key={child.id} style={{ padding: '0.9rem', border: '1px solid var(--line)', borderRadius: 10 }}>
+                <strong>{child.name}</strong>
+                <p className="helper-text" style={{ marginTop: '0.35rem' }}>
+                  생년월일: {child.birthDate} / 나이: {child.age !== null ? `${child.age}세` : '-'}
+                </p>
+              </div>
+            ))}
+          </div>
+        )}
       </SectionCard>
 
       <SectionCard style={{ marginTop: '1.5rem', maxWidth: 980 }}>
@@ -239,22 +234,6 @@ export default function EducationPage() {
       </SectionCard>
 
       {message && <p style={{ marginTop: '1rem' }}>{message}</p>}
-
-      <SectionCard style={{ marginTop: '1rem' }}>
-        {children.length === 0 ? (
-          <p>등록된 자녀가 없습니다.</p>
-        ) : (
-          <div style={{ display: 'grid', gap: '1rem' }}>
-            {children.map((child) => (
-              <div key={child.id} style={{ padding: '1.5rem', border: '1px solid #ddd', borderRadius: '8px' }}>
-                <h3>{child.name}</h3>
-                <p>출생연도: {child.birthYear}</p>
-                <p>학년: {child.grade}</p>
-              </div>
-            ))}
-          </div>
-        )}
-      </SectionCard>
 
       <SectionCard style={{ marginTop: '1rem' }}>
         <h2>교육비 계획 목록</h2>
