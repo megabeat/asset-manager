@@ -120,7 +120,7 @@ export default function AIAdvisorPage() {
 
       {message && <p style={{ marginTop: '0.8rem' }}>{message}</p>}
 
-      <div style={{ marginTop: '1rem', display: 'grid', gap: '1rem', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))' }}>
+      <div style={{ marginTop: '1rem', display: 'grid', gap: '1rem', gridTemplateColumns: '140px minmax(0, 1fr)' }}>
         <SectionCard style={{ padding: '0.85rem', height: '640px', display: 'flex', flexDirection: 'column' }}>
           <h3 style={{ margin: '0 0 0.65rem' }}>대화 목록</h3>
           <div style={{ overflowY: 'auto', display: 'grid', gap: '0.45rem' }}>

@@ -91,6 +91,50 @@ export async function aiConversationsHandler(context: InvocationContext, req: Ht
 
         await messagesContainer.items.create(greetingMessage);
 
+        const listQuery = {
+          query:
+            "SELECT c.id, c.createdAt FROM c WHERE c.userId = @userId AND c.type = 'AiConversation' ORDER BY c.createdAt ASC",
+          parameters: [{ name: "@userId", value: userId }]
+        };
+
+        const { resources: allConversations } = await container.items.query(listQuery).fetchAll();
+        const maxConversations = 8;
+        const overflowCount = Math.max(0, allConversations.length - maxConversations);
+
+        if (overflowCount > 0) {
+          const toDelete = (allConversations as Array<{ id?: string }>).slice(0, overflowCount);
+
+          for (const oldConversation of toDelete) {
+            const oldConversationId = oldConversation.id;
+            if (!oldConversationId || oldConversationId === conversation.id) {
+              continue;
+            }
+
+            const messagesQuery = {
+              query:
+                "SELECT c.id FROM c WHERE c.userId = @userId AND c.conversationId = @conversationId AND c.type = 'AiMessage'",
+              parameters: [
+                { name: "@userId", value: userId },
+                { name: "@conversationId", value: oldConversationId }
+              ]
+            };
+
+            const oldPartitionKey = [userId, oldConversationId];
+            const { resources: oldMessages } = await messagesContainer.items
+              .query(messagesQuery, { partitionKey: oldPartitionKey })
+              .fetchAll();
+
+            for (const message of oldMessages as Array<{ id?: string }>) {
+              if (!message.id) {
+                continue;
+              }
+              await messagesContainer.item(message.id, oldPartitionKey).delete();
+            }
+
+            await container.item(oldConversationId, userId).delete();
+          }
+        }
+
         return ok(
           {
             ...(resource ?? {}),
