@@ -53,7 +53,11 @@ export default function Home() {
   }, [assets]);
 
   const monthlyExpense = useMemo(() => {
-    return expenses.reduce((sum, item) => sum + (item.cycle === 'yearly' ? item.amount / 12 : item.amount), 0);
+    return expenses.reduce((sum, item) => {
+      if (item.cycle === 'yearly') return sum + item.amount / 12;
+      if (item.cycle === 'one_time') return sum;
+      return sum + item.amount;
+    }, 0);
   }, [expenses]);
 
   const monthlyIncome = useMemo(() => {

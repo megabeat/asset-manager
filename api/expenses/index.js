@@ -8,7 +8,7 @@ const responses_1 = require("../shared/responses");
 const validators_1 = require("../shared/validators");
 const request_body_1 = require("../shared/request-body");
 const expenseTypes = ["fixed", "subscription"];
-const billingCycles = ["monthly", "yearly"];
+const billingCycles = ["monthly", "yearly", "one_time"];
 function resolveOccurredAt(value) {
     const candidate = (0, validators_1.ensureOptionalString)(value, "occurredAt") ?? new Date().toISOString().slice(0, 10);
     const date = new Date(candidate);
@@ -154,6 +154,7 @@ async function expensesHandler(context, req) {
                 const amount = (0, validators_1.ensureNumberInRange)(body.amount, "amount", 0, Number.MAX_SAFE_INTEGER);
                 const reflectToLiquidAsset = (0, validators_1.ensureOptionalBoolean)(body.reflectToLiquidAsset, "reflectToLiquidAsset") ?? false;
                 const occurredAt = resolveOccurredAt(body.occurredAt);
+                const cycle = (0, validators_1.ensureEnum)(body.cycle, "cycle", billingCycles);
                 const expense = {
                     id: (0, crypto_1.randomUUID)(),
                     userId,
@@ -161,8 +162,10 @@ async function expensesHandler(context, req) {
                     expenseType: (0, validators_1.ensureEnum)(body.type, "type", expenseTypes),
                     name: (0, validators_1.ensureString)(body.name, "name"),
                     amount,
-                    cycle: (0, validators_1.ensureEnum)(body.cycle, "cycle", billingCycles),
-                    billingDay: (0, validators_1.ensureOptionalNumberInRange)(body.billingDay, "billingDay", 1, 31) ?? null,
+                    cycle,
+                    billingDay: (cycle === "one_time"
+                        ? null
+                        : (0, validators_1.ensureOptionalNumberInRange)(body.billingDay, "billingDay", 1, 31) ?? null),
                     occurredAt,
                     reflectToLiquidAsset,
                     reflectedAmount: 0,
@@ -240,8 +243,9 @@ async function expensesHandler(context, req) {
                     name: (0, validators_1.ensureOptionalString)(body.name, "name") ?? existing.name,
                     amount: nextAmount,
                     cycle: (0, validators_1.ensureOptionalEnum)(body.cycle, "cycle", billingCycles) ?? existing.cycle,
-                    billingDay: (0, validators_1.ensureOptionalNumberInRange)(body.billingDay, "billingDay", 1, 31) ??
-                        existing.billingDay,
+                    billingDay: (((0, validators_1.ensureOptionalEnum)(body.cycle, "cycle", billingCycles) ?? existing.cycle) === "one_time"
+                        ? null
+                        : (0, validators_1.ensureOptionalNumberInRange)(body.billingDay, "billingDay", 1, 31) ?? existing.billingDay),
                     occurredAt: nextOccurredAt,
                     reflectToLiquidAsset: nextReflectSetting,
                     reflectedAmount: nextReflectedAmount,

@@ -11,7 +11,7 @@ type ExpenseForm = {
   name: string;
   amount: number;
   type: 'fixed' | 'subscription';
-  cycle: 'monthly' | 'yearly';
+  cycle: 'monthly' | 'yearly' | 'one_time';
   billingDay: number;
   occurredAt: string;
   reflectToLiquidAsset: boolean;
@@ -29,12 +29,25 @@ const defaultForm: ExpenseForm = {
   category: ''
 };
 
+  type CardQuickForm = {
+    cardName: string;
+    amount: number;
+    occurredAt: string;
+  };
+
+  const defaultCardQuickForm: CardQuickForm = {
+    cardName: '',
+    amount: 0,
+    occurredAt: new Date().toISOString().slice(0, 10),
+  };
+
 export default function ExpensesPage() {
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [filter, setFilter] = useState<'all' | 'fixed' | 'subscription'>('all');
   const [form, setForm] = useState<ExpenseForm>(defaultForm);
+  const [cardQuickForm, setCardQuickForm] = useState<CardQuickForm>(defaultCardQuickForm);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const { message, clearMessage, setMessageText, setSuccessMessage, setErrorMessage } = useFeedbackMessage();
 
@@ -59,9 +72,27 @@ export default function ExpensesPage() {
       if (item.cycle === 'yearly') {
         return sum + item.amount / 12;
       }
+      if (item.cycle === 'one_time') {
+        return sum;
+      }
       return sum + item.amount;
     }, 0);
   }, [expenses]);
+
+  const previousCardAmount = useMemo(() => {
+    const normalizedName = cardQuickForm.cardName.trim().toLowerCase();
+    const cardRows = expenses
+      .filter((item) => {
+        const name = item.name?.toLowerCase() ?? '';
+        const isCardCategory = (item.category ?? '').includes('카드');
+        if (!isCardCategory) return false;
+        if (!normalizedName) return true;
+        return name.includes(normalizedName);
+      })
+      .sort((a, b) => String(b.occurredAt ?? '').localeCompare(String(a.occurredAt ?? '')));
+
+    return cardRows[0]?.amount ?? 0;
+  }, [expenses, cardQuickForm.cardName]);
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -72,7 +103,7 @@ export default function ExpensesPage() {
     if (!Number.isFinite(form.amount) || form.amount < 0) {
       nextErrors.amount = '금액은 0 이상이어야 합니다.';
     }
-    if (!Number.isFinite(form.billingDay) || form.billingDay < 1 || form.billingDay > 31) {
+    if (form.cycle !== 'one_time' && (!Number.isFinite(form.billingDay) || form.billingDay < 1 || form.billingDay > 31)) {
       nextErrors.billingDay = '청구일은 1~31 사이여야 합니다.';
     }
 
@@ -89,7 +120,7 @@ export default function ExpensesPage() {
       amount: Number(form.amount),
       type: form.type,
       cycle: form.cycle,
-      billingDay: form.billingDay,
+      billingDay: form.cycle === 'one_time' ? null : form.billingDay,
       occurredAt: form.occurredAt,
       reflectToLiquidAsset: form.reflectToLiquidAsset,
       category: form.category.trim()
@@ -103,6 +134,39 @@ export default function ExpensesPage() {
       await loadExpenses();
     }
 
+    setSaving(false);
+  }
+
+  async function onSubmitCardQuick() {
+    clearMessage();
+    if (!cardQuickForm.cardName.trim()) {
+      setMessageText('카드명을 입력해주세요.');
+      return;
+    }
+    if (!Number.isFinite(cardQuickForm.amount) || cardQuickForm.amount <= 0) {
+      setMessageText('카드대금은 0보다 커야 합니다.');
+      return;
+    }
+
+    setSaving(true);
+    const result = await api.createExpense({
+      name: `${cardQuickForm.cardName.trim()} 카드대금`,
+      amount: Number(cardQuickForm.amount),
+      type: 'fixed',
+      cycle: 'one_time',
+      billingDay: null,
+      occurredAt: cardQuickForm.occurredAt,
+      reflectToLiquidAsset: true,
+      category: '카드대금'
+    });
+
+    if (result.error) {
+      setErrorMessage('카드대금 저장 실패', result.error);
+    } else {
+      setCardQuickForm(defaultCardQuickForm);
+      setSuccessMessage('카드대금이 반영되었습니다. (현금성 자산 차감)');
+      await loadExpenses();
+    }
     setSaving(false);
   }
 
@@ -149,6 +213,23 @@ export default function ExpensesPage() {
           >
             월말 카드값 템플릿
           </button>
+          <button
+            type="button"
+            className="btn-danger-outline"
+            onClick={() =>
+              setForm((prev) => ({
+                ...prev,
+                name: '현금 일회성 지출',
+                type: 'fixed',
+                cycle: 'one_time',
+                billingDay: 1,
+                category: '현금지출',
+                reflectToLiquidAsset: true
+              }))
+            }
+          >
+            현금 일회성 템플릿
+          </button>
         </div>
 
         <form onSubmit={onSubmit} className="form-grid">
@@ -183,23 +264,26 @@ export default function ExpensesPage() {
           <FormField label="주기">
             <select
               value={form.cycle}
-              onChange={(event) => setForm((prev) => ({ ...prev, cycle: event.target.value as 'monthly' | 'yearly' }))}
+              onChange={(event) => setForm((prev) => ({ ...prev, cycle: event.target.value as 'monthly' | 'yearly' | 'one_time' }))}
             >
               <option value="monthly">월간</option>
               <option value="yearly">연간</option>
+              <option value="one_time">일회성</option>
             </select>
           </FormField>
 
-          <FormField label="청구일(1~31)" error={errors.billingDay}>
-            <input
-              type="number"
-              min={1}
-              max={31}
-              value={form.billingDay}
-              onChange={(event) => setForm((prev) => ({ ...prev, billingDay: Number(event.target.value || 1) }))}
-              style={errors.billingDay ? { borderColor: '#b91c1c' } : undefined}
-            />
-          </FormField>
+          {form.cycle !== 'one_time' ? (
+            <FormField label="청구일(1~31)" error={errors.billingDay}>
+              <input
+                type="number"
+                min={1}
+                max={31}
+                value={form.billingDay}
+                onChange={(event) => setForm((prev) => ({ ...prev, billingDay: Number(event.target.value || 1) }))}
+                style={errors.billingDay ? { borderColor: '#b91c1c' } : undefined}
+              />
+            </FormField>
+          ) : null}
 
           <FormField label="출금(발생)일">
             <input
@@ -239,6 +323,40 @@ export default function ExpensesPage() {
             {saving ? '저장 중...' : '지출 추가'}
           </button>
         </form>
+      </SectionCard>
+
+      <SectionCard style={{ marginTop: '1rem', maxWidth: 980 }}>
+        <h3 style={{ marginTop: 0, marginBottom: '0.75rem' }}>이번 달 카드대금 빠른입력</h3>
+        <div className="form-grid">
+          <FormField label="카드명">
+            <input
+              value={cardQuickForm.cardName}
+              placeholder="예: 신한, 삼성"
+              onChange={(event) => setCardQuickForm((prev) => ({ ...prev, cardName: event.target.value }))}
+            />
+          </FormField>
+          <FormField label="청구금액(원)">
+            <input
+              type="number"
+              min={0}
+              value={cardQuickForm.amount}
+              onChange={(event) => setCardQuickForm((prev) => ({ ...prev, amount: Number(event.target.value || 0) }))}
+            />
+          </FormField>
+          <FormField label="출금일">
+            <input
+              type="date"
+              value={cardQuickForm.occurredAt}
+              onChange={(event) => setCardQuickForm((prev) => ({ ...prev, occurredAt: event.target.value }))}
+            />
+          </FormField>
+          <button type="button" className="btn-primary" onClick={onSubmitCardQuick} disabled={saving} style={{ width: 180, alignSelf: 'end' }}>
+            {saving ? '반영 중...' : '카드대금 반영'}
+          </button>
+        </div>
+        <p className="helper-text" style={{ marginBottom: 0 }}>
+          최근 카드대금 참고: {Math.round(previousCardAmount).toLocaleString()}원
+        </p>
       </SectionCard>
 
       <SectionCard style={{ marginTop: '1rem', display: 'flex', gap: '0.5rem', alignItems: 'center', maxWidth: 520 }}>

@@ -17,12 +17,13 @@ import { parseJsonBody } from "../shared/request-body";
 
 
 const expenseTypes = ["fixed", "subscription"];
-const billingCycles = ["monthly", "yearly"];
+const billingCycles = ["monthly", "yearly", "one_time"];
 
 type ExpenseRecord = {
   id: string;
   userId: string;
   amount: number;
+  cycle?: "monthly" | "yearly" | "one_time";
   occurredAt?: string;
   reflectToLiquidAsset?: boolean;
   reflectedAmount?: number;
@@ -215,6 +216,7 @@ export async function expensesHandler(context: InvocationContext, req: HttpReque
         const amount = ensureNumberInRange(body.amount, "amount", 0, Number.MAX_SAFE_INTEGER);
         const reflectToLiquidAsset = ensureOptionalBoolean(body.reflectToLiquidAsset, "reflectToLiquidAsset") ?? false;
         const occurredAt = resolveOccurredAt(body.occurredAt);
+        const cycle = ensureEnum(body.cycle, "cycle", billingCycles);
 
         const expense = {
           id: randomUUID(),
@@ -223,8 +225,11 @@ export async function expensesHandler(context: InvocationContext, req: HttpReque
           expenseType: ensureEnum(body.type, "type", expenseTypes),
           name: ensureString(body.name, "name"),
           amount,
-          cycle: ensureEnum(body.cycle, "cycle", billingCycles),
-          billingDay: ensureOptionalNumberInRange(body.billingDay, "billingDay", 1, 31) ?? null,
+          cycle,
+          billingDay:
+            (cycle === "one_time"
+              ? null
+              : ensureOptionalNumberInRange(body.billingDay, "billingDay", 1, 31) ?? null),
           occurredAt,
           reflectToLiquidAsset,
           reflectedAmount: 0,
@@ -320,8 +325,9 @@ export async function expensesHandler(context: InvocationContext, req: HttpReque
           amount: nextAmount,
           cycle: ensureOptionalEnum(body.cycle, "cycle", billingCycles) ?? existing.cycle,
           billingDay:
-            ensureOptionalNumberInRange(body.billingDay, "billingDay", 1, 31) ??
-            existing.billingDay,
+            ((ensureOptionalEnum(body.cycle, "cycle", billingCycles) ?? existing.cycle) === "one_time"
+              ? null
+              : ensureOptionalNumberInRange(body.billingDay, "billingDay", 1, 31) ?? existing.billingDay),
           occurredAt: nextOccurredAt,
           reflectToLiquidAsset: nextReflectSetting,
           reflectedAmount: nextReflectedAmount,
