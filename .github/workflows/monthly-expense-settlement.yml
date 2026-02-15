@@ -1,0 +1,41 @@
+name: Monthly Expense Settlement
+
+on:
+  schedule:
+    - cron: '5 * * * *'
+  workflow_dispatch:
+    inputs:
+      force:
+        description: 'Force settlement regardless of KST day check (1 to enable)'
+        required: false
+        default: '0'
+
+jobs:
+  settle:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate required secret
+        run: |
+          if [ -z "${{ secrets.SWA_APP_BASE_URL }}" ]; then
+            echo "SWA_APP_BASE_URL secret is not set"
+            exit 1
+          fi
+
+      - name: Trigger monthly settlement endpoint
+        env:
+          BASE_URL: ${{ secrets.SWA_APP_BASE_URL }}
+          FORCE: ${{ github.event.inputs.force || '0' }}
+        run: |
+          URL="${BASE_URL%/}/api/monthly-expense-settlement"
+          if [ "$FORCE" = "1" ]; then
+            URL="$URL?force=1"
+          fi
+
+          echo "Calling: $URL"
+          HTTP_CODE=$(curl -sS -o response.json -w "%{http_code}" -X POST "$URL")
+          cat response.json
+
+          if [ "$HTTP_CODE" -lt 200 ] || [ "$HTTP_CODE" -ge 300 ]; then
+            echo "Request failed with HTTP $HTTP_CODE"
+            exit 1
+          fi

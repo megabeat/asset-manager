@@ -129,6 +129,11 @@ git remote set-url origin git@github.com:megabeat/asset-manager.git
 - SWA 내장 Functions는 `httpTrigger`만 지원합니다. `timerTrigger`가 있으면 배포가 실패합니다.
 - 정기 실행이 필요하면 별도 Azure Function App(Consumption) + Timer Trigger를 사용하거나, SWA의 HTTP API를 외부 스케줄러에서 호출하세요.
 
+### 월 정기지출 자동정산 스케줄러 설정
+- 이 저장소는 GitHub Actions 스케줄 워크플로우(`.github/workflows/monthly-expense-settlement.yml`)로 `/api/monthly-expense-settlement`를 호출합니다.
+- GitHub 저장소 시크릿에 `SWA_APP_BASE_URL` 추가 (예: `https://<your-app>.azurestaticapps.net`)
+- 수동 실행은 Actions → `Monthly Expense Settlement` → **Run workflow**에서 가능하며, `force=1`로 날짜 체크를 무시하고 즉시 실행할 수 있습니다.
+
 ### 빌드 실패
 - package.json 의존성 확인
 - Azure Functions runtime 버전 확인 (Node 18)
