@@ -14,7 +14,6 @@ type ExpenseForm = {
   amount: NumericInput;
   type: 'fixed' | 'subscription' | 'one_time';
   cycle: 'monthly' | 'yearly' | 'one_time';
-  billingDay: NumericInput;
   occurredAt: string;
   reflectToLiquidAsset: boolean;
   category: string;
@@ -25,7 +24,6 @@ const defaultForm: ExpenseForm = {
   amount: '',
   type: 'fixed',
   cycle: 'monthly',
-  billingDay: '',
   occurredAt: new Date().toISOString().slice(0, 10),
   reflectToLiquidAsset: false,
   category: ''
@@ -157,14 +155,10 @@ export default function ExpensesPage() {
     clearMessage();
     const nextErrors: Record<string, string> = {};
     const amountValue = Number(form.amount || 0);
-    const billingDayValue = Number(form.billingDay || 0);
 
     if (!form.name.trim()) nextErrors.name = '항목명을 입력해주세요.';
     if (!Number.isFinite(amountValue) || amountValue < 0) {
       nextErrors.amount = '금액은 0 이상이어야 합니다.';
-    }
-    if (form.cycle !== 'one_time' && (!Number.isFinite(billingDayValue) || billingDayValue < 1 || billingDayValue > 31)) {
-      nextErrors.billingDay = '청구일은 1~31 사이여야 합니다.';
     }
 
     setErrors(nextErrors);
@@ -180,7 +174,7 @@ export default function ExpensesPage() {
       amount: amountValue,
       type: form.type,
       cycle: form.cycle,
-      billingDay: form.cycle === 'one_time' ? null : billingDayValue,
+      billingDay: null,
       occurredAt: form.occurredAt,
       reflectToLiquidAsset: form.reflectToLiquidAsset,
       category: form.category.trim()
@@ -255,7 +249,6 @@ export default function ExpensesPage() {
       amount: Number(expense.amount ?? 0),
       type: (expense.expenseType as 'fixed' | 'subscription' | 'one_time') ?? 'fixed',
       cycle: (expense.cycle as 'monthly' | 'yearly' | 'one_time') ?? 'monthly',
-      billingDay: expense.billingDay ?? '',
       occurredAt: expense.occurredAt?.slice(0, 10) ?? new Date().toISOString().slice(0, 10),
       reflectToLiquidAsset: Boolean(expense.reflectToLiquidAsset),
       category: expense.category ?? ''
@@ -348,24 +341,6 @@ export default function ExpensesPage() {
               <option value="one_time">일회성</option>
             </select>
           </FormField>
-
-          {form.cycle !== 'one_time' ? (
-            <FormField label="청구일(1~31)" error={errors.billingDay}>
-              <input
-                type="number"
-                min={1}
-                max={31}
-                value={form.billingDay}
-                onChange={(event) =>
-                  setForm((prev) => ({
-                    ...prev,
-                    billingDay: event.target.value === '' ? '' : Number(event.target.value)
-                  }))
-                }
-                style={errors.billingDay ? { borderColor: '#b91c1c' } : undefined}
-              />
-            </FormField>
-          ) : null}
 
           <FormField label="출금(발생)일">
             <input
@@ -507,7 +482,7 @@ export default function ExpensesPage() {
 
       {message && <p>{message}</p>}
 
-      <SectionCard style={{ marginTop: '1rem' }}>
+      <SectionCard style={{ marginTop: '1rem', maxWidth: 980 }}>
         <h3 style={{ marginTop: 0, marginBottom: '0.75rem' }}>정기 지출 (고정/구독 생활비)</h3>
         <DataTable
           rows={recurringExpenses}
@@ -551,7 +526,7 @@ export default function ExpensesPage() {
         />
       </SectionCard>
 
-      <SectionCard style={{ marginTop: '1rem' }}>
+      <SectionCard style={{ marginTop: '1rem', maxWidth: 980 }}>
         <h3 style={{ marginTop: 0, marginBottom: '0.75rem' }}>한시성 지출</h3>
         <DataTable
           rows={oneTimeExpenses}

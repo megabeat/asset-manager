@@ -226,10 +226,7 @@ export async function expensesHandler(context: InvocationContext, req: HttpReque
           name: ensureString(body.name, "name"),
           amount,
           cycle,
-          billingDay:
-            (cycle === "one_time"
-              ? null
-              : ensureOptionalNumberInRange(body.billingDay, "billingDay", 1, 31) ?? null),
+          billingDay: null,
           occurredAt,
           reflectToLiquidAsset,
           reflectedAmount: 0,
@@ -324,10 +321,7 @@ export async function expensesHandler(context: InvocationContext, req: HttpReque
           name: ensureOptionalString(body.name, "name") ?? existing.name,
           amount: nextAmount,
           cycle: ensureOptionalEnum(body.cycle, "cycle", billingCycles) ?? existing.cycle,
-          billingDay:
-            ((ensureOptionalEnum(body.cycle, "cycle", billingCycles) ?? existing.cycle) === "one_time"
-              ? null
-              : ensureOptionalNumberInRange(body.billingDay, "billingDay", 1, 31) ?? existing.billingDay),
+          billingDay: null,
           occurredAt: nextOccurredAt,
           reflectToLiquidAsset: nextReflectSetting,
           reflectedAmount: nextReflectedAmount,

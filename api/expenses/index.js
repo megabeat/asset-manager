@@ -163,9 +163,7 @@ async function expensesHandler(context, req) {
                     name: (0, validators_1.ensureString)(body.name, "name"),
                     amount,
                     cycle,
-                    billingDay: (cycle === "one_time"
-                        ? null
-                        : (0, validators_1.ensureOptionalNumberInRange)(body.billingDay, "billingDay", 1, 31) ?? null),
+                    billingDay: null,
                     occurredAt,
                     reflectToLiquidAsset,
                     reflectedAmount: 0,
@@ -243,9 +241,7 @@ async function expensesHandler(context, req) {
                     name: (0, validators_1.ensureOptionalString)(body.name, "name") ?? existing.name,
                     amount: nextAmount,
                     cycle: (0, validators_1.ensureOptionalEnum)(body.cycle, "cycle", billingCycles) ?? existing.cycle,
-                    billingDay: (((0, validators_1.ensureOptionalEnum)(body.cycle, "cycle", billingCycles) ?? existing.cycle) === "one_time"
-                        ? null
-                        : (0, validators_1.ensureOptionalNumberInRange)(body.billingDay, "billingDay", 1, 31) ?? existing.billingDay),
+                    billingDay: null,
                     occurredAt: nextOccurredAt,
                     reflectToLiquidAsset: nextReflectSetting,
                     reflectedAmount: nextReflectedAmount,
