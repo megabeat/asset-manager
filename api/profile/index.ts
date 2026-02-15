@@ -5,6 +5,7 @@ import { fail, ok } from "../shared/responses";
 import {
   ensureNumber,
   ensureOptionalNumber,
+  ensureOptionalNumberInRange,
   ensureOptionalString,
   ensureString,
   requireUserId
@@ -72,6 +73,16 @@ export async function profileHandler(context: InvocationContext, req: HttpReques
           type: "Profile",
           fullName: ensureString(body.fullName, "fullName"),
           birthDate: ensureString(body.birthDate, "birthDate"),
+          child1Name: ensureOptionalString(body.child1Name, "child1Name"),
+          child1BirthDate: ensureOptionalString(body.child1BirthDate, "child1BirthDate"),
+          child2Name: ensureOptionalString(body.child2Name, "child2Name"),
+          child2BirthDate: ensureOptionalString(body.child2BirthDate, "child2BirthDate"),
+          retirementTargetAge: ensureOptionalNumberInRange(
+            body.retirementTargetAge,
+            "retirementTargetAge",
+            45,
+            90
+          ),
           householdSize: ensureNumber(body.householdSize, "householdSize"),
           currency: ensureString(body.currency, "currency"),
           createdAt: new Date().toISOString(),
@@ -110,6 +121,15 @@ export async function profileHandler(context: InvocationContext, req: HttpReques
           ...resource,
           fullName: ensureOptionalString(body.fullName, "fullName") ?? resource.fullName,
           birthDate: ensureOptionalString(body.birthDate, "birthDate") ?? resource.birthDate,
+          child1Name: ensureOptionalString(body.child1Name, "child1Name") ?? resource.child1Name,
+          child1BirthDate:
+            ensureOptionalString(body.child1BirthDate, "child1BirthDate") ?? resource.child1BirthDate,
+          child2Name: ensureOptionalString(body.child2Name, "child2Name") ?? resource.child2Name,
+          child2BirthDate:
+            ensureOptionalString(body.child2BirthDate, "child2BirthDate") ?? resource.child2BirthDate,
+          retirementTargetAge:
+            ensureOptionalNumberInRange(body.retirementTargetAge, "retirementTargetAge", 45, 90) ??
+            resource.retirementTargetAge,
           householdSize: ensureOptionalNumber(body.householdSize, "householdSize") ?? resource.householdSize,
           currency: ensureOptionalString(body.currency, "currency") ?? resource.currency,
           updatedAt: new Date().toISOString()

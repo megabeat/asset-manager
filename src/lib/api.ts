@@ -10,6 +10,11 @@ export type Profile = {
   id?: string;
   fullName: string;
   birthDate: string;
+  child1Name?: string;
+  child1BirthDate?: string;
+  child2Name?: string;
+  child2BirthDate?: string;
+  retirementTargetAge?: number;
   householdSize: number;
   currency: string;
 };

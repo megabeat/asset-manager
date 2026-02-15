@@ -9,6 +9,31 @@ import { ensureString, requireUserId } from "../shared/validators";
 import { parseJsonBody } from "../shared/request-body";
 import { searchWeb } from "../shared/webSearch";
 
+type ProfileContext = {
+  fullName?: string;
+  birthDate?: string;
+  child1Name?: string;
+  child1BirthDate?: string;
+  child2Name?: string;
+  child2BirthDate?: string;
+  retirementTargetAge?: number;
+};
+
+function getAgeFromBirthDate(birthDate?: string): number | null {
+  if (!birthDate) return null;
+  const birth = new Date(birthDate);
+  if (Number.isNaN(birth.getTime())) return null;
+
+  const today = new Date();
+  let age = today.getFullYear() - birth.getFullYear();
+  const monthDiff = today.getMonth() - birth.getMonth();
+  const dayDiff = today.getDate() - birth.getDate();
+  if (monthDiff < 0 || (monthDiff === 0 && dayDiff < 0)) {
+    age -= 1;
+  }
+  return age >= 0 ? age : null;
+}
+
 function toErrorDetails(error: unknown): string {
   if (error instanceof Error) {
     return `${error.name}: ${error.message}`;
@@ -106,6 +131,36 @@ export async function aiMessagesHandler(context: InvocationContext, req: HttpReq
           incomesContainer
         );
 
+        let profileContextText = "프로필 정보 없음";
+        try {
+          const usersContainer = getContainer("users");
+          const { resource } = await usersContainer.item(userId, userId).read();
+          const profile = (resource as ProfileContext | undefined) ?? undefined;
+
+          if (profile) {
+            const currentAge = getAgeFromBirthDate(profile.birthDate);
+            const child1Age = getAgeFromBirthDate(profile.child1BirthDate);
+            const child2Age = getAgeFromBirthDate(profile.child2BirthDate);
+            const yearsToRetirement =
+              typeof profile.retirementTargetAge === "number" && typeof currentAge === "number"
+                ? profile.retirementTargetAge - currentAge
+                : null;
+
+            const lines = [
+              `- 사용자 이름: ${profile.fullName ?? "미설정"}`,
+              `- 사용자 나이: ${typeof currentAge === "number" ? `${currentAge}세` : "미설정"}`,
+              `- 은퇴 목표 연령: ${typeof profile.retirementTargetAge === "number" ? `${profile.retirementTargetAge}세` : "미설정"}`,
+              `- 은퇴까지 남은 기간: ${typeof yearsToRetirement === "number" ? `${yearsToRetirement}년` : "미설정"}`,
+              `- 자녀1: ${profile.child1Name ?? "미설정"} / ${typeof child1Age === "number" ? `${child1Age}세` : "나이 미설정"}`,
+              `- 자녀2: ${profile.child2Name ?? "미설정"} / ${typeof child2Age === "number" ? `${child2Age}세` : "나이 미설정"}`
+            ];
+
+            profileContextText = lines.join("\n");
+          }
+        } catch (profileError: unknown) {
+          context.log("Profile context read error:", profileError);
+        }
+
         let webSearchContext = "웹 검색 결과 없음";
         try {
           const webResults = await searchWeb(content, 4);
@@ -165,6 +220,9 @@ ${(userContext.assetBreakdown.length > 0 ? userContext.assetBreakdown : [{ categ
 ${(userContext.topExpenses.length > 0 ? userContext.topExpenses : [{ name: "데이터 없음", amount: 0 }])
   .map((e) => `- ${e.name}: ${e.amount.toLocaleString()}원`)
   .join("\n")}
+
+사용자 프로필/가족/은퇴 정보:
+${profileContextText}
 
 웹 검색 결과(최신 정보 참고용):
 ${webSearchContext}

@@ -3,15 +3,24 @@
 import { FormEvent, useEffect, useMemo, useState } from 'react';
 import { api, Profile } from '@/lib/api';
 
-const defaultForm: Profile = {
+type ProfileForm = Omit<Profile, 'retirementTargetAge'> & {
+  retirementTargetAge: number | '';
+};
+
+const defaultForm: ProfileForm = {
   fullName: '',
   birthDate: '',
+  child1Name: '',
+  child1BirthDate: '',
+  child2Name: '',
+  child2BirthDate: '',
+  retirementTargetAge: '',
   householdSize: 1,
   currency: 'KRW'
 };
 
 export default function ProfilePage() {
-  const [form, setForm] = useState<Profile>(defaultForm);
+  const [form, setForm] = useState<ProfileForm>(defaultForm);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [exists, setExists] = useState(false);
@@ -28,6 +37,11 @@ export default function ProfilePage() {
         setForm({
           fullName: result.data.fullName ?? '',
           birthDate: result.data.birthDate ?? '',
+          child1Name: result.data.child1Name ?? '',
+          child1BirthDate: result.data.child1BirthDate ?? '',
+          child2Name: result.data.child2Name ?? '',
+          child2BirthDate: result.data.child2BirthDate ?? '',
+          retirementTargetAge: result.data.retirementTargetAge ?? '',
           householdSize: result.data.householdSize ?? 1,
           currency: result.data.currency ?? 'KRW'
         });
@@ -52,6 +66,10 @@ export default function ProfilePage() {
       form.birthDate.trim().length > 0 &&
       Number.isFinite(form.householdSize) &&
       form.householdSize > 0 &&
+      (form.retirementTargetAge === '' ||
+        (Number.isFinite(form.retirementTargetAge) &&
+          Number(form.retirementTargetAge) >= 45 &&
+          Number(form.retirementTargetAge) <= 90)) &&
       form.currency.trim().length > 0
     );
   }, [form]);
@@ -66,6 +84,30 @@ export default function ProfilePage() {
     if (!Number.isFinite(form.householdSize) || form.householdSize <= 0) {
       nextErrors.householdSize = '가구원 수는 1 이상이어야 합니다.';
     }
+
+    if (form.child1Name?.trim() && !form.child1BirthDate) {
+      nextErrors.child1BirthDate = '자녀1 생년월일을 입력해주세요.';
+    }
+    if (!form.child1Name?.trim() && form.child1BirthDate) {
+      nextErrors.child1Name = '자녀1 이름을 입력해주세요.';
+    }
+
+    if (form.child2Name?.trim() && !form.child2BirthDate) {
+      nextErrors.child2BirthDate = '자녀2 생년월일을 입력해주세요.';
+    }
+    if (!form.child2Name?.trim() && form.child2BirthDate) {
+      nextErrors.child2Name = '자녀2 이름을 입력해주세요.';
+    }
+
+    if (
+      form.retirementTargetAge !== '' &&
+      (!Number.isFinite(form.retirementTargetAge) ||
+        Number(form.retirementTargetAge) < 45 ||
+        Number(form.retirementTargetAge) > 90)
+    ) {
+      nextErrors.retirementTargetAge = '은퇴 목표 연령은 45~90세 범위로 입력해주세요.';
+    }
+
     if (!form.currency.trim()) nextErrors.currency = '통화를 입력해주세요.';
 
     setErrors(nextErrors);
@@ -79,6 +121,12 @@ export default function ProfilePage() {
     const payload = {
       fullName: form.fullName.trim(),
       birthDate: form.birthDate,
+      child1Name: form.child1Name?.trim() || undefined,
+      child1BirthDate: form.child1BirthDate || undefined,
+      child2Name: form.child2Name?.trim() || undefined,
+      child2BirthDate: form.child2BirthDate || undefined,
+      retirementTargetAge:
+        form.retirementTargetAge === '' ? undefined : Number(form.retirementTargetAge),
       householdSize: Number(form.householdSize),
       currency: form.currency.trim().toUpperCase()
     };
@@ -141,6 +189,64 @@ export default function ProfilePage() {
             style={{ padding: '0.65rem', border: '1px solid #d0d0d0', borderRadius: 8 }}
           />
           {errors.birthDate && <p className="form-error">{errors.birthDate}</p>}
+        </label>
+
+        <label style={{ display: 'grid', gap: '0.35rem' }}>
+          <span>자녀1 이름</span>
+          <input
+            value={form.child1Name ?? ''}
+            onChange={(event) => setForm((prev) => ({ ...prev, child1Name: event.target.value }))}
+            placeholder="예: 자녀1"
+          />
+          {errors.child1Name && <p className="form-error">{errors.child1Name}</p>}
+        </label>
+
+        <label style={{ display: 'grid', gap: '0.35rem' }}>
+          <span>자녀1 생년월일</span>
+          <input
+            type="date"
+            value={form.child1BirthDate ?? ''}
+            onChange={(event) => setForm((prev) => ({ ...prev, child1BirthDate: event.target.value }))}
+          />
+          {errors.child1BirthDate && <p className="form-error">{errors.child1BirthDate}</p>}
+        </label>
+
+        <label style={{ display: 'grid', gap: '0.35rem' }}>
+          <span>자녀2 이름</span>
+          <input
+            value={form.child2Name ?? ''}
+            onChange={(event) => setForm((prev) => ({ ...prev, child2Name: event.target.value }))}
+            placeholder="예: 자녀2"
+          />
+          {errors.child2Name && <p className="form-error">{errors.child2Name}</p>}
+        </label>
+
+        <label style={{ display: 'grid', gap: '0.35rem' }}>
+          <span>자녀2 생년월일</span>
+          <input
+            type="date"
+            value={form.child2BirthDate ?? ''}
+            onChange={(event) => setForm((prev) => ({ ...prev, child2BirthDate: event.target.value }))}
+          />
+          {errors.child2BirthDate && <p className="form-error">{errors.child2BirthDate}</p>}
+        </label>
+
+        <label style={{ display: 'grid', gap: '0.35rem' }}>
+          <span>은퇴 목표 연령</span>
+          <input
+            type="number"
+            min={45}
+            max={90}
+            value={form.retirementTargetAge}
+            onChange={(event) =>
+              setForm((prev) => ({
+                ...prev,
+                retirementTargetAge: event.target.value === '' ? '' : Number(event.target.value)
+              }))
+            }
+            placeholder="예: 60"
+          />
+          {errors.retirementTargetAge && <p className="form-error">{errors.retirementTargetAge}</p>}
         </label>
 
         <label style={{ display: 'grid', gap: '0.35rem' }}>
