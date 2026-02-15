@@ -1,4 +1,4 @@
-import { app, HttpRequest, HttpResponseInit, InvocationContext } from "@azure/functions";
+import { HttpRequest, HttpResponseInit, InvocationContext } from "@azure/functions";
 import { getAuthContext } from "../shared/auth";
 import { getContainer } from "../shared/cosmosClient";
 import { fail, ok } from "../shared/responses";
@@ -136,9 +136,3 @@ export async function dashboardHandler(req: HttpRequest, context: InvocationCont
   }
 }
 
-app.http("dashboard", {
-  methods: ["GET"],
-  authLevel: "anonymous",
-  route: "dashboard/{action}",
-  handler: dashboardHandler
-});

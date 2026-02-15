@@ -1,4 +1,4 @@
-import { app, HttpRequest, HttpResponseInit, InvocationContext } from "@azure/functions";
+import { HttpRequest, HttpResponseInit, InvocationContext } from "@azure/functions";
 import { randomUUID } from "node:crypto";
 import { getAuthContext } from "../shared/auth";
 import { getContainer } from "../shared/cosmosClient";
@@ -151,9 +151,3 @@ export async function childrenHandler(req: HttpRequest, context: InvocationConte
   }
 }
 
-app.http("children", {
-  methods: ["GET", "POST", "PUT", "DELETE"],
-  authLevel: "anonymous",
-  route: "children/{childId?}",
-  handler: childrenHandler
-});

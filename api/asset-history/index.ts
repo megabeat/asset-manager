@@ -1,4 +1,4 @@
-import { app, HttpRequest, HttpResponseInit, InvocationContext } from "@azure/functions";
+import { HttpRequest, HttpResponseInit, InvocationContext } from "@azure/functions";
 import { randomUUID } from "node:crypto";
 import { getAuthContext } from "../shared/auth";
 import { getContainer } from "../shared/cosmosClient";
@@ -128,9 +128,3 @@ export async function assetHistoryHandler(req: HttpRequest, context: InvocationC
   }
 }
 
-app.http("assetHistory", {
-  methods: ["GET", "POST", "DELETE"],
-  authLevel: "anonymous",
-  route: "assets/{assetId}/history/{historyId?}",
-  handler: assetHistoryHandler
-});

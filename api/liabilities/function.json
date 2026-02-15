@@ -1,4 +1,6 @@
 {
+  "scriptFile": "index.js",
+  "entryPoint": "liabilitiesHandler",
   "bindings": [
     {
       "authLevel": "anonymous",

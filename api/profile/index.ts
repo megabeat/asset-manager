@@ -1,4 +1,4 @@
-import { app, HttpRequest, HttpResponseInit, InvocationContext } from "@azure/functions";
+import { HttpRequest, HttpResponseInit, InvocationContext } from "@azure/functions";
 import { getAuthContext } from "../shared/auth";
 import { getContainer } from "../shared/cosmosClient";
 import { fail, ok } from "../shared/responses";
@@ -116,9 +116,3 @@ export async function profileHandler(req: HttpRequest, context: InvocationContex
   }
 }
 
-app.http("profile", {
-  methods: ["GET", "POST", "PUT"],
-  authLevel: "anonymous",
-  route: "profile",
-  handler: profileHandler
-});

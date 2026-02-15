@@ -1,4 +1,4 @@
-import { app, HttpRequest, HttpResponseInit, InvocationContext } from "@azure/functions";
+import { HttpRequest, HttpResponseInit, InvocationContext } from "@azure/functions";
 import { randomUUID } from "node:crypto";
 import { getAuthContext } from "../shared/auth";
 import { getContainer } from "../shared/cosmosClient";
@@ -83,9 +83,3 @@ export async function aiConversationsHandler(req: HttpRequest, context: Invocati
   }
 }
 
-app.http("aiConversations", {
-  methods: ["GET", "POST"],
-  authLevel: "anonymous",
-  route: "ai/conversations/{conversationId?}",
-  handler: aiConversationsHandler
-});

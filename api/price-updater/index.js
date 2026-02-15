@@ -1,0 +1,90 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.priceUpdater = priceUpdater;
+const cosmosClient_1 = require("../shared/cosmosClient");
+const DEFAULT_TIMEOUT_MS = 15000;
+function buildStooqSymbol(symbol, exchange) {
+    if (!exchange) {
+        return symbol.toLowerCase();
+    }
+    const normalized = exchange.toUpperCase();
+    if (normalized === "NASDAQ" || normalized === "NYSE") {
+        return `${symbol.toLowerCase()}.us`;
+    }
+    return symbol.toLowerCase();
+}
+async function fetchStooqPrice(symbol, exchange) {
+    const stooqSymbol = buildStooqSymbol(symbol, exchange);
+    const url = `https://stooq.com/q/l/?s=${encodeURIComponent(stooqSymbol)}&f=sd2t2ohlcv&h&e=csv`;
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), DEFAULT_TIMEOUT_MS);
+    try {
+        const response = await fetch(url, { signal: controller.signal });
+        if (!response.ok) {
+            return null;
+        }
+        const text = await response.text();
+        const lines = text.trim().split("\n");
+        if (lines.length < 2) {
+            return null;
+        }
+        const fields = lines[1].split(",");
+        const closeIndex = 6;
+        const closeValue = Number(fields[closeIndex]);
+        return Number.isNaN(closeValue) ? null : closeValue;
+    }
+    finally {
+        clearTimeout(timeout);
+    }
+}
+async function resolvePrice(asset) {
+    if (!asset.symbol) {
+        return null;
+    }
+    const source = (asset.priceSource ?? "").toLowerCase();
+    if (source === "stooq") {
+        return fetchStooqPrice(asset.symbol, asset.exchange);
+    }
+    return null;
+}
+async function priceUpdater(timer, context) {
+    if (timer.isPastDue) {
+        context.log("Price updater is running late.");
+    }
+    const assetsContainer = (0, cosmosClient_1.getContainer)("assets");
+    const historyContainer = (0, cosmosClient_1.getContainer)("assetHistory");
+    const query = {
+        query: "SELECT * FROM c WHERE c.type = 'Asset' AND c.category = 'investment' AND c.autoUpdate = true AND c.priceSource = 'stooq'",
+        parameters: []
+    };
+    const { resources } = await assetsContainer.items.query(query).fetchAll();
+    const assets = resources;
+    for (const asset of assets) {
+        const price = await resolvePrice(asset);
+        if (price === null) {
+            continue;
+        }
+        const quantity = asset.quantity ?? 1;
+        const newValue = price * quantity;
+        const updatedAt = new Date().toISOString();
+        const updatedAsset = {
+            ...asset,
+            currentValue: newValue,
+            valuationDate: updatedAt.slice(0, 10),
+            updatedAt
+        };
+        await assetsContainer.item(asset.id, asset.userId).replace(updatedAsset);
+        const historyItem = {
+            id: `${asset.id}-${updatedAt}`,
+            userId: asset.userId,
+            assetId: asset.id,
+            type: "AssetHistory",
+            value: newValue,
+            quantity,
+            recordedAt: updatedAt,
+            note: "auto price update",
+            createdAt: updatedAt
+        };
+        await historyContainer.items.create(historyItem);
+    }
+}

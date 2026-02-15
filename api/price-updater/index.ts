@@ -1,4 +1,4 @@
-import { app, InvocationContext, Timer } from "@azure/functions";
+import { InvocationContext, Timer } from "@azure/functions";
 import { getContainer } from "../shared/cosmosClient";
 
 const DEFAULT_TIMEOUT_MS = 15000;
@@ -120,9 +120,3 @@ export async function priceUpdater(timer: Timer, context: InvocationContext): Pr
   }
 }
 
-if (process.env.ENABLE_TIMER_FUNCTIONS === "true") {
-  app.timer("priceUpdater", {
-    schedule: "0 0 22 * * *",
-    handler: priceUpdater
-  });
-}

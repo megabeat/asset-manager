@@ -1,4 +1,4 @@
-import { app, HttpRequest, HttpResponseInit, InvocationContext } from "@azure/functions";
+import { HttpRequest, HttpResponseInit, InvocationContext } from "@azure/functions";
 import { randomUUID } from "node:crypto";
 import { getAuthContext } from "../shared/auth";
 import { getContainer } from "../shared/cosmosClient";
@@ -173,9 +173,3 @@ export async function expensesHandler(req: HttpRequest, context: InvocationConte
   }
 }
 
-app.http("expenses", {
-  methods: ["GET", "POST", "PUT", "DELETE"],
-  authLevel: "anonymous",
-  route: "expenses/{expenseId?}",
-  handler: expensesHandler
-});

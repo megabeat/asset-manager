@@ -1,4 +1,4 @@
-import { app, HttpRequest, HttpResponseInit, InvocationContext } from "@azure/functions";
+import { HttpRequest, HttpResponseInit, InvocationContext } from "@azure/functions";
 import { randomUUID } from "node:crypto";
 import { getAuthContext } from "../shared/auth";
 import { buildUserContext } from "../shared/context-builder";
@@ -185,9 +185,3 @@ ${userContext.topExpenses.map((e) => `- ${e.name}: ${e.amount.toLocaleString()}ì
   }
 }
 
-app.http("aiMessages", {
-  methods: ["GET", "POST"],
-  authLevel: "anonymous",
-  route: "ai/conversations/{conversationId}/messages",
-  handler: aiMessagesHandler
-});
