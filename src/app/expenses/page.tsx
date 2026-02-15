@@ -48,6 +48,7 @@ export default function ExpensesPage() {
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [entryMode, setEntryMode] = useState<'card' | 'general'>('card');
   const [filter, setFilter] = useState<'all' | 'fixed' | 'subscription'>('all');
   const [form, setForm] = useState<ExpenseForm>(defaultForm);
   const [cardQuickForm, setCardQuickForm] = useState<CardQuickForm>(defaultCardQuickForm);
@@ -245,41 +246,22 @@ export default function ExpensesPage() {
         <div style={{ marginBottom: '0.75rem', display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
           <button
             type="button"
-            className="btn-danger-outline"
-            onClick={() =>
-              setForm((prev) => ({
-                ...prev,
-                name: '월말 카드값',
-                type: 'fixed',
-                cycle: 'monthly',
-                billingDay: 31,
-                category: '카드대금',
-                reflectToLiquidAsset: true
-              }))
-            }
+            className={entryMode === 'card' ? 'btn-primary' : 'btn-danger-outline'}
+            onClick={() => setEntryMode('card')}
           >
-            월말 카드값 템플릿
+            카드값 간편입력
           </button>
           <button
             type="button"
-            className="btn-danger-outline"
-            onClick={() =>
-              setForm((prev) => ({
-                ...prev,
-                name: '현금 일회성 지출',
-                type: 'fixed',
-                cycle: 'one_time',
-                billingDay: 1,
-                category: '현금지출',
-                reflectToLiquidAsset: true
-              }))
-            }
+            className={entryMode === 'general' ? 'btn-primary' : 'btn-danger-outline'}
+            onClick={() => setEntryMode('general')}
           >
-            현금 일회성 템플릿
+            일반 지출 입력
           </button>
         </div>
 
-        <form onSubmit={onSubmit} className="form-grid">
+        {entryMode === 'general' ? (
+          <form onSubmit={onSubmit} className="form-grid">
           <FormField label="항목명" error={errors.name}>
             <input
               value={form.name}
@@ -369,43 +351,47 @@ export default function ExpensesPage() {
           >
             {saving ? '저장 중...' : '지출 추가'}
           </button>
-        </form>
+          </form>
+        ) : (
+          <div className="form-grid">
+            <FormField label="카드사">
+              <select
+                value={cardQuickForm.cardName}
+                onChange={(event) =>
+                  setCardQuickForm((prev) => ({ ...prev, cardName: event.target.value as CardIssuer }))
+                }
+              >
+                {CARD_ISSUERS.map((issuer) => (
+                  <option key={issuer} value={issuer}>{issuer}</option>
+                ))}
+              </select>
+            </FormField>
+            <FormField label="청구금액(원)">
+              <input
+                type="number"
+                min={0}
+                value={cardQuickForm.amount}
+                onChange={(event) => setCardQuickForm((prev) => ({ ...prev, amount: Number(event.target.value || 0) }))}
+              />
+            </FormField>
+            <FormField label="출금일">
+              <input
+                type="date"
+                value={cardQuickForm.occurredAt}
+                onChange={(event) => setCardQuickForm((prev) => ({ ...prev, occurredAt: event.target.value }))}
+              />
+            </FormField>
+            <button type="button" className="btn-primary" onClick={onSubmitCardQuick} disabled={saving} style={{ width: 180, alignSelf: 'end' }}>
+              {saving ? '반영 중...' : '카드대금 반영'}
+            </button>
+            <FormField label="안내" fullWidth>
+              <input value="유형/주기/카테고리는 자동 설정되고, 현금성 자산에서 즉시 차감됩니다." readOnly />
+            </FormField>
+          </div>
+        )}
       </SectionCard>
 
       <SectionCard style={{ marginTop: '1rem', maxWidth: 980 }}>
-        <h3 style={{ marginTop: 0, marginBottom: '0.75rem' }}>이번 달 카드대금 빠른입력</h3>
-        <div className="form-grid">
-          <FormField label="카드명">
-            <select
-              value={cardQuickForm.cardName}
-              onChange={(event) =>
-                setCardQuickForm((prev) => ({ ...prev, cardName: event.target.value as CardIssuer }))
-              }
-            >
-              {CARD_ISSUERS.map((issuer) => (
-                <option key={issuer} value={issuer}>{issuer}</option>
-              ))}
-            </select>
-          </FormField>
-          <FormField label="청구금액(원)">
-            <input
-              type="number"
-              min={0}
-              value={cardQuickForm.amount}
-              onChange={(event) => setCardQuickForm((prev) => ({ ...prev, amount: Number(event.target.value || 0) }))}
-            />
-          </FormField>
-          <FormField label="출금일">
-            <input
-              type="date"
-              value={cardQuickForm.occurredAt}
-              onChange={(event) => setCardQuickForm((prev) => ({ ...prev, occurredAt: event.target.value }))}
-            />
-          </FormField>
-          <button type="button" className="btn-primary" onClick={onSubmitCardQuick} disabled={saving} style={{ width: 180, alignSelf: 'end' }}>
-            {saving ? '반영 중...' : '카드대금 반영'}
-          </button>
-        </div>
         <p className="helper-text" style={{ marginBottom: 0 }}>
           최근 카드대금 참고: {Math.round(previousCardAmount).toLocaleString()}원
         </p>
