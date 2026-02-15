@@ -18,14 +18,16 @@ export function DataTable<T>({ columns, rows, rowKey, emptyMessage = '데이터�
   return (
     <table style={{ width: '100%', borderCollapse: 'collapse' }}>
       <thead>
-        <tr>
+        <tr style={{ background: '#f8fafc' }}>
           {columns.map((column) => (
             <th
               key={column.key}
               style={{
                 textAlign: column.align ?? 'left',
-                padding: '10px 8px',
+                padding: '11px 10px',
                 fontSize: 13,
+                color: '#334155',
+                fontWeight: 700
               }}
             >
               {column.header}
@@ -41,10 +43,10 @@ export function DataTable<T>({ columns, rows, rowKey, emptyMessage = '데이터�
             </td>
           </tr>
         ) : (
-          rows.map((row) => (
-            <tr key={rowKey(row)}>
+          rows.map((row, rowIndex) => (
+            <tr key={rowKey(row)} style={{ background: rowIndex % 2 === 0 ? '#fff' : '#fcfdff' }}>
               {columns.map((column) => (
-                <td key={column.key} style={{ padding: '10px 8px', textAlign: column.align ?? 'left' }}>
+                <td key={column.key} style={{ padding: '11px 10px', textAlign: column.align ?? 'left' }}>
                   {column.render(row)}
                 </td>
               ))}

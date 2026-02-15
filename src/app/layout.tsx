@@ -28,43 +28,14 @@ export default function RootLayout({
   return (
     <html lang="ko">
       <body>
-        <header
-          style={{
-            position: "sticky",
-            top: 0,
-            zIndex: 10,
-            background: "#fff",
-            borderBottom: "1px solid #e5e7eb",
-            backdropFilter: "saturate(180%) blur(8px)"
-          }}
-        >
-          <div
-            style={{
-              maxWidth: 1160,
-              margin: "0 auto",
-              padding: "0.75rem 1rem",
-              display: "flex",
-              gap: "1rem",
-              alignItems: "center",
-              justifyContent: "space-between"
-            }}
-          >
-            <Link href="/" style={{ fontWeight: 700, fontSize: "1.05rem", color: "#111", textDecoration: "none" }}>
+        <header className="app-header">
+          <div className="app-header-inner">
+            <Link href="/" className="brand-link">
               자산관리 앱
             </Link>
-            <nav style={{ display: "flex", gap: "0.4rem", flexWrap: "wrap", justifyContent: "flex-end" }}>
+            <nav className="nav-links">
               {navItems.map((item) => (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  style={{
-                    padding: "0.35rem 0.6rem",
-                    borderRadius: 6,
-                    color: "#1d4f91",
-                    textDecoration: "none",
-                    fontSize: "0.9rem"
-                  }}
-                >
+                <Link key={item.href} href={item.href} className="nav-link">
                   {item.label}
                 </Link>
               ))}
@@ -72,7 +43,7 @@ export default function RootLayout({
           </div>
         </header>
 
-        <main style={{ maxWidth: 1160, margin: "0 auto", padding: "1rem" }}>{children}</main>
+        <main className="app-main">{children}</main>
       </body>
     </html>
   );
