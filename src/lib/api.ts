@@ -33,6 +33,23 @@ export type Expense = {
   category?: string;
 };
 
+export type Income = {
+  id: string;
+  name: string;
+  amount: number;
+  cycle: 'monthly' | 'yearly' | 'one_time';
+  category?: string;
+  note?: string;
+};
+
+export type Liability = {
+  id: string;
+  name: string;
+  amount: number;
+  category?: string;
+  note?: string;
+};
+
 export type Child = {
   id: string;
   name: string;
@@ -145,6 +162,21 @@ export const api = {
   updateExpense: (id: string, data: unknown) =>
     fetchApi(`/expenses/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
   deleteExpense: (id: string) => fetchApi(`/expenses/${id}`, { method: 'DELETE' }),
+
+  // Incomes
+  getIncomes: () => fetchApi<Income[]>('/incomes'),
+  createIncome: (data: unknown) => fetchApi('/incomes', { method: 'POST', body: JSON.stringify(data) }),
+  updateIncome: (id: string, data: unknown) =>
+    fetchApi(`/incomes/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+  deleteIncome: (id: string) => fetchApi(`/incomes/${id}`, { method: 'DELETE' }),
+
+  // Liabilities
+  getLiabilities: () => fetchApi<Liability[]>('/liabilities'),
+  createLiability: (data: unknown) =>
+    fetchApi('/liabilities', { method: 'POST', body: JSON.stringify(data) }),
+  updateLiability: (id: string, data: unknown) =>
+    fetchApi(`/liabilities/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+  deleteLiability: (id: string) => fetchApi(`/liabilities/${id}`, { method: 'DELETE' }),
 
   // Education Plans
   getEducationPlans: () => fetchApi<EducationPlan[]>('/education-plans'),
