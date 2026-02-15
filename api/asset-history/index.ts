@@ -5,6 +5,21 @@ import { getContainer } from "../shared/cosmosClient";
 import { fail, ok } from "../shared/responses";
 import { ensureNumber, ensureOptionalNumber, ensureOptionalString, requireUserId } from "../shared/validators";
 
+function getQueryValue(req: HttpRequest, key: string): string | undefined {
+  const query = req.query as unknown;
+
+  if (query && typeof (query as URLSearchParams).get === "function") {
+    return (query as URLSearchParams).get(key) ?? undefined;
+  }
+
+  if (query && typeof query === "object") {
+    const record = query as Record<string, string | undefined>;
+    return record[key] ?? record[key.toLowerCase()] ?? record[key.toUpperCase()];
+  }
+
+  return undefined;
+}
+
 export async function assetHistoryHandler(context: InvocationContext, req: HttpRequest): Promise<HttpResponseInit> {
   const { userId } = getAuthContext(req.headers);
 
@@ -42,8 +57,8 @@ export async function assetHistoryHandler(context: InvocationContext, req: HttpR
         }
       }
 
-      const from = req.query.get("from");
-      const to = req.query.get("to");
+      const from = getQueryValue(req, "from");
+      const to = getQueryValue(req, "to");
       const parameters = [
         { name: "@userId", value: userId },
         { name: "@assetId", value: assetId }

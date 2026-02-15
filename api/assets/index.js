@@ -6,6 +6,17 @@ const auth_1 = require("../shared/auth");
 const cosmosClient_1 = require("../shared/cosmosClient");
 const responses_1 = require("../shared/responses");
 const validators_1 = require("../shared/validators");
+function getQueryValue(req, key) {
+    const query = req.query;
+    if (query && typeof query.get === "function") {
+        return query.get(key) ?? undefined;
+    }
+    if (query && typeof query === "object") {
+        const record = query;
+        return record[key] ?? record[key.toLowerCase()] ?? record[key.toUpperCase()];
+    }
+    return undefined;
+}
 async function assetsHandler(context, req) {
     const { userId } = (0, auth_1.getAuthContext)(req.headers);
     try {
@@ -43,7 +54,7 @@ async function assetsHandler(context, req) {
                 }
             }
             try {
-                const category = req.query.get("category");
+                const category = getQueryValue(req, "category");
                 const query = category
                     ? {
                         query: "SELECT * FROM c WHERE c.userId = @userId AND c.type = 'Asset' AND c.category = @category",

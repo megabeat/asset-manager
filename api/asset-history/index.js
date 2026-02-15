@@ -6,6 +6,17 @@ const auth_1 = require("../shared/auth");
 const cosmosClient_1 = require("../shared/cosmosClient");
 const responses_1 = require("../shared/responses");
 const validators_1 = require("../shared/validators");
+function getQueryValue(req, key) {
+    const query = req.query;
+    if (query && typeof query.get === "function") {
+        return query.get(key) ?? undefined;
+    }
+    if (query && typeof query === "object") {
+        const record = query;
+        return record[key] ?? record[key.toLowerCase()] ?? record[key.toUpperCase()];
+    }
+    return undefined;
+}
 async function assetHistoryHandler(context, req) {
     const { userId } = (0, auth_1.getAuthContext)(req.headers);
     try {
@@ -40,8 +51,8 @@ async function assetHistoryHandler(context, req) {
                     return (0, responses_1.fail)("SERVER_ERROR", "Failed to fetch history item", 500);
                 }
             }
-            const from = req.query.get("from");
-            const to = req.query.get("to");
+            const from = getQueryValue(req, "from");
+            const to = getQueryValue(req, "to");
             const parameters = [
                 { name: "@userId", value: userId },
                 { name: "@assetId", value: assetId }

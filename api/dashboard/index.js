@@ -32,6 +32,17 @@ function resolveRange(range) {
     }
     return { from: fromDate.toISOString(), to };
 }
+function getQueryValue(req, key) {
+    const query = req.query;
+    if (query && typeof query.get === "function") {
+        return query.get(key) ?? undefined;
+    }
+    if (query && typeof query === "object") {
+        const record = query;
+        return record[key] ?? record[key.toLowerCase()] ?? record[key.toUpperCase()];
+    }
+    return undefined;
+}
 async function dashboardHandler(context, req) {
     const { userId } = (0, auth_1.getAuthContext)(req.headers);
     try {
@@ -84,7 +95,7 @@ async function dashboardHandler(context, req) {
                 return (0, responses_1.fail)("SERVER_ERROR", "Failed to build summary", 500);
             }
         case "asset-trend": {
-            const range = resolveRange(req.query.get("range"));
+            const range = resolveRange(getQueryValue(req, "range") ?? null);
             if (!range) {
                 return (0, responses_1.fail)("VALIDATION_ERROR", "Invalid range", 400);
             }

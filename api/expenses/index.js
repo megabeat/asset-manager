@@ -8,6 +8,17 @@ const responses_1 = require("../shared/responses");
 const validators_1 = require("../shared/validators");
 const expenseTypes = ["fixed", "subscription"];
 const billingCycles = ["monthly", "yearly"];
+function getQueryValue(req, key) {
+    const query = req.query;
+    if (query && typeof query.get === "function") {
+        return query.get(key) ?? undefined;
+    }
+    if (query && typeof query === "object") {
+        const record = query;
+        return record[key] ?? record[key.toLowerCase()] ?? record[key.toUpperCase()];
+    }
+    return undefined;
+}
 async function expensesHandler(context, req) {
     const { userId } = (0, auth_1.getAuthContext)(req.headers);
     try {
@@ -45,7 +56,7 @@ async function expensesHandler(context, req) {
                 }
             }
             try {
-                const type = req.query.get("type");
+                const type = getQueryValue(req, "type");
                 const query = type
                     ? {
                         query: "SELECT * FROM c WHERE c.userId = @userId AND c.type = 'Expense' AND c.expenseType = @expenseType",

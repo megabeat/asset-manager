@@ -16,6 +16,21 @@ import {
 const expenseTypes = ["fixed", "subscription"];
 const billingCycles = ["monthly", "yearly"];
 
+function getQueryValue(req: HttpRequest, key: string): string | undefined {
+  const query = req.query as unknown;
+
+  if (query && typeof (query as URLSearchParams).get === "function") {
+    return (query as URLSearchParams).get(key) ?? undefined;
+  }
+
+  if (query && typeof query === "object") {
+    const record = query as Record<string, string | undefined>;
+    return record[key] ?? record[key.toLowerCase()] ?? record[key.toUpperCase()];
+  }
+
+  return undefined;
+}
+
 export async function expensesHandler(context: InvocationContext, req: HttpRequest): Promise<HttpResponseInit> {
   const { userId } = getAuthContext(req.headers);
 
@@ -54,7 +69,7 @@ export async function expensesHandler(context: InvocationContext, req: HttpReque
       }
 
       try {
-        const type = req.query.get("type");
+        const type = getQueryValue(req, "type");
         const query = type
           ? {
               query:
