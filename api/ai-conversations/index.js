@@ -7,6 +7,26 @@ const cosmosClient_1 = require("../shared/cosmosClient");
 const responses_1 = require("../shared/responses");
 const validators_1 = require("../shared/validators");
 const request_body_1 = require("../shared/request-body");
+async function deleteConversationWithMessages(userId, conversationId, conversationsContainer, messagesContainer) {
+    const messagesQuery = {
+        query: "SELECT c.id FROM c WHERE c.userId = @userId AND c.conversationId = @conversationId AND c.type = 'AiMessage'",
+        parameters: [
+            { name: "@userId", value: userId },
+            { name: "@conversationId", value: conversationId }
+        ]
+    };
+    const partitionKey = [userId, conversationId];
+    const { resources: messages } = await messagesContainer.items
+        .query(messagesQuery, { partitionKey })
+        .fetchAll();
+    for (const message of messages) {
+        if (!message.id) {
+            continue;
+        }
+        await messagesContainer.item(message.id, partitionKey).delete();
+    }
+    await conversationsContainer.item(conversationId, userId).delete();
+}
 async function aiConversationsHandler(context, req) {
     const { userId } = (0, auth_1.getAuthContext)(req.headers);
     try {
@@ -24,6 +44,7 @@ async function aiConversationsHandler(context, req) {
         return (0, responses_1.fail)("SERVER_ERROR", "Cosmos DB configuration error", 500);
     }
     const conversationId = req.params.conversationId;
+    const messagesContainer = (0, cosmosClient_1.getContainer)("aiMessages");
     switch (req.method.toUpperCase()) {
         case "GET": {
             if (conversationId) {
@@ -75,7 +96,6 @@ async function aiConversationsHandler(context, req) {
                     updatedAt: now
                 };
                 const { resource } = await container.items.create(conversation);
-                const messagesContainer = (0, cosmosClient_1.getContainer)("aiMessages");
                 const greetingMessage = {
                     id: (0, crypto_1.randomUUID)(),
                     userId,
@@ -100,24 +120,7 @@ async function aiConversationsHandler(context, req) {
                         if (!oldConversationId || oldConversationId === conversation.id) {
                             continue;
                         }
-                        const messagesQuery = {
-                            query: "SELECT c.id FROM c WHERE c.userId = @userId AND c.conversationId = @conversationId AND c.type = 'AiMessage'",
-                            parameters: [
-                                { name: "@userId", value: userId },
-                                { name: "@conversationId", value: oldConversationId }
-                            ]
-                        };
-                        const oldPartitionKey = [userId, oldConversationId];
-                        const { resources: oldMessages } = await messagesContainer.items
-                            .query(messagesQuery, { partitionKey: oldPartitionKey })
-                            .fetchAll();
-                        for (const message of oldMessages) {
-                            if (!message.id) {
-                                continue;
-                            }
-                            await messagesContainer.item(message.id, oldPartitionKey).delete();
-                        }
-                        await container.item(oldConversationId, userId).delete();
+                        await deleteConversationWithMessages(userId, oldConversationId, container, messagesContainer);
                     }
                 }
                 return (0, responses_1.ok)({
@@ -131,6 +134,27 @@ async function aiConversationsHandler(context, req) {
                 }
                 context.log(error);
                 return (0, responses_1.fail)("SERVER_ERROR", "Failed to create conversation", 500);
+            }
+        }
+        case "DELETE": {
+            if (!conversationId) {
+                return (0, responses_1.fail)("VALIDATION_ERROR", "Missing conversationId", 400);
+            }
+            try {
+                const { resource } = await container.item(conversationId, userId).read();
+                if (!resource) {
+                    return (0, responses_1.fail)("NOT_FOUND", "Conversation not found", 404);
+                }
+                await deleteConversationWithMessages(userId, conversationId, container, messagesContainer);
+                return (0, responses_1.ok)({ id: conversationId, deleted: true });
+            }
+            catch (error) {
+                const status = error.statusCode;
+                if (status === 404) {
+                    return (0, responses_1.fail)("NOT_FOUND", "Conversation not found", 404);
+                }
+                context.log(error);
+                return (0, responses_1.fail)("SERVER_ERROR", "Failed to delete conversation", 500);
             }
         }
         default:

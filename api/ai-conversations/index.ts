@@ -6,6 +6,36 @@ import { fail, ok } from "../shared/responses";
 import { ensureOptionalString, requireUserId } from "../shared/validators";
 import { parseJsonBody } from "../shared/request-body";
 
+async function deleteConversationWithMessages(
+  userId: string,
+  conversationId: string,
+  conversationsContainer: ReturnType<typeof getContainer>,
+  messagesContainer: ReturnType<typeof getContainer>
+): Promise<void> {
+  const messagesQuery = {
+    query:
+      "SELECT c.id FROM c WHERE c.userId = @userId AND c.conversationId = @conversationId AND c.type = 'AiMessage'",
+    parameters: [
+      { name: "@userId", value: userId },
+      { name: "@conversationId", value: conversationId }
+    ]
+  };
+
+  const partitionKey = [userId, conversationId];
+  const { resources: messages } = await messagesContainer.items
+    .query(messagesQuery, { partitionKey })
+    .fetchAll();
+
+  for (const message of messages as Array<{ id?: string }>) {
+    if (!message.id) {
+      continue;
+    }
+    await messagesContainer.item(message.id, partitionKey).delete();
+  }
+
+  await conversationsContainer.item(conversationId, userId).delete();
+}
+
 
 export async function aiConversationsHandler(context: InvocationContext, req: HttpRequest): Promise<HttpResponseInit> {
   const { userId } = getAuthContext(req.headers);
@@ -24,6 +54,7 @@ export async function aiConversationsHandler(context: InvocationContext, req: Ht
     return fail("SERVER_ERROR", "Cosmos DB configuration error", 500);
   }
   const conversationId = req.params.conversationId;
+  const messagesContainer = getContainer("aiMessages");
 
   switch (req.method.toUpperCase()) {
     case "GET": {
@@ -77,7 +108,6 @@ export async function aiConversationsHandler(context: InvocationContext, req: Ht
 
         const { resource } = await container.items.create(conversation);
 
-        const messagesContainer = getContainer("aiMessages");
         const greetingMessage = {
           id: randomUUID(),
           userId,
@@ -109,29 +139,12 @@ export async function aiConversationsHandler(context: InvocationContext, req: Ht
             if (!oldConversationId || oldConversationId === conversation.id) {
               continue;
             }
-
-            const messagesQuery = {
-              query:
-                "SELECT c.id FROM c WHERE c.userId = @userId AND c.conversationId = @conversationId AND c.type = 'AiMessage'",
-              parameters: [
-                { name: "@userId", value: userId },
-                { name: "@conversationId", value: oldConversationId }
-              ]
-            };
-
-            const oldPartitionKey = [userId, oldConversationId];
-            const { resources: oldMessages } = await messagesContainer.items
-              .query(messagesQuery, { partitionKey: oldPartitionKey })
-              .fetchAll();
-
-            for (const message of oldMessages as Array<{ id?: string }>) {
-              if (!message.id) {
-                continue;
-              }
-              await messagesContainer.item(message.id, oldPartitionKey).delete();
-            }
-
-            await container.item(oldConversationId, userId).delete();
+            await deleteConversationWithMessages(
+              userId,
+              oldConversationId,
+              container,
+              messagesContainer
+            );
           }
         }
 
@@ -148,6 +161,28 @@ export async function aiConversationsHandler(context: InvocationContext, req: Ht
         }
         context.log(error);
         return fail("SERVER_ERROR", "Failed to create conversation", 500);
+      }
+    }
+    case "DELETE": {
+      if (!conversationId) {
+        return fail("VALIDATION_ERROR", "Missing conversationId", 400);
+      }
+
+      try {
+        const { resource } = await container.item(conversationId, userId).read();
+        if (!resource) {
+          return fail("NOT_FOUND", "Conversation not found", 404);
+        }
+
+        await deleteConversationWithMessages(userId, conversationId, container, messagesContainer);
+        return ok({ id: conversationId, deleted: true });
+      } catch (error: unknown) {
+        const status = (error as { code?: number; statusCode?: number }).statusCode;
+        if (status === 404) {
+          return fail("NOT_FOUND", "Conversation not found", 404);
+        }
+        context.log(error);
+        return fail("SERVER_ERROR", "Failed to delete conversation", 500);
       }
     }
     default:

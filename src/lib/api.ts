@@ -224,6 +224,10 @@ export const api = {
       method: 'POST',
       body: JSON.stringify({})
     }),
+  deleteConversation: (conversationId: string) =>
+    fetchApi<{ id: string; deleted: boolean }>(`/ai/conversations/${conversationId}`, {
+      method: 'DELETE'
+    }),
   getMessages: (conversationId: string) => fetchApi<ChatMessage[]>(`/ai/conversations/${conversationId}/messages`),
   sendMessage: (conversationId: string, message: string) =>
     fetchApi(`/ai/conversations/${conversationId}/messages`, { method: 'POST', body: JSON.stringify({ message }) })

@@ -75,6 +75,22 @@ export default function AIAdvisorPage() {
     }
   };
 
+  const deleteConversation = async (id: string) => {
+    setMessage(null);
+    const result = await api.deleteConversation(id);
+    if (result.error) {
+      setMessage(`대화 삭제 실패: ${result.error.message}`);
+      return;
+    }
+
+    setConversations((prev) => prev.filter((item) => item.id !== id));
+
+    if (conversationId === id) {
+      setConversationId(null);
+      setMessages([]);
+    }
+  };
+
   const sendMessage = async () => {
     if (!conversationId || !input.trim()) return;
 
@@ -130,20 +146,52 @@ export default function AIAdvisorPage() {
               conversations.map((conversation) => {
                 const selected = conversation.id === conversationId;
                 return (
-                  <button
+                  <div
                     key={conversation.id}
-                    onClick={async () => {
-                      setConversationId(conversation.id);
-                      await loadMessages(conversation.id);
-                    }}
                     className={selected ? 'btn-primary' : 'btn-subtle'}
-                    style={{ textAlign: 'left', padding: '0.65rem 0.7rem' }}
+                    style={{
+                      textAlign: 'left',
+                      padding: '0.45rem 0.5rem',
+                      display: 'grid',
+                      gridTemplateColumns: '1fr auto',
+                      gap: '0.35rem',
+                      alignItems: 'start'
+                    }}
                   >
-                    <strong style={{ display: 'block' }}>{conversation.title?.trim() || '새 대화'}</strong>
-                    <span style={{ display: 'block', marginTop: '0.3rem', fontSize: '0.79rem', opacity: 0.9 }}>
-                      {formatKoreanDate(conversation.createdAt)}
-                    </span>
-                  </button>
+                    <button
+                      onClick={async () => {
+                        setConversationId(conversation.id);
+                        await loadMessages(conversation.id);
+                      }}
+                      style={{
+                        background: 'transparent',
+                        border: 'none',
+                        padding: 0,
+                        color: 'inherit',
+                        textAlign: 'left'
+                      }}
+                    >
+                      <strong style={{ display: 'block' }}>{conversation.title?.trim() || '새 대화'}</strong>
+                      <span style={{ display: 'block', marginTop: '0.3rem', fontSize: '0.79rem', opacity: 0.9 }}>
+                        {formatKoreanDate(conversation.createdAt)}
+                      </span>
+                    </button>
+                    <button
+                      onClick={() => deleteConversation(conversation.id)}
+                      title="대화 삭제"
+                      aria-label="대화 삭제"
+                      style={{
+                        border: 'none',
+                        background: 'transparent',
+                        color: 'inherit',
+                        fontWeight: 700,
+                        padding: '0.05rem 0.2rem',
+                        lineHeight: 1
+                      }}
+                    >
+                      ×
+                    </button>
+                  </div>
                 );
               })
             )}
