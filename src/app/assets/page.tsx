@@ -5,6 +5,7 @@ import { api, Asset } from '@/lib/api';
 import { SectionCard } from '@/components/ui/SectionCard';
 import { FormField } from '@/components/ui/FormField';
 import { DataTable } from '@/components/ui/DataTable';
+import { getAssetCategoryLabel } from '@/lib/assetCategory';
 
 type AssetCategory = 'cash' | 'deposit' | 'stock_kr' | 'stock_us' | 'real_estate' | 'etc';
 type NumericInput = number | '';
@@ -527,7 +528,7 @@ export default function AssetsPage() {
             {
               key: 'category',
               header: '분류',
-              render: (asset) => categoryLabel[(asset.category as AssetCategory) ?? 'etc'] ?? asset.category,
+              render: (asset) => getAssetCategoryLabel(asset.category),
             },
             {
               key: 'meta',

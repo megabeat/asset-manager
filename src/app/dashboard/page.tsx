@@ -16,6 +16,7 @@ import {
   Legend
 } from 'recharts';
 import { SectionCard } from '@/components/ui/SectionCard';
+import { getAssetCategoryLabel } from '@/lib/assetCategory';
 
 type Summary = {
   totalAssets: number;
@@ -96,8 +97,8 @@ export default function DashboardPage() {
 
   const categoryData = Object.entries(
     assets.reduce<Record<string, number>>((acc, asset) => {
-      const category = asset.category || 'etc';
-      acc[category] = (acc[category] ?? 0) + (asset.currentValue ?? 0);
+      const categoryLabel = getAssetCategoryLabel(asset.category);
+      acc[categoryLabel] = (acc[categoryLabel] ?? 0) + (asset.currentValue ?? 0);
       return acc;
     }, {})
   ).map(([name, value]) => ({ name, value }));
