@@ -103,7 +103,22 @@ export default function ProfilePage() {
 
   return (
     <div style={{ padding: '2rem', fontFamily: 'system-ui, sans-serif' }}>
-      <h1>프로파일</h1>
+      <h1>설정</h1>
+      <p className="helper-text" style={{ marginTop: '0.5rem' }}>
+        로그인은 Azure Static Web Apps 인증을 사용합니다.
+      </p>
+
+      <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginTop: '0.75rem' }}>
+        <a href="/.auth/login/aad" className="btn-primary" style={{ textDecoration: 'none' }}>
+          Microsoft 로그인
+        </a>
+        <a href="/.auth/login/github" className="btn-danger-outline" style={{ textDecoration: 'none' }}>
+          GitHub 로그인
+        </a>
+        <a href="/.auth/logout" className="btn-danger-outline" style={{ textDecoration: 'none' }}>
+          로그아웃
+        </a>
+      </div>
 
       <form onSubmit={onSubmit} style={{ marginTop: '1.5rem', maxWidth: 520, display: 'grid', gap: '0.9rem' }}>
         <label style={{ display: 'grid', gap: '0.35rem' }}>

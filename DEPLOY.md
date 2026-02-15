@@ -68,7 +68,13 @@ COSMOS_DATABASE_ID=AssetManagement
 AZURE_OPENAI_ENDPOINT=https://your-resource.openai.azure.com/
 AZURE_OPENAI_API_KEY=your-api-key
 AZURE_OPENAI_DEPLOYMENT_NAME=gpt-4
+AUTH_ALLOWED_USERS=your-login-email@example.com
+ALLOW_DEV_HEADER_AUTH=false
 ```
+
+인증 권장값:
+- `AUTH_ALLOWED_USERS`: 허용할 로그인 계정(이메일 또는 userId), 여러 개는 쉼표로 구분
+- `ALLOW_DEV_HEADER_AUTH=false`: 운영에서 `x-user-id` 헤더 우회 인증 비활성화
 
 ### 5. Cosmos DB 초기화
 
@@ -84,6 +90,7 @@ npm run setup-cosmos
 
 1. GitHub → Actions 탭에서 워크플로우 실행 확인
 2. Azure Portal → Static Web App → Browse로 앱 접속
+3. `/profile`(설정)에서 로그인 후 API 응답 정상 확인
 
 ## 트러블슈팅
 

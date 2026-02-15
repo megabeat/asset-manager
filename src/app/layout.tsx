@@ -15,14 +15,14 @@ export default function RootLayout({
   const navItems = [
     { href: "/", label: "홈" },
     { href: "/dashboard", label: "대시보드" },
-    { href: "/profile", label: "프로파일" },
     { href: "/assets", label: "자산" },
     { href: "/pensions", label: "연금관리" },
     { href: "/incomes", label: "수입" },
     { href: "/expenses", label: "지출" },
     { href: "/liabilities", label: "부채" },
     { href: "/education", label: "교육" },
-    { href: "/ai-advisor", label: "AI 상담" }
+    { href: "/ai-advisor", label: "AI 상담" },
+    { href: "/profile", label: "설정" }
   ];
 
   return (

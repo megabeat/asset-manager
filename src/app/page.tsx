@@ -12,7 +12,7 @@ type Summary = {
 };
 
 const quickActions = [
-  { href: '/profile', label: '프로파일 작성', desc: '기본 정보와 가구 구성 입력' },
+  { href: '/profile', label: '설정', desc: '기본 정보와 로그인 설정 확인' },
   { href: '/assets', label: '자산 등록', desc: '현금/투자/부동산 등 자산 입력' },
   { href: '/pensions', label: '연금관리', desc: '국민/개인/퇴직연금 입력·집계·비중 확인' },
   { href: '/incomes', label: '수입 관리', desc: '월/연/일회성 수입 기록' },
