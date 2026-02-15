@@ -117,7 +117,13 @@ git remote set-url origin git@github.com:megabeat/asset-manager.git
 
 ### GitHub Actions 실패
 - Azure Portal에서 deployment token 확인
-- GitHub Secrets에 `AZURE_STATIC_WEB_APPS_API_TOKEN` 있는지 확인
+- GitHub Secrets에 아래 중 최소 1개가 있는지 확인
+   - `AZURE_STATIC_WEB_APPS_API_TOKEN` (권장)
+   - `AZURE_STATIC_WEB_APPS_API_TOKEN_WHITE_ISLAND_088041010` (호환)
+- 에러가 `deployment_token was not provided` 인 경우
+   1. SWA 리소스 → **Manage deployment token**에서 토큰 재생성
+   2. GitHub 저장소 → **Settings → Secrets and variables → Actions**에 토큰 재등록
+   3. Actions에서 실패한 워크플로우를 **Re-run jobs**
 
 ### 빌드 실패
 - package.json 의존성 확인
