@@ -12,6 +12,12 @@ import { searchWeb } from "../shared/webSearch";
 type ProfileContext = {
   fullName?: string;
   birthDate?: string;
+  employerName?: string;
+  jobTitle?: string;
+  baseSalaryAnnual?: number;
+  annualBonus?: number;
+  annualRsu?: number;
+  annualRaiseRatePct?: number;
   child1Name?: string;
   child1BirthDate?: string;
   child2Name?: string;
@@ -141,6 +147,13 @@ export async function aiMessagesHandler(context: InvocationContext, req: HttpReq
             const currentAge = getAgeFromBirthDate(profile.birthDate);
             const child1Age = getAgeFromBirthDate(profile.child1BirthDate);
             const child2Age = getAgeFromBirthDate(profile.child2BirthDate);
+            const annualBase = Number(profile.baseSalaryAnnual ?? 0);
+            const annualBonus = Number(profile.annualBonus ?? 0);
+            const annualRsu = Number(profile.annualRsu ?? 0);
+            const totalAnnualComp = annualBase + annualBonus + annualRsu;
+            const annualRaiseRate = Number(profile.annualRaiseRatePct ?? 0);
+            const projectedCompNextYear =
+              totalAnnualComp > 0 ? Math.round(totalAnnualComp * (1 + annualRaiseRate / 100)) : 0;
             const yearsToRetirement =
               typeof profile.retirementTargetAge === "number" && typeof currentAge === "number"
                 ? profile.retirementTargetAge - currentAge
@@ -149,6 +162,14 @@ export async function aiMessagesHandler(context: InvocationContext, req: HttpReq
             const lines = [
               `- 사용자 이름: ${profile.fullName ?? "미설정"}`,
               `- 사용자 나이: ${typeof currentAge === "number" ? `${currentAge}세` : "미설정"}`,
+              `- 직장: ${profile.employerName ?? "미설정"}`,
+              `- 직무/직급: ${profile.jobTitle ?? "미설정"}`,
+              `- 연 기본급: ${annualBase > 0 ? `${annualBase.toLocaleString()}원` : "미설정"}`,
+              `- 연간 보너스: ${annualBonus > 0 ? `${annualBonus.toLocaleString()}원` : "미설정"}`,
+              `- 연간 RSU: ${annualRsu > 0 ? `${annualRsu.toLocaleString()}원` : "미설정"}`,
+              `- 연봉 상승률(연): ${profile.annualRaiseRatePct !== undefined ? `${annualRaiseRate}%` : "미설정"}`,
+              `- 연 총보상(기본급+보너스+RSU): ${totalAnnualComp > 0 ? `${totalAnnualComp.toLocaleString()}원` : "미설정"}`,
+              `- 내년 예상 총보상: ${projectedCompNextYear > 0 ? `${projectedCompNextYear.toLocaleString()}원` : "미설정"}`,
               `- 은퇴 목표 연령: ${typeof profile.retirementTargetAge === "number" ? `${profile.retirementTargetAge}세` : "미설정"}`,
               `- 은퇴까지 남은 기간: ${typeof yearsToRetirement === "number" ? `${yearsToRetirement}년` : "미설정"}`,
               `- 자녀1: ${profile.child1Name ?? "미설정"} / ${typeof child1Age === "number" ? `${child1Age}세` : "나이 미설정"}`,

@@ -3,13 +3,26 @@
 import { FormEvent, useEffect, useMemo, useState } from 'react';
 import { api, Profile } from '@/lib/api';
 
-type ProfileForm = Omit<Profile, 'retirementTargetAge'> & {
+type ProfileForm = Omit<
+  Profile,
+  'retirementTargetAge' | 'baseSalaryAnnual' | 'annualBonus' | 'annualRsu' | 'annualRaiseRatePct'
+> & {
   retirementTargetAge: number | '';
+  baseSalaryAnnual: number | '';
+  annualBonus: number | '';
+  annualRsu: number | '';
+  annualRaiseRatePct: number | '';
 };
 
 const defaultForm: ProfileForm = {
   fullName: '',
   birthDate: '',
+  employerName: '',
+  jobTitle: '',
+  baseSalaryAnnual: '',
+  annualBonus: '',
+  annualRsu: '',
+  annualRaiseRatePct: '',
   child1Name: '',
   child1BirthDate: '',
   child2Name: '',
@@ -37,6 +50,12 @@ export default function ProfilePage() {
         setForm({
           fullName: result.data.fullName ?? '',
           birthDate: result.data.birthDate ?? '',
+          employerName: result.data.employerName ?? '',
+          jobTitle: result.data.jobTitle ?? '',
+          baseSalaryAnnual: result.data.baseSalaryAnnual ?? '',
+          annualBonus: result.data.annualBonus ?? '',
+          annualRsu: result.data.annualRsu ?? '',
+          annualRaiseRatePct: result.data.annualRaiseRatePct ?? '',
           child1Name: result.data.child1Name ?? '',
           child1BirthDate: result.data.child1BirthDate ?? '',
           child2Name: result.data.child2Name ?? '',
@@ -64,6 +83,13 @@ export default function ProfilePage() {
     return (
       form.fullName.trim().length > 0 &&
       form.birthDate.trim().length > 0 &&
+      (form.baseSalaryAnnual === '' || Number(form.baseSalaryAnnual) >= 0) &&
+      (form.annualBonus === '' || Number(form.annualBonus) >= 0) &&
+      (form.annualRsu === '' || Number(form.annualRsu) >= 0) &&
+      (form.annualRaiseRatePct === '' ||
+        (Number.isFinite(form.annualRaiseRatePct) &&
+          Number(form.annualRaiseRatePct) >= -20 &&
+          Number(form.annualRaiseRatePct) <= 100)) &&
       Number.isFinite(form.householdSize) &&
       form.householdSize > 0 &&
       (form.retirementTargetAge === '' ||
@@ -83,6 +109,22 @@ export default function ProfilePage() {
     if (!form.birthDate.trim()) nextErrors.birthDate = '생년월일을 입력해주세요.';
     if (!Number.isFinite(form.householdSize) || form.householdSize <= 0) {
       nextErrors.householdSize = '가구원 수는 1 이상이어야 합니다.';
+    }
+
+    if (form.baseSalaryAnnual !== '' && Number(form.baseSalaryAnnual) < 0) {
+      nextErrors.baseSalaryAnnual = '기본급은 0 이상이어야 합니다.';
+    }
+    if (form.annualBonus !== '' && Number(form.annualBonus) < 0) {
+      nextErrors.annualBonus = '연간 보너스는 0 이상이어야 합니다.';
+    }
+    if (form.annualRsu !== '' && Number(form.annualRsu) < 0) {
+      nextErrors.annualRsu = '연간 RSU는 0 이상이어야 합니다.';
+    }
+    if (
+      form.annualRaiseRatePct !== '' &&
+      (Number(form.annualRaiseRatePct) < -20 || Number(form.annualRaiseRatePct) > 100)
+    ) {
+      nextErrors.annualRaiseRatePct = '연봉 상승률은 -20% ~ 100% 범위로 입력해주세요.';
     }
 
     if (form.child1Name?.trim() && !form.child1BirthDate) {
@@ -121,6 +163,13 @@ export default function ProfilePage() {
     const payload = {
       fullName: form.fullName.trim(),
       birthDate: form.birthDate,
+      employerName: form.employerName?.trim() || undefined,
+      jobTitle: form.jobTitle?.trim() || undefined,
+      baseSalaryAnnual: form.baseSalaryAnnual === '' ? undefined : Number(form.baseSalaryAnnual),
+      annualBonus: form.annualBonus === '' ? undefined : Number(form.annualBonus),
+      annualRsu: form.annualRsu === '' ? undefined : Number(form.annualRsu),
+      annualRaiseRatePct:
+        form.annualRaiseRatePct === '' ? undefined : Number(form.annualRaiseRatePct),
       child1Name: form.child1Name?.trim() || undefined,
       child1BirthDate: form.child1BirthDate || undefined,
       child2Name: form.child2Name?.trim() || undefined,
@@ -189,6 +238,94 @@ export default function ProfilePage() {
             style={{ padding: '0.65rem', border: '1px solid #d0d0d0', borderRadius: 8 }}
           />
           {errors.birthDate && <p className="form-error">{errors.birthDate}</p>}
+        </label>
+
+        <label style={{ display: 'grid', gap: '0.35rem' }}>
+          <span>직장명</span>
+          <input
+            value={form.employerName ?? ''}
+            onChange={(event) => setForm((prev) => ({ ...prev, employerName: event.target.value }))}
+            placeholder="예: Microsoft"
+          />
+        </label>
+
+        <label style={{ display: 'grid', gap: '0.35rem' }}>
+          <span>직무/직급</span>
+          <input
+            value={form.jobTitle ?? ''}
+            onChange={(event) => setForm((prev) => ({ ...prev, jobTitle: event.target.value }))}
+            placeholder="예: Senior Software Engineer"
+          />
+        </label>
+
+        <label style={{ display: 'grid', gap: '0.35rem' }}>
+          <span>직장 기본급(연)</span>
+          <input
+            type="number"
+            min={0}
+            value={form.baseSalaryAnnual}
+            onChange={(event) =>
+              setForm((prev) => ({
+                ...prev,
+                baseSalaryAnnual: event.target.value === '' ? '' : Number(event.target.value)
+              }))
+            }
+            placeholder="예: 120000000"
+          />
+          {errors.baseSalaryAnnual && <p className="form-error">{errors.baseSalaryAnnual}</p>}
+        </label>
+
+        <label style={{ display: 'grid', gap: '0.35rem' }}>
+          <span>연간 보너스</span>
+          <input
+            type="number"
+            min={0}
+            value={form.annualBonus}
+            onChange={(event) =>
+              setForm((prev) => ({
+                ...prev,
+                annualBonus: event.target.value === '' ? '' : Number(event.target.value)
+              }))
+            }
+            placeholder="예: 15000000"
+          />
+          {errors.annualBonus && <p className="form-error">{errors.annualBonus}</p>}
+        </label>
+
+        <label style={{ display: 'grid', gap: '0.35rem' }}>
+          <span>연간 RSU</span>
+          <input
+            type="number"
+            min={0}
+            value={form.annualRsu}
+            onChange={(event) =>
+              setForm((prev) => ({
+                ...prev,
+                annualRsu: event.target.value === '' ? '' : Number(event.target.value)
+              }))
+            }
+            placeholder="예: 20000000"
+          />
+          {errors.annualRsu && <p className="form-error">{errors.annualRsu}</p>}
+        </label>
+
+        <label style={{ display: 'grid', gap: '0.35rem' }}>
+          <span>연간 연봉 상승률(%)</span>
+          <input
+            type="number"
+            min={-20}
+            max={100}
+            step="0.1"
+            value={form.annualRaiseRatePct}
+            onChange={(event) =>
+              setForm((prev) => ({
+                ...prev,
+                annualRaiseRatePct: event.target.value === '' ? '' : Number(event.target.value)
+              }))
+            }
+            placeholder="예: 5"
+          />
+          {errors.annualRaiseRatePct && <p className="form-error">{errors.annualRaiseRatePct}</p>}
         </label>
 
         <label style={{ display: 'grid', gap: '0.35rem' }}>

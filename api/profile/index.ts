@@ -73,6 +73,17 @@ export async function profileHandler(context: InvocationContext, req: HttpReques
           type: "Profile",
           fullName: ensureString(body.fullName, "fullName"),
           birthDate: ensureString(body.birthDate, "birthDate"),
+          employerName: ensureOptionalString(body.employerName, "employerName"),
+          jobTitle: ensureOptionalString(body.jobTitle, "jobTitle"),
+          baseSalaryAnnual: ensureOptionalNumber(body.baseSalaryAnnual, "baseSalaryAnnual"),
+          annualBonus: ensureOptionalNumber(body.annualBonus, "annualBonus"),
+          annualRsu: ensureOptionalNumber(body.annualRsu, "annualRsu"),
+          annualRaiseRatePct: ensureOptionalNumberInRange(
+            body.annualRaiseRatePct,
+            "annualRaiseRatePct",
+            -20,
+            100
+          ),
           child1Name: ensureOptionalString(body.child1Name, "child1Name"),
           child1BirthDate: ensureOptionalString(body.child1BirthDate, "child1BirthDate"),
           child2Name: ensureOptionalString(body.child2Name, "child2Name"),
@@ -121,6 +132,15 @@ export async function profileHandler(context: InvocationContext, req: HttpReques
           ...resource,
           fullName: ensureOptionalString(body.fullName, "fullName") ?? resource.fullName,
           birthDate: ensureOptionalString(body.birthDate, "birthDate") ?? resource.birthDate,
+          employerName: ensureOptionalString(body.employerName, "employerName") ?? resource.employerName,
+          jobTitle: ensureOptionalString(body.jobTitle, "jobTitle") ?? resource.jobTitle,
+          baseSalaryAnnual:
+            ensureOptionalNumber(body.baseSalaryAnnual, "baseSalaryAnnual") ?? resource.baseSalaryAnnual,
+          annualBonus: ensureOptionalNumber(body.annualBonus, "annualBonus") ?? resource.annualBonus,
+          annualRsu: ensureOptionalNumber(body.annualRsu, "annualRsu") ?? resource.annualRsu,
+          annualRaiseRatePct:
+            ensureOptionalNumberInRange(body.annualRaiseRatePct, "annualRaiseRatePct", -20, 100) ??
+            resource.annualRaiseRatePct,
           child1Name: ensureOptionalString(body.child1Name, "child1Name") ?? resource.child1Name,
           child1BirthDate:
             ensureOptionalString(body.child1BirthDate, "child1BirthDate") ?? resource.child1BirthDate,

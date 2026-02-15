@@ -10,6 +10,12 @@ export type Profile = {
   id?: string;
   fullName: string;
   birthDate: string;
+  employerName?: string;
+  jobTitle?: string;
+  baseSalaryAnnual?: number;
+  annualBonus?: number;
+  annualRsu?: number;
+  annualRaiseRatePct?: number;
   child1Name?: string;
   child1BirthDate?: string;
   child2Name?: string;
