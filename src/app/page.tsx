@@ -72,29 +72,15 @@ export default function Home() {
   const monthlySurplus = monthlyIncome - monthlyExpense;
 
   return (
-    <div style={{ padding: '1rem 0 2rem' }}>
-      <section
-        style={{
-          background: '#fff',
-          border: '1px solid #ececec',
-          borderRadius: 12,
-          padding: '1.25rem 1.25rem'
-        }}
-      >
-        <h1 style={{ marginTop: 0, marginBottom: '0.5rem' }}>개인 자산관리 홈</h1>
-        <p style={{ margin: 0, color: '#555' }}>
+    <div className="pb-8 pt-4">
+      <section className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-5 shadow-[0_8px_24px_rgba(15,23,42,0.05)]">
+        <h1 className="mb-2 mt-0">개인 자산관리 홈</h1>
+        <p className="m-0 text-[var(--muted)]">
           자산/수입/지출/부채를 입력하고 순자산과 현금흐름을 바로 확인하세요.
         </p>
       </section>
 
-      <section
-        style={{
-          marginTop: '1rem',
-          display: 'grid',
-          gap: '0.8rem',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))'
-        }}
-      >
+      <section className="mt-4 grid gap-3 [grid-template-columns:repeat(auto-fit,minmax(200px,1fr))]">
         <div className="kpi-card">
           <h3 className="kpi-label">총 자산(연금 제외)</h3>
           <p className="kpi-value">
@@ -139,47 +125,35 @@ export default function Home() {
         </div>
       </section>
 
-      <section style={{ marginTop: '1rem', display: 'grid', gap: '1rem', gridTemplateColumns: '2fr 1fr' }}>
-        <div style={{ background: '#fff', border: '1px solid #ececec', borderRadius: 10, padding: '1rem' }}>
-          <h2 style={{ marginTop: 0, marginBottom: '0.8rem', fontSize: '1.05rem' }}>빠른 실행</h2>
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
-              gap: '0.65rem'
-            }}
-          >
+      <section className="mt-4 grid gap-4 md:grid-cols-[2fr_1fr]">
+        <div className="rounded-xl border border-[var(--line)] bg-[var(--surface)] p-4">
+          <h2 className="mb-3 mt-0 text-[1.05rem]">빠른 실행</h2>
+          <div className="grid gap-2.5 [grid-template-columns:repeat(auto-fit,minmax(220px,1fr))]">
             {quickActions.map((item) => (
               <Link
                 key={item.href}
                 href={item.href}
-                style={{
-                  border: '1px solid #e6e6e6',
-                  borderRadius: 8,
-                  padding: '0.8rem',
-                  textDecoration: 'none',
-                  color: '#222'
-                }}
+                className="rounded-lg border border-[var(--line)] p-3 no-underline transition-colors hover:bg-[var(--table-stripe)]"
               >
-                <strong style={{ display: 'block', marginBottom: '0.2rem' }}>{item.label}</strong>
-                <span style={{ color: '#666', fontSize: '0.88rem' }}>{item.desc}</span>
+                <strong className="mb-1 block">{item.label}</strong>
+                <span className="text-[0.88rem] text-[var(--muted)]">{item.desc}</span>
               </Link>
             ))}
           </div>
         </div>
 
-        <div style={{ background: '#fff', border: '1px solid #ececec', borderRadius: 10, padding: '1rem' }}>
-          <h2 style={{ marginTop: 0, marginBottom: '0.8rem', fontSize: '1.05rem' }}>상위 자산</h2>
+        <div className="rounded-xl border border-[var(--line)] bg-[var(--surface)] p-4">
+          <h2 className="mb-3 mt-0 text-[1.05rem]">상위 자산</h2>
           {loading ? (
             <p>로딩 중...</p>
           ) : topAssets.length === 0 ? (
             <p>등록된 자산이 없습니다.</p>
           ) : (
-            <ul style={{ margin: 0, paddingLeft: '1rem', display: 'grid', gap: '0.45rem' }}>
+            <ul className="m-0 grid gap-2 pl-4">
               {topAssets.map((asset) => (
                 <li key={asset.id}>
                   <span>{asset.name}</span>
-                  <span style={{ float: 'right', fontWeight: 600 }}>
+                  <span className="float-right font-semibold">
                     {asset.currentValue.toLocaleString()}원
                   </span>
                 </li>

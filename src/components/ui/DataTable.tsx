@@ -16,19 +16,15 @@ type DataTableProps<T> = {
 
 export function DataTable<T>({ columns, rows, rowKey, emptyMessage = '데이터가 없습니다.' }: DataTableProps<T>) {
   return (
-    <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+    <table className="ui-table">
       <thead>
-        <tr style={{ background: 'var(--table-stripe)' }}>
+        <tr className="ui-table-head-row">
           {columns.map((column) => (
             <th
               key={column.key}
-              style={{
-                textAlign: column.align ?? 'left',
-                padding: '11px 10px',
-                fontSize: 13,
-                color: '#334155',
-                fontWeight: 700
-              }}
+              className={`ui-table-th ${
+                column.align === 'right' ? 'text-right' : column.align === 'center' ? 'text-center' : 'text-left'
+              }`}
             >
               {column.header}
             </th>
@@ -37,16 +33,21 @@ export function DataTable<T>({ columns, rows, rowKey, emptyMessage = '데이터�
       </thead>
       <tbody>
         {rows.length === 0 ? (
-          <tr>
-            <td colSpan={columns.length} style={{ padding: 16 }}>
+          <tr className="ui-table-row-even">
+            <td colSpan={columns.length} className="ui-table-empty">
               {emptyMessage}
             </td>
           </tr>
         ) : (
           rows.map((row, rowIndex) => (
-            <tr key={rowKey(row)} style={{ background: rowIndex % 2 === 0 ? 'var(--surface)' : 'var(--table-stripe)' }}>
+            <tr key={rowKey(row)} className={rowIndex % 2 === 0 ? 'ui-table-row-even' : 'ui-table-row-odd'}>
               {columns.map((column) => (
-                <td key={column.key} style={{ padding: '11px 10px', textAlign: column.align ?? 'left' }}>
+                <td
+                  key={column.key}
+                  className={`ui-table-td ${
+                    column.align === 'right' ? 'text-right' : column.align === 'center' ? 'text-center' : 'text-left'
+                  }`}
+                >
                   {column.render(row)}
                 </td>
               ))}

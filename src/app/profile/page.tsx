@@ -12,6 +12,8 @@ type ProfileForm = Omit<
   | 'annualRaiseRatePct'
   | 'rsuShares'
   | 'rsuVestingPriceUsd'
+  | 'child1TargetUniversityYear'
+  | 'child2TargetUniversityYear'
 > & {
   retirementTargetAge: number | '';
   baseSalaryAnnual: number | '';
@@ -20,9 +22,13 @@ type ProfileForm = Omit<
   annualRaiseRatePct: number | '';
   rsuShares: number | '';
   rsuVestingPriceUsd: number | '';
+  child1TargetUniversityYear: number | '';
+  child2TargetUniversityYear: number | '';
 };
 
 type ProfileTab = 'basic' | 'income' | 'family';
+
+const currentYear = new Date().getFullYear();
 
 const defaultForm: ProfileForm = {
   fullName: '',
@@ -38,8 +44,10 @@ const defaultForm: ProfileForm = {
   rsuVestingCycle: 'quarterly',
   child1Name: '',
   child1BirthDate: '',
+  child1TargetUniversityYear: '',
   child2Name: '',
   child2BirthDate: '',
+  child2TargetUniversityYear: '',
   retirementTargetAge: '',
   householdSize: 1,
   currency: 'KRW'
@@ -75,8 +83,10 @@ export default function ProfilePage() {
           rsuVestingCycle: result.data.rsuVestingCycle ?? 'quarterly',
           child1Name: result.data.child1Name ?? '',
           child1BirthDate: result.data.child1BirthDate ?? '',
+          child1TargetUniversityYear: result.data.child1TargetUniversityYear ?? '',
           child2Name: result.data.child2Name ?? '',
           child2BirthDate: result.data.child2BirthDate ?? '',
+          child2TargetUniversityYear: result.data.child2TargetUniversityYear ?? '',
           retirementTargetAge: result.data.retirementTargetAge ?? '',
           householdSize: result.data.householdSize ?? 1,
           currency: result.data.currency ?? 'KRW'
@@ -158,12 +168,38 @@ export default function ProfilePage() {
     if (!form.child1Name?.trim() && form.child1BirthDate) {
       nextErrors.child1Name = '자녀1 이름을 입력해주세요.';
     }
+    if (form.child1Name?.trim() && form.child1TargetUniversityYear === '') {
+      nextErrors.child1TargetUniversityYear = '자녀1 예상 대학 진학년도를 입력해주세요.';
+    }
+    if (!form.child1Name?.trim() && form.child1TargetUniversityYear !== '') {
+      nextErrors.child1Name = '자녀1 이름을 입력해주세요.';
+    }
 
     if (form.child2Name?.trim() && !form.child2BirthDate) {
       nextErrors.child2BirthDate = '자녀2 생년월일을 입력해주세요.';
     }
     if (!form.child2Name?.trim() && form.child2BirthDate) {
       nextErrors.child2Name = '자녀2 이름을 입력해주세요.';
+    }
+    if (form.child2Name?.trim() && form.child2TargetUniversityYear === '') {
+      nextErrors.child2TargetUniversityYear = '자녀2 예상 대학 진학년도를 입력해주세요.';
+    }
+    if (!form.child2Name?.trim() && form.child2TargetUniversityYear !== '') {
+      nextErrors.child2Name = '자녀2 이름을 입력해주세요.';
+    }
+
+    if (
+      form.child1TargetUniversityYear !== '' &&
+      (Number(form.child1TargetUniversityYear) < currentYear || Number(form.child1TargetUniversityYear) > currentYear + 40)
+    ) {
+      nextErrors.child1TargetUniversityYear = `진학년도는 ${currentYear}~${currentYear + 40} 범위로 입력해주세요.`;
+    }
+
+    if (
+      form.child2TargetUniversityYear !== '' &&
+      (Number(form.child2TargetUniversityYear) < currentYear || Number(form.child2TargetUniversityYear) > currentYear + 40)
+    ) {
+      nextErrors.child2TargetUniversityYear = `진학년도는 ${currentYear}~${currentYear + 40} 범위로 입력해주세요.`;
     }
 
     if (
@@ -201,8 +237,12 @@ export default function ProfilePage() {
         form.annualRaiseRatePct === '' ? undefined : Number(form.annualRaiseRatePct),
       child1Name: form.child1Name?.trim() || undefined,
       child1BirthDate: form.child1BirthDate || undefined,
+      child1TargetUniversityYear:
+        form.child1TargetUniversityYear === '' ? undefined : Number(form.child1TargetUniversityYear),
       child2Name: form.child2Name?.trim() || undefined,
       child2BirthDate: form.child2BirthDate || undefined,
+      child2TargetUniversityYear:
+        form.child2TargetUniversityYear === '' ? undefined : Number(form.child2TargetUniversityYear),
       retirementTargetAge:
         form.retirementTargetAge === '' ? undefined : Number(form.retirementTargetAge),
       householdSize: Number(form.householdSize),
@@ -224,30 +264,30 @@ export default function ProfilePage() {
   }
 
   if (loading) {
-    return <div style={{ padding: '2rem' }}>로딩 중...</div>;
+    return <div className="p-5 sm:p-8">로딩 중...</div>;
   }
 
   return (
-    <div style={{ padding: '2rem', fontFamily: 'system-ui, sans-serif' }}>
+    <div className="p-5 sm:p-8">
       <h1>설정</h1>
-      <p className="helper-text" style={{ marginTop: '0.5rem' }}>
+      <p className="helper-text mt-2">
         로그인은 Azure Static Web Apps 인증을 사용합니다.
       </p>
 
-      <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginTop: '0.75rem' }}>
-        <a href="/.auth/login/aad" className="btn-primary" style={{ textDecoration: 'none' }}>
+      <div className="mt-3 flex flex-wrap gap-2">
+        <a href="/.auth/login/aad" className="btn-primary no-underline">
           Microsoft 로그인
         </a>
-        <a href="/.auth/login/github" className="btn-danger-outline" style={{ textDecoration: 'none' }}>
+        <a href="/.auth/login/github" className="btn-danger-outline no-underline">
           GitHub 로그인
         </a>
-        <a href="/.auth/logout" className="btn-danger-outline" style={{ textDecoration: 'none' }}>
+        <a href="/.auth/logout" className="btn-danger-outline no-underline">
           로그아웃
         </a>
       </div>
 
-      <form onSubmit={onSubmit} style={{ marginTop: '1.5rem', maxWidth: 520, display: 'grid', gap: '0.9rem' }}>
-        <div style={{ display: 'flex', gap: '0.45rem', flexWrap: 'wrap' }}>
+      <form onSubmit={onSubmit} className="mt-6 grid max-w-[520px] gap-4">
+        <div className="flex flex-wrap gap-2">
           <button
             type="button"
             className={activeTab === 'basic' ? 'btn-primary' : 'btn-subtle'}
@@ -273,7 +313,7 @@ export default function ProfilePage() {
 
         {activeTab === 'basic' ? (
           <>
-            <label style={{ display: 'grid', gap: '0.35rem' }}>
+            <label className="form-field">
               <span>이름</span>
               <input
                 value={form.fullName}
@@ -283,7 +323,7 @@ export default function ProfilePage() {
               {errors.fullName && <p className="form-error">{errors.fullName}</p>}
             </label>
 
-            <label style={{ display: 'grid', gap: '0.35rem' }}>
+            <label className="form-field">
               <span>생년월일</span>
               <input
                 type="date"
@@ -293,7 +333,7 @@ export default function ProfilePage() {
               {errors.birthDate && <p className="form-error">{errors.birthDate}</p>}
             </label>
 
-            <label style={{ display: 'grid', gap: '0.35rem' }}>
+            <label className="form-field">
               <span>가구원 수</span>
               <input
                 type="number"
@@ -306,7 +346,7 @@ export default function ProfilePage() {
               {errors.householdSize && <p className="form-error">{errors.householdSize}</p>}
             </label>
 
-            <label style={{ display: 'grid', gap: '0.35rem' }}>
+            <label className="form-field">
               <span>통화</span>
               <input
                 value={form.currency}
@@ -320,7 +360,7 @@ export default function ProfilePage() {
 
         {activeTab === 'income' ? (
           <>
-            <label style={{ display: 'grid', gap: '0.35rem' }}>
+            <label className="form-field">
               <span>직장명</span>
               <input
                 value={form.employerName ?? ''}
@@ -329,7 +369,7 @@ export default function ProfilePage() {
               />
             </label>
 
-            <label style={{ display: 'grid', gap: '0.35rem' }}>
+            <label className="form-field">
               <span>직무/직급</span>
               <input
                 value={form.jobTitle ?? ''}
@@ -338,7 +378,7 @@ export default function ProfilePage() {
               />
             </label>
 
-            <label style={{ display: 'grid', gap: '0.35rem' }}>
+            <label className="form-field">
               <span>직장 기본급(연)</span>
               <input
                 type="number"
@@ -355,7 +395,7 @@ export default function ProfilePage() {
               {errors.baseSalaryAnnual && <p className="form-error">{errors.baseSalaryAnnual}</p>}
             </label>
 
-            <label style={{ display: 'grid', gap: '0.35rem' }}>
+            <label className="form-field">
               <span>연간 보너스</span>
               <input
                 type="number"
@@ -372,7 +412,7 @@ export default function ProfilePage() {
               {errors.annualBonus && <p className="form-error">{errors.annualBonus}</p>}
             </label>
 
-            <label style={{ display: 'grid', gap: '0.35rem' }}>
+            <label className="form-field">
               <span>연간 RSU(원화 환산)</span>
               <input
                 type="number"
@@ -389,7 +429,7 @@ export default function ProfilePage() {
               {errors.annualRsu && <p className="form-error">{errors.annualRsu}</p>}
             </label>
 
-            <label style={{ display: 'grid', gap: '0.35rem' }}>
+            <label className="form-field">
               <span>RSU 주식수</span>
               <input
                 type="number"
@@ -407,7 +447,7 @@ export default function ProfilePage() {
               {errors.rsuShares && <p className="form-error">{errors.rsuShares}</p>}
             </label>
 
-            <label style={{ display: 'grid', gap: '0.35rem' }}>
+            <label className="form-field">
               <span>RSU 베스팅 시가(USD)</span>
               <input
                 type="number"
@@ -426,7 +466,7 @@ export default function ProfilePage() {
               {errors.rsuVestingPriceUsd && <p className="form-error">{errors.rsuVestingPriceUsd}</p>}
             </label>
 
-            <label style={{ display: 'grid', gap: '0.35rem' }}>
+            <label className="form-field">
               <span>RSU 베스팅 주기</span>
               <select
                 value={form.rsuVestingCycle ?? 'quarterly'}
@@ -444,7 +484,7 @@ export default function ProfilePage() {
               </select>
             </label>
 
-            <label style={{ display: 'grid', gap: '0.35rem' }}>
+            <label className="form-field">
               <span>연간 연봉 상승률(%)</span>
               <input
                 type="number"
@@ -467,7 +507,7 @@ export default function ProfilePage() {
 
         {activeTab === 'family' ? (
           <>
-            <label style={{ display: 'grid', gap: '0.35rem' }}>
+            <label className="form-field">
               <span>자녀1 이름</span>
               <input
                 value={form.child1Name ?? ''}
@@ -477,7 +517,7 @@ export default function ProfilePage() {
               {errors.child1Name && <p className="form-error">{errors.child1Name}</p>}
             </label>
 
-            <label style={{ display: 'grid', gap: '0.35rem' }}>
+            <label className="form-field">
               <span>자녀1 생년월일</span>
               <input
                 type="date"
@@ -487,7 +527,25 @@ export default function ProfilePage() {
               {errors.child1BirthDate && <p className="form-error">{errors.child1BirthDate}</p>}
             </label>
 
-            <label style={{ display: 'grid', gap: '0.35rem' }}>
+            <label className="form-field">
+              <span>자녀1 예상 대학 진학년도</span>
+              <input
+                type="number"
+                min={currentYear}
+                max={currentYear + 40}
+                value={form.child1TargetUniversityYear}
+                onChange={(event) =>
+                  setForm((prev) => ({
+                    ...prev,
+                    child1TargetUniversityYear: event.target.value === '' ? '' : Number(event.target.value)
+                  }))
+                }
+                placeholder={`예: ${currentYear + 12}`}
+              />
+              {errors.child1TargetUniversityYear && <p className="form-error">{errors.child1TargetUniversityYear}</p>}
+            </label>
+
+            <label className="form-field">
               <span>자녀2 이름</span>
               <input
                 value={form.child2Name ?? ''}
@@ -497,7 +555,7 @@ export default function ProfilePage() {
               {errors.child2Name && <p className="form-error">{errors.child2Name}</p>}
             </label>
 
-            <label style={{ display: 'grid', gap: '0.35rem' }}>
+            <label className="form-field">
               <span>자녀2 생년월일</span>
               <input
                 type="date"
@@ -507,7 +565,25 @@ export default function ProfilePage() {
               {errors.child2BirthDate && <p className="form-error">{errors.child2BirthDate}</p>}
             </label>
 
-            <label style={{ display: 'grid', gap: '0.35rem' }}>
+            <label className="form-field">
+              <span>자녀2 예상 대학 진학년도</span>
+              <input
+                type="number"
+                min={currentYear}
+                max={currentYear + 40}
+                value={form.child2TargetUniversityYear}
+                onChange={(event) =>
+                  setForm((prev) => ({
+                    ...prev,
+                    child2TargetUniversityYear: event.target.value === '' ? '' : Number(event.target.value)
+                  }))
+                }
+                placeholder={`예: ${currentYear + 14}`}
+              />
+              {errors.child2TargetUniversityYear && <p className="form-error">{errors.child2TargetUniversityYear}</p>}
+            </label>
+
+            <label className="form-field">
               <span>은퇴 목표 연령</span>
               <input
                 type="number"
@@ -530,21 +606,13 @@ export default function ProfilePage() {
         <button
           type="submit"
           disabled={saving}
-          style={{
-            marginTop: '0.35rem',
-            padding: '0.75rem 1rem',
-            borderRadius: 8,
-            border: '1px solid #0b63ce',
-            backgroundColor: '#0b63ce',
-            color: '#fff',
-            cursor: saving ? 'not-allowed' : 'pointer'
-          }}
+          className="btn-primary mt-1"
         >
           {saving ? '저장 중...' : exists ? '프로파일 업데이트' : '프로파일 저장'}
         </button>
       </form>
 
-      {message && <p style={{ marginTop: '1rem' }}>{message}</p>}
+      {message && <p className="mt-4">{message}</p>}
     </div>
   );
 }

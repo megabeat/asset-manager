@@ -88,11 +88,11 @@ export default function DashboardPage() {
   }, []);
 
   if (loading) {
-    return <div style={{ padding: '2rem' }}>로딩 중...</div>;
+    return <div className="p-8">로딩 중...</div>;
   }
 
   if (!summary) {
-    return <div style={{ padding: '2rem' }}>데이터를 불러올 수 없습니다.</div>;
+    return <div className="p-8">데이터를 불러올 수 없습니다.</div>;
   }
 
   const categoryData = Object.entries(
@@ -151,31 +151,31 @@ export default function DashboardPage() {
   })();
 
   return (
-    <div style={{ padding: '1rem 0' }}>
+    <div className="py-4">
       <h1>대시보드</h1>
 
-      {error && <p style={{ marginTop: '0.75rem' }}>일부 데이터 로드 실패: {error}</p>}
+      {error && <p className="mt-3">일부 데이터 로드 실패: {error}</p>}
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginTop: '1rem' }}>
-        <SectionCard style={{ padding: '1.25rem' }}>
+      <div className="mt-4 grid gap-4 [grid-template-columns:repeat(auto-fit,minmax(200px,1fr))]">
+        <SectionCard className="p-5">
           <h3 className="kpi-label">총 자산(연금 제외)</h3>
           <p className="kpi-value">
             {summary.totalAssets.toLocaleString()}원
           </p>
         </SectionCard>
-        <SectionCard style={{ padding: '1.25rem' }}>
+        <SectionCard className="p-5">
           <h3 className="kpi-label">총 부채</h3>
           <p className="kpi-value kpi-negative">
             {summary.totalLiabilities.toLocaleString()}원
           </p>
         </SectionCard>
-        <SectionCard style={{ padding: '1.25rem' }}>
+        <SectionCard className="p-5">
           <h3 className="kpi-label">순자산</h3>
           <p className="kpi-value kpi-positive">
             {summary.netWorth.toLocaleString()}원
           </p>
         </SectionCard>
-        <SectionCard style={{ padding: '1.25rem' }}>
+        <SectionCard className="p-5">
           <h3 className="kpi-label">월 고정지출</h3>
           <p className="kpi-value">
             {summary.monthlyFixedExpense.toLocaleString()}원
@@ -183,33 +183,33 @@ export default function DashboardPage() {
         </SectionCard>
       </div>
 
-      <div style={{ marginTop: '1rem', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '1rem' }}>
+      <div className="mt-4 grid gap-4 [grid-template-columns:repeat(auto-fit,minmax(260px,1fr))]">
         <SectionCard>
-          <h3 style={{ marginTop: 0 }}>연금 자산</h3>
-          <p style={{ margin: 0, fontSize: '1.35rem', fontWeight: 700 }}>{pensionValue.toLocaleString()}원</p>
-          <p className="helper-text" style={{ marginTop: '0.5rem' }}>
+          <h3 className="mt-0">연금 자산</h3>
+          <p className="m-0 text-[1.35rem] font-bold">{pensionValue.toLocaleString()}원</p>
+          <p className="helper-text mt-2">
             국민연금/개인연금 등 연금 카테고리 합산 기준
           </p>
         </SectionCard>
 
         <SectionCard>
-          <h3 style={{ marginTop: 0 }}>미국주식 환율 기준</h3>
-          <p style={{ margin: 0, fontSize: '1.35rem', fontWeight: 700 }}>
+          <h3 className="mt-0">미국주식 환율 기준</h3>
+          <p className="m-0 text-[1.35rem] font-bold">
             {fxWeightedRate ? `${fxWeightedRate.toFixed(2)} KRW/USD` : '-'}
           </p>
-          <p className="helper-text" style={{ marginTop: '0.5rem' }}>
+          <p className="helper-text mt-2">
             미국주식 USD 평가액 가중 평균 환율 기준 (없으면 표시 안함)
           </p>
         </SectionCard>
       </div>
 
-      <div style={{ marginTop: '2rem', display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '1rem' }}>
+      <div className="mt-8 grid gap-4 md:grid-cols-[2fr_1fr]">
         <SectionCard>
-          <h3 style={{ marginTop: 0 }}>자산 추이 (30일)</h3>
+          <h3 className="mt-0">자산 추이 (30일)</h3>
           {trend.length === 0 ? (
             <p>추이 데이터가 없습니다.</p>
           ) : (
-            <div style={{ width: '100%', height: 320 }}>
+            <div className="h-[260px] w-full sm:h-[320px]">
               <ResponsiveContainer>
                 <LineChart data={trend.map((point) => ({ ...point, label: point.time.slice(5, 10) }))}>
                   <CartesianGrid strokeDasharray="3 3" />
@@ -224,11 +224,11 @@ export default function DashboardPage() {
         </SectionCard>
 
         <SectionCard>
-          <h3 style={{ marginTop: 0 }}>자산 카테고리 비중</h3>
+          <h3 className="mt-0">자산 카테고리 비중</h3>
           {categoryData.length === 0 ? (
             <p>카테고리 데이터가 없습니다.</p>
           ) : (
-            <div style={{ width: '100%', height: 320 }}>
+            <div className="h-[260px] w-full sm:h-[320px]">
               <ResponsiveContainer>
                 <PieChart>
                   <Pie
@@ -252,13 +252,13 @@ export default function DashboardPage() {
         </SectionCard>
       </div>
 
-      <div style={{ marginTop: '1rem' }}>
+      <div className="mt-4">
         <SectionCard>
-          <h3 style={{ marginTop: 0 }}>국내/미국 주식 비중</h3>
+          <h3 className="mt-0">국내/미국 주식 비중</h3>
           {stockSplitData.length === 0 ? (
             <p>주식 데이터가 없습니다.</p>
           ) : (
-            <div style={{ width: '100%', height: 280 }}>
+            <div className="h-[240px] w-full sm:h-[280px]">
               <ResponsiveContainer>
                 <PieChart>
                   <Pie
@@ -282,34 +282,28 @@ export default function DashboardPage() {
         </SectionCard>
       </div>
 
-      <div style={{ marginTop: '1rem' }}>
+      <div className="mt-4">
         <SectionCard>
-          <h3 style={{ marginTop: 0 }}>월별 자산 변화(월말 3일 기준)</h3>
+          <h3 className="mt-0">월별 자산 변화(월말 3일 기준)</h3>
           {monthlyChanges.length === 0 ? (
             <p>아직 월말 스냅샷 데이터가 없습니다.</p>
           ) : (
-            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <table className="ui-table">
               <thead>
-                <tr>
-                  <th style={{ textAlign: 'left', padding: '0.5rem 0' }}>월</th>
-                  <th style={{ textAlign: 'right', padding: '0.5rem 0' }}>월말 자산</th>
-                  <th style={{ textAlign: 'right', padding: '0.5rem 0' }}>전월 대비</th>
+                <tr className="ui-table-head-row">
+                  <th className="ui-table-th text-left">월</th>
+                  <th className="ui-table-th text-right">월말 자산</th>
+                  <th className="ui-table-th text-right">전월 대비</th>
                 </tr>
               </thead>
               <tbody>
                 {monthlyChanges.map((item) => (
-                  <tr key={item.month}>
-                    <td style={{ padding: '0.4rem 0' }}>{item.month}</td>
-                    <td style={{ textAlign: 'right', padding: '0.4rem 0' }}>
+                  <tr key={item.month} className="ui-table-row-even">
+                    <td className="ui-table-td text-left">{item.month}</td>
+                    <td className="ui-table-td text-right">
                       {item.totalValue.toLocaleString()}원
                     </td>
-                    <td
-                      style={{
-                        textAlign: 'right',
-                        padding: '0.4rem 0',
-                        color: item.delta >= 0 ? '#388e3c' : '#d32f2f'
-                      }}
-                    >
+                    <td className={`ui-table-td text-right ${item.delta >= 0 ? 'text-green-700' : 'text-red-700'}`}>
                       {item.delta >= 0 ? '+' : ''}
                       {item.delta.toLocaleString()}원
                     </td>

@@ -37,10 +37,9 @@ export function ThemeToggle() {
     <button
       type="button"
       onClick={onToggle}
-      className="btn-subtle"
+      className="btn-subtle min-w-[92px]"
       aria-label="다크모드 전환"
       title="다크모드 전환"
-      style={{ minWidth: 92 }}
     >
       {isDark ? '☀️ 라이트' : '🌙 다크'}
     </button>

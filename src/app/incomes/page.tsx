@@ -108,21 +108,21 @@ export default function IncomesPage() {
   }
 
   if (loading) {
-    return <div style={{ padding: '2rem' }}>로딩 중...</div>;
+    return <div className="p-6">로딩 중...</div>;
   }
 
   return (
-    <div style={{ padding: '1rem 0' }}>
+    <div className="py-4">
       <h1>수입 관리</h1>
 
-      <SectionCard style={{ marginTop: '1.25rem', maxWidth: 980 }}>
+      <SectionCard className="mt-5 max-w-[980px]">
         <form onSubmit={onSubmit} className="form-grid">
           <FormField label="수입명" error={errors.name}>
             <input
               placeholder="수입명"
               value={form.name}
               onChange={(event) => setForm((prev) => ({ ...prev, name: event.target.value }))}
-              style={errors.name ? { borderColor: '#b91c1c' } : undefined}
+              className={errors.name ? 'border-red-700' : ''}
             />
           </FormField>
 
@@ -138,7 +138,7 @@ export default function IncomesPage() {
                   amount: event.target.value === '' ? '' : Number(event.target.value)
                 }))
               }
-              style={errors.amount ? { borderColor: '#b91c1c' } : undefined}
+              className={errors.amount ? 'border-red-700' : ''}
             />
           </FormField>
 
@@ -171,7 +171,7 @@ export default function IncomesPage() {
           </FormField>
 
           <FormField label="현금성 자산 반영" fullWidth>
-            <label style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+            <label className="flex items-center gap-2">
               <input
                 type="checkbox"
                 checked={form.reflectToLiquidAsset}
@@ -207,21 +207,20 @@ export default function IncomesPage() {
           <button
             type="submit"
             disabled={saving}
-            className="btn-primary"
-            style={{ width: 140, alignSelf: 'end' }}
+            className="btn-primary w-[140px] self-end"
           >
             {saving ? '저장 중...' : '수입 추가'}
           </button>
         </form>
       </SectionCard>
 
-      <p style={{ marginTop: '1rem', fontWeight: 600 }}>
+      <p className="mt-4 font-semibold">
         월 환산 수입: {Math.round(monthlyIncome).toLocaleString()}원
       </p>
 
       {message && <p>{message}</p>}
 
-      <SectionCard style={{ marginTop: '1.25rem' }}>
+      <SectionCard className="mt-5 max-w-[980px]">
         <DataTable
           rows={incomes}
           rowKey={(income) => income.id}

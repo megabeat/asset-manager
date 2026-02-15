@@ -325,38 +325,37 @@ export default function AssetsPage() {
   }
 
   if (loading) {
-    return <div style={{ padding: '2rem' }}>로딩 중...</div>;
+    return <div className="p-8">로딩 중...</div>;
   }
 
   return (
-    <div style={{ padding: '1rem 0' }}>
+    <div className="py-4">
       <h1>자산 관리</h1>
-        <p className="helper-text" style={{ marginTop: '0.4rem' }}>
+        <p className="helper-text mt-1.5">
           연금 관련 자산은 연금관리 메뉴에서 별도로 관리합니다.
         </p>
 
-      <div className="form-grid" style={{ marginTop: '1rem' }}>
+      <div className="form-grid mt-4">
         <SectionCard>
           <p className="helper-text">총 자산(연금 제외)</p>
-          <h2 style={{ margin: 0 }}>{totalAssetValue.toLocaleString()}원</h2>
+          <h2 className="m-0">{totalAssetValue.toLocaleString()}원</h2>
         </SectionCard>
         <SectionCard>
           <p className="helper-text">주식 자산</p>
-          <h2 style={{ margin: 0 }}>{stockAssetValue.toLocaleString()}원</h2>
+          <h2 className="m-0">{stockAssetValue.toLocaleString()}원</h2>
         </SectionCard>
       </div>
 
-      <SectionCard style={{ marginTop: '1rem' }}>
-        <div style={{ marginBottom: '0.75rem' }}>
-          <p className="helper-text" style={{ margin: 0 }}>빠른 입력 템플릿</p>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem', marginTop: '0.5rem' }}>
+      <SectionCard className="mt-4">
+        <div className="mb-3">
+          <p className="helper-text m-0">빠른 입력 템플릿</p>
+          <div className="mt-2 flex flex-wrap gap-1.5">
             {quickPresets.map((preset) => (
               <button
                 key={preset.id}
                 type="button"
                 onClick={() => applyPreset(preset)}
-                className="btn-danger-outline"
-                style={{ minWidth: 100 }}
+                className="btn-danger-outline min-w-[100px]"
               >
                 {preset.label}
               </button>
@@ -366,14 +365,13 @@ export default function AssetsPage() {
 
         <form onSubmit={onSubmit} className="form-grid">
           <FormField label="카테고리" fullWidth>
-            <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
+            <div className="flex flex-wrap gap-1.5">
               {(Object.keys(categoryLabel) as AssetCategory[]).map((category) => (
                 <button
                   key={category}
                   type="button"
                   onClick={() => changeCategory(category)}
-                  className={form.category === category ? 'btn-primary' : 'btn-danger-outline'}
-                  style={{ minWidth: 92 }}
+                  className={`${form.category === category ? 'btn-primary' : 'btn-danger-outline'} min-w-[92px]`}
                 >
                   {categoryLabel[category]}
                 </button>
@@ -503,12 +501,12 @@ export default function AssetsPage() {
             />
           </FormField>
 
-          <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'end' }}>
-            <button type="submit" disabled={saving} className="btn-primary" style={{ width: 180 }}>
+          <div className="flex items-end gap-2">
+            <button type="submit" disabled={saving} className="btn-primary w-[180px]">
               {saving ? '저장 중...' : editingAssetId ? '자산 수정' : '자산 추가'}
             </button>
             {editingAssetId ? (
-              <button type="button" onClick={onCancelEdit} className="btn-danger-outline" style={{ width: 120 }}>
+              <button type="button" onClick={onCancelEdit} className="btn-danger-outline w-[120px]">
                 취소
               </button>
             ) : null}
@@ -516,9 +514,9 @@ export default function AssetsPage() {
         </form>
       </SectionCard>
 
-      {message && <p style={{ marginTop: '1rem' }}>{message}</p>}
+      {message && <p className="mt-4">{message}</p>}
 
-      <SectionCard style={{ marginTop: '1rem' }}>
+      <SectionCard className="mt-4">
         <DataTable
           rows={assets}
           rowKey={(asset) => asset.id}
@@ -551,7 +549,7 @@ export default function AssetsPage() {
               header: '관리',
               align: 'center',
               render: (asset) => (
-                <div style={{ display: 'flex', justifyContent: 'center', gap: '0.4rem' }}>
+                <div className="flex justify-center gap-1.5">
                   <button onClick={() => onEdit(asset)} className="btn-primary">
                     수정
                   </button>

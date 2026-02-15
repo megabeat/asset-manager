@@ -262,15 +262,15 @@ export default function ExpensesPage() {
   }
 
   if (loading) {
-    return <div style={{ padding: '2rem' }}>로딩 중...</div>;
+    return <div className="p-8">로딩 중...</div>;
   }
 
   return (
-    <div style={{ padding: '1rem 0' }}>
+    <div className="py-4">
       <h1>지출 관리</h1>
 
-      <SectionCard style={{ marginTop: '1.25rem', maxWidth: 980 }}>
-        <div style={{ marginBottom: '0.75rem', display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+      <SectionCard className="mt-5 max-w-[980px]">
+        <div className="mb-3 flex flex-wrap gap-2">
           <button
             type="button"
             className={entryMode === 'card' ? 'btn-primary' : 'btn-danger-outline'}
@@ -293,7 +293,7 @@ export default function ExpensesPage() {
             <input
               value={form.name}
               onChange={(event) => setForm((prev) => ({ ...prev, name: event.target.value }))}
-              style={errors.name ? { borderColor: '#b91c1c' } : undefined}
+              className={errors.name ? 'border-red-700' : ''}
             />
           </FormField>
 
@@ -308,7 +308,7 @@ export default function ExpensesPage() {
                   amount: event.target.value === '' ? '' : Number(event.target.value)
                 }))
               }
-              style={errors.amount ? { borderColor: '#b91c1c' } : undefined}
+              className={errors.amount ? 'border-red-700' : ''}
             />
           </FormField>
 
@@ -351,7 +351,7 @@ export default function ExpensesPage() {
           </FormField>
 
           <FormField label="현금성 자산 차감" fullWidth>
-            <label style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+            <label className="flex items-center gap-2">
               <input
                 type="checkbox"
                 checked={form.reflectToLiquidAsset}
@@ -374,16 +374,14 @@ export default function ExpensesPage() {
           <button
             type="submit"
             disabled={saving}
-            className="btn-primary"
-            style={{ width: 160, alignSelf: 'end' }}
+            className="btn-primary w-[160px] self-end"
           >
             {saving ? '저장 중...' : editingExpenseId ? '지출 수정' : '지출 추가'}
           </button>
           {editingExpenseId ? (
             <button
               type="button"
-              className="btn-danger-outline"
-              style={{ width: 120, alignSelf: 'end' }}
+              className="btn-danger-outline w-[120px] self-end"
               onClick={onCancelEdit}
             >
               취소
@@ -424,7 +422,7 @@ export default function ExpensesPage() {
                 onChange={(event) => setCardQuickForm((prev) => ({ ...prev, occurredAt: event.target.value }))}
               />
             </FormField>
-            <button type="button" className="btn-primary" onClick={onSubmitCardQuick} disabled={saving} style={{ width: 180, alignSelf: 'end' }}>
+            <button type="button" className="btn-primary w-[180px] self-end" onClick={onSubmitCardQuick} disabled={saving}>
               {saving ? '반영 중...' : '카드대금 반영'}
             </button>
             <FormField label="안내" fullWidth>
@@ -434,40 +432,34 @@ export default function ExpensesPage() {
         )}
       </SectionCard>
 
-      <SectionCard style={{ marginTop: '1rem', maxWidth: 980 }}>
-        <p className="helper-text" style={{ marginBottom: 0 }}>
+      <SectionCard className="mt-4 max-w-[980px]">
+        <p className="helper-text mb-0">
           최근 카드대금 참고: {Math.round(previousCardAmount).toLocaleString()}원
         </p>
       </SectionCard>
 
-      <SectionCard style={{ marginTop: '1rem', maxWidth: 980 }}>
-        <h3 style={{ marginTop: 0, marginBottom: '0.75rem' }}>카드사별 월간 비교</h3>
-        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+      <SectionCard className="mt-4 max-w-[980px]">
+        <h3 className="mb-3 mt-0">카드사별 월간 비교</h3>
+        <table className="ui-table">
           <thead>
-            <tr>
-              <th style={{ textAlign: 'left', padding: '0.5rem 0' }}>카드사</th>
-              <th style={{ textAlign: 'right', padding: '0.5rem 0' }}>
+            <tr className="ui-table-head-row">
+              <th className="ui-table-th text-left">카드사</th>
+              <th className="ui-table-th text-right">
                 {cardIssuerMonthlyStats.currentMonth ?? '이번달'}
               </th>
-              <th style={{ textAlign: 'right', padding: '0.5rem 0' }}>
+              <th className="ui-table-th text-right">
                 {cardIssuerMonthlyStats.previousMonth ?? '전월'}
               </th>
-              <th style={{ textAlign: 'right', padding: '0.5rem 0' }}>증감</th>
+              <th className="ui-table-th text-right">증감</th>
             </tr>
           </thead>
           <tbody>
             {cardIssuerMonthlyStats.rows.map((row) => (
-              <tr key={row.issuer}>
-                <td style={{ padding: '0.4rem 0' }}>{row.issuer}</td>
-                <td style={{ textAlign: 'right', padding: '0.4rem 0' }}>{Math.round(row.currentAmount).toLocaleString()}원</td>
-                <td style={{ textAlign: 'right', padding: '0.4rem 0' }}>{Math.round(row.previousAmount).toLocaleString()}원</td>
-                <td
-                  style={{
-                    textAlign: 'right',
-                    padding: '0.4rem 0',
-                    color: row.delta >= 0 ? '#d32f2f' : '#2e7d32'
-                  }}
-                >
+              <tr key={row.issuer} className="ui-table-row-even">
+                <td className="ui-table-td text-left">{row.issuer}</td>
+                <td className="ui-table-td text-right">{Math.round(row.currentAmount).toLocaleString()}원</td>
+                <td className="ui-table-td text-right">{Math.round(row.previousAmount).toLocaleString()}원</td>
+                <td className={`ui-table-td text-right ${row.delta >= 0 ? 'text-red-700' : 'text-green-700'}`}>
                   {row.delta >= 0 ? '+' : ''}{Math.round(row.delta).toLocaleString()}원
                 </td>
               </tr>
@@ -476,14 +468,14 @@ export default function ExpensesPage() {
         </table>
       </SectionCard>
 
-      <p style={{ marginTop: '0.75rem', fontWeight: 600 }}>
+      <p className="mt-3 font-semibold">
         월 환산 지출 합계: {Math.round(totalMonthly).toLocaleString()}원
       </p>
 
       {message && <p>{message}</p>}
 
-      <SectionCard style={{ marginTop: '1rem', maxWidth: 980 }}>
-        <h3 style={{ marginTop: 0, marginBottom: '0.75rem' }}>정기 지출 (고정/구독 생활비)</h3>
+      <SectionCard className="mt-4 max-w-[980px]">
+        <h3 className="mb-3 mt-0">정기 지출 (고정/구독 생활비)</h3>
         <DataTable
           rows={recurringExpenses}
           rowKey={(expense) => expense.id}
@@ -512,7 +504,7 @@ export default function ExpensesPage() {
               header: '관리',
               align: 'center',
               render: (expense) => (
-                <div style={{ display: 'flex', justifyContent: 'center', gap: '0.4rem' }}>
+                <div className="flex justify-center gap-1.5">
                   <button className="btn-primary" onClick={() => onEdit(expense)}>
                     수정
                   </button>
@@ -526,8 +518,8 @@ export default function ExpensesPage() {
         />
       </SectionCard>
 
-      <SectionCard style={{ marginTop: '1rem', maxWidth: 980 }}>
-        <h3 style={{ marginTop: 0, marginBottom: '0.75rem' }}>한시성 지출</h3>
+      <SectionCard className="mt-4 max-w-[980px]">
+        <h3 className="mb-3 mt-0">한시성 지출</h3>
         <DataTable
           rows={oneTimeExpenses}
           rowKey={(expense) => expense.id}
@@ -556,7 +548,7 @@ export default function ExpensesPage() {
               header: '관리',
               align: 'center',
               render: (expense) => (
-                <div style={{ display: 'flex', justifyContent: 'center', gap: '0.4rem' }}>
+                <div className="flex justify-center gap-1.5">
                   <button className="btn-primary" onClick={() => onEdit(expense)}>
                     수정
                   </button>

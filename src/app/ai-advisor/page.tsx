@@ -119,27 +119,27 @@ export default function AIAdvisorPage() {
   };
 
   return (
-    <div style={{ padding: '1rem 0' }}>
+    <div className="py-4">
       <SectionCard>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap' }}>
+        <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
-            <h1 style={{ margin: 0 }}>AI 자산 상담</h1>
-            <p className="helper-text" style={{ marginTop: '0.45rem' }}>
+            <h1 className="m-0">AI 자산 상담</h1>
+            <p className="helper-text mt-1.5">
               Mr. Money가 현재 자산/지출 컨텍스트를 바탕으로 실행 가능한 금융 전략을 제안합니다.
             </p>
           </div>
-          <button onClick={startConversation} className="btn-primary" style={{ minWidth: 132 }}>
+          <button onClick={startConversation} className="btn-primary min-w-[132px]">
             새 상담 시작
           </button>
         </div>
       </SectionCard>
 
-      {message && <p style={{ marginTop: '0.8rem' }}>{message}</p>}
+      {message && <p className="mt-3">{message}</p>}
 
-      <div style={{ marginTop: '1rem', display: 'grid', gap: '1rem', gridTemplateColumns: '140px minmax(0, 1fr)' }}>
-        <SectionCard style={{ padding: '0.85rem', height: '640px', display: 'flex', flexDirection: 'column' }}>
-          <h3 style={{ margin: '0 0 0.65rem' }}>대화 목록</h3>
-          <div style={{ overflowY: 'auto', display: 'grid', gap: '0.45rem' }}>
+      <div className="mt-4 grid gap-4 lg:grid-cols-[200px_minmax(0,1fr)]">
+        <SectionCard className="flex h-[420px] flex-col p-3.5 sm:h-[520px] lg:h-[640px]">
+          <h3 className="mb-2.5 mt-0">대화 목록</h3>
+          <div className="grid gap-2 overflow-y-auto">
             {conversations.length === 0 ? (
               <p className="helper-text">아직 저장된 상담이 없습니다.</p>
             ) : (
@@ -148,31 +148,17 @@ export default function AIAdvisorPage() {
                 return (
                   <div
                     key={conversation.id}
-                    className={selected ? 'btn-primary' : 'btn-subtle'}
-                    style={{
-                      textAlign: 'left',
-                      padding: '0.45rem 0.5rem',
-                      display: 'grid',
-                      gridTemplateColumns: '1fr auto',
-                      gap: '0.35rem',
-                      alignItems: 'start'
-                    }}
+                    className={`${selected ? 'btn-primary' : 'btn-subtle'} grid grid-cols-[1fr_auto] items-start gap-1.5 px-2 py-1.5 text-left`}
                   >
                     <button
                       onClick={async () => {
                         setConversationId(conversation.id);
                         await loadMessages(conversation.id);
                       }}
-                      style={{
-                        background: 'transparent',
-                        border: 'none',
-                        padding: 0,
-                        color: 'inherit',
-                        textAlign: 'left'
-                      }}
+                      className="w-full border-none bg-transparent p-0 text-left text-inherit"
                     >
-                      <strong style={{ display: 'block' }}>{conversation.title?.trim() || '새 대화'}</strong>
-                      <span style={{ display: 'block', marginTop: '0.3rem', fontSize: '0.79rem', opacity: 0.9 }}>
+                      <strong className="block">{conversation.title?.trim() || '새 대화'}</strong>
+                      <span className="mt-1 block text-[0.79rem] opacity-90">
                         {formatKoreanDate(conversation.createdAt)}
                       </span>
                     </button>
@@ -180,14 +166,7 @@ export default function AIAdvisorPage() {
                       onClick={() => deleteConversation(conversation.id)}
                       title="대화 삭제"
                       aria-label="대화 삭제"
-                      style={{
-                        border: 'none',
-                        background: 'transparent',
-                        color: 'inherit',
-                        fontWeight: 700,
-                        padding: '0.05rem 0.2rem',
-                        lineHeight: 1
-                      }}
+                      className="border-none bg-transparent px-1 py-0 font-bold leading-none text-inherit"
                     >
                       ×
                     </button>
@@ -198,67 +177,52 @@ export default function AIAdvisorPage() {
           </div>
         </SectionCard>
 
-        <SectionCard style={{ padding: '0.9rem', height: '640px', display: 'grid', gridTemplateRows: 'auto minmax(0, 1fr) auto', gap: '0.7rem' }}>
-          <div style={{ borderBottom: '1px solid #eef2f7', paddingBottom: '0.55rem' }}>
+        <SectionCard className="grid h-[520px] grid-rows-[auto_minmax(0,1fr)_auto] gap-3 p-4 sm:h-[620px] lg:h-[640px]">
+          <div className="border-b border-[var(--line)] pb-2">
             <strong>{activeConversation?.title?.trim() || (conversationId ? '상담 진행 중' : '상담 시작 전')}</strong>
-            <p className="helper-text" style={{ marginTop: '0.25rem' }}>
+            <p className="helper-text mt-1">
               Enter 전송 · Shift+Enter 줄바꿈
             </p>
           </div>
 
-          <div style={{ overflowY: 'auto', paddingRight: '0.2rem' }}>
+          <div className="overflow-y-auto pr-1">
             {!conversationId ? (
-              <div style={{ display: 'grid', placeItems: 'center', height: '100%' }}>
+              <div className="grid h-full place-items-center">
                 <p className="helper-text">새 상담을 시작하거나 기존 대화를 선택하세요.</p>
               </div>
             ) : messages.length === 0 ? (
-              <div style={{ display: 'grid', placeItems: 'center', height: '100%' }}>
+              <div className="grid h-full place-items-center">
                 <p className="helper-text">첫 질문을 입력하면 상담이 시작됩니다.</p>
               </div>
             ) : (
-              <div style={{ display: 'grid', gap: '0.7rem' }}>
+              <div className="grid gap-3">
                 {messages.map((msg) => {
                   const isUser = msg.role === 'user';
                   return (
                     <div
                       key={msg.id}
-                      style={{
-                        display: 'grid',
-                        justifyItems: isUser ? 'end' : 'start'
-                      }}
+                      className={`grid ${isUser ? 'justify-items-end' : 'justify-items-start'}`}
                     >
                       <div
-                        style={{
-                          maxWidth: '82%',
-                          border: '1px solid #e5e7eb',
-                          borderRadius: 12,
-                          padding: '0.7rem 0.8rem',
-                          background: isUser ? '#e9f3ff' : '#f8fafc'
-                        }}
+                        className={`max-w-[82%] rounded-xl border border-slate-200 px-3 py-2.5 ${isUser ? 'bg-blue-50' : 'bg-slate-50'}`}
                       >
-                        <div style={{ fontSize: '0.8rem', color: '#4b5563', marginBottom: '0.35rem' }}>
+                        <div className="mb-1.5 text-[0.8rem] text-slate-600">
                           {isUser ? '나' : 'Mr. Money'}
                         </div>
-                        <div style={{ whiteSpace: 'pre-wrap', lineHeight: 1.45 }}>{msg.content}</div>
+                        <div className="whitespace-pre-wrap leading-[1.45]">{msg.content}</div>
                       </div>
                     </div>
                   );
                 })}
                 {loading ? (
-                  <div style={{ display: 'grid', justifyItems: 'start' }}>
+                  <div className="grid justify-items-start">
                     <div
-                      style={{
-                        maxWidth: '82%',
-                        border: '1px solid #e5e7eb',
-                        borderRadius: 12,
-                        padding: '0.7rem 0.8rem',
-                        background: '#f8fafc'
-                      }}
+                      className="max-w-[82%] rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5"
                     >
-                      <div style={{ fontSize: '0.8rem', color: '#4b5563', marginBottom: '0.35rem' }}>
+                      <div className="mb-1.5 text-[0.8rem] text-slate-600">
                         Mr. Money
                       </div>
-                      <div style={{ color: '#475569' }}>답변 작성 중...</div>
+                      <div className="text-slate-600">답변 작성 중...</div>
                     </div>
                   </div>
                 ) : null}
@@ -267,7 +231,7 @@ export default function AIAdvisorPage() {
             )}
           </div>
 
-          <div style={{ display: 'grid', gap: '0.45rem' }}>
+          <div className="grid gap-2">
             <textarea
               value={input}
               onChange={(event) => setInput(event.target.value)}
@@ -276,13 +240,12 @@ export default function AIAdvisorPage() {
               rows={3}
               disabled={loading || !conversationId}
             />
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.75rem' }}>
+            <div className="flex flex-wrap items-center justify-between gap-3">
               <p className="helper-text">금융 상담은 정보 제공 목적이며 최종 투자 판단은 본인 책임입니다.</p>
               <button
                 onClick={sendMessage}
                 disabled={loading || !input.trim() || !conversationId}
-                className="btn-primary"
-                style={{ minWidth: 96 }}
+                className="btn-primary min-w-[96px]"
               >
                 {loading ? '전송 중...' : '전송'}
               </button>

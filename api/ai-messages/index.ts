@@ -23,8 +23,10 @@ type ProfileContext = {
   annualRaiseRatePct?: number;
   child1Name?: string;
   child1BirthDate?: string;
+  child1TargetUniversityYear?: number;
   child2Name?: string;
   child2BirthDate?: string;
+  child2TargetUniversityYear?: number;
   retirementTargetAge?: number;
 };
 
@@ -180,8 +182,8 @@ export async function aiMessagesHandler(context: InvocationContext, req: HttpReq
               `- 내년 예상 총보상: ${projectedCompNextYear > 0 ? `${projectedCompNextYear.toLocaleString()}원` : "미설정"}`,
               `- 은퇴 목표 연령: ${typeof profile.retirementTargetAge === "number" ? `${profile.retirementTargetAge}세` : "미설정"}`,
               `- 은퇴까지 남은 기간: ${typeof yearsToRetirement === "number" ? `${yearsToRetirement}년` : "미설정"}`,
-              `- 자녀1: ${profile.child1Name ?? "미설정"} / ${typeof child1Age === "number" ? `${child1Age}세` : "나이 미설정"}`,
-              `- 자녀2: ${profile.child2Name ?? "미설정"} / ${typeof child2Age === "number" ? `${child2Age}세` : "나이 미설정"}`
+              `- 자녀1: ${profile.child1Name ?? "미설정"} / ${typeof child1Age === "number" ? `${child1Age}세` : "나이 미설정"} / 예상 대학 진학년도: ${typeof profile.child1TargetUniversityYear === "number" ? `${profile.child1TargetUniversityYear}년` : "미설정"}`,
+              `- 자녀2: ${profile.child2Name ?? "미설정"} / ${typeof child2Age === "number" ? `${child2Age}세` : "나이 미설정"} / 예상 대학 진학년도: ${typeof profile.child2TargetUniversityYear === "number" ? `${profile.child2TargetUniversityYear}년` : "미설정"}`
             ];
 
             profileContextText = lines.join("\n");

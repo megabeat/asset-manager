@@ -1,3 +1,9 @@
+const crypto = require("crypto");
+// Expose crypto globally for Azure SDK compatibility
+if (!global.crypto) {
+  global.crypto = crypto;
+}
+
 const { CosmosClient } = require("@azure/cosmos");
 
 const endpoint = process.env.COSMOS_ENDPOINT || "";

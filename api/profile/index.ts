@@ -95,8 +95,20 @@ export async function profileHandler(context: InvocationContext, req: HttpReques
           ),
           child1Name: ensureOptionalString(body.child1Name, "child1Name"),
           child1BirthDate: ensureOptionalString(body.child1BirthDate, "child1BirthDate"),
+          child1TargetUniversityYear: ensureOptionalNumberInRange(
+            body.child1TargetUniversityYear,
+            "child1TargetUniversityYear",
+            2000,
+            2200
+          ),
           child2Name: ensureOptionalString(body.child2Name, "child2Name"),
           child2BirthDate: ensureOptionalString(body.child2BirthDate, "child2BirthDate"),
+          child2TargetUniversityYear: ensureOptionalNumberInRange(
+            body.child2TargetUniversityYear,
+            "child2TargetUniversityYear",
+            2000,
+            2200
+          ),
           retirementTargetAge: ensureOptionalNumberInRange(
             body.retirementTargetAge,
             "retirementTargetAge",
@@ -164,9 +176,15 @@ export async function profileHandler(context: InvocationContext, req: HttpReques
           child1Name: ensureOptionalString(body.child1Name, "child1Name") ?? resource.child1Name,
           child1BirthDate:
             ensureOptionalString(body.child1BirthDate, "child1BirthDate") ?? resource.child1BirthDate,
+          child1TargetUniversityYear:
+            ensureOptionalNumberInRange(body.child1TargetUniversityYear, "child1TargetUniversityYear", 2000, 2200) ??
+            resource.child1TargetUniversityYear,
           child2Name: ensureOptionalString(body.child2Name, "child2Name") ?? resource.child2Name,
           child2BirthDate:
             ensureOptionalString(body.child2BirthDate, "child2BirthDate") ?? resource.child2BirthDate,
+          child2TargetUniversityYear:
+            ensureOptionalNumberInRange(body.child2TargetUniversityYear, "child2TargetUniversityYear", 2000, 2200) ??
+            resource.child2TargetUniversityYear,
           retirementTargetAge:
             ensureOptionalNumberInRange(body.retirementTargetAge, "retirementTargetAge", 45, 90) ??
             resource.retirementTargetAge,

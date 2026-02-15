@@ -21,8 +21,10 @@ export type Profile = {
   rsuVestingCycle?: 'monthly' | 'quarterly' | 'yearly' | 'irregular';
   child1Name?: string;
   child1BirthDate?: string;
+  child1TargetUniversityYear?: number;
   child2Name?: string;
   child2BirthDate?: string;
+  child2TargetUniversityYear?: number;
   retirementTargetAge?: number;
   householdSize: number;
   currency: string;

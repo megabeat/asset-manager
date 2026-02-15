@@ -203,41 +203,41 @@ export default function PensionsPage() {
   }
 
   if (loading) {
-    return <div style={{ padding: '2rem' }}>로딩 중...</div>;
+    return <div className="p-6">로딩 중...</div>;
   }
 
   return (
-    <div style={{ padding: '1rem 0' }}>
+    <div className="py-4">
       <h1>연금관리</h1>
-      <p className="helper-text" style={{ marginTop: '0.4rem' }}>
+      <p className="helper-text mt-1.5">
         국민연금 / 개인연금 / 퇴직연금(IPA)을 분리 관리하고, 총액과 비중을 한 화면에서 확인합니다.
       </p>
 
-      <div className="form-grid" style={{ marginTop: '1rem' }}>
+      <div className="form-grid mt-4">
         <SectionCard>
           <p className="helper-text">전체 연금 자산</p>
-          <h2 style={{ margin: 0 }}>{totalPensionValue.toLocaleString()}원</h2>
-          <p className="helper-text" style={{ marginTop: '0.4rem' }}>연금 3유형 합산</p>
+          <h2 className="m-0">{totalPensionValue.toLocaleString()}원</h2>
+          <p className="helper-text mt-1.5">연금 3유형 합산</p>
         </SectionCard>
         <SectionCard>
           <p className="helper-text">국민연금</p>
-          <h2 style={{ margin: 0 }}>{nationalPensionValue.toLocaleString()}원</h2>
-          <p className="helper-text" style={{ marginTop: '0.4rem' }}>{nationalPensionRatio.toFixed(1)}%</p>
+          <h2 className="m-0">{nationalPensionValue.toLocaleString()}원</h2>
+          <p className="helper-text mt-1.5">{nationalPensionRatio.toFixed(1)}%</p>
         </SectionCard>
         <SectionCard>
           <p className="helper-text">개인연금</p>
-          <h2 style={{ margin: 0 }}>{personalPensionValue.toLocaleString()}원</h2>
-          <p className="helper-text" style={{ marginTop: '0.4rem' }}>{personalPensionRatio.toFixed(1)}%</p>
+          <h2 className="m-0">{personalPensionValue.toLocaleString()}원</h2>
+          <p className="helper-text mt-1.5">{personalPensionRatio.toFixed(1)}%</p>
         </SectionCard>
         <SectionCard>
           <p className="helper-text">퇴직연금(IPA)</p>
-          <h2 style={{ margin: 0 }}>{retirementPensionValue.toLocaleString()}원</h2>
-          <p className="helper-text" style={{ marginTop: '0.4rem' }}>{retirementPensionRatio.toFixed(1)}%</p>
+          <h2 className="m-0">{retirementPensionValue.toLocaleString()}원</h2>
+          <p className="helper-text mt-1.5">{retirementPensionRatio.toFixed(1)}%</p>
         </SectionCard>
       </div>
 
-      <SectionCard style={{ marginTop: '1rem' }}>
-        <h3 style={{ marginTop: 0, marginBottom: '0.75rem' }}>연금 자산 입력</h3>
+      <SectionCard className="mt-4">
+        <h3 className="mb-3 mt-0">연금 자산 입력</h3>
         <form onSubmit={onSubmit} className="form-grid">
           <FormField label="연금 유형">
             <select
@@ -332,12 +332,12 @@ export default function PensionsPage() {
             />
           </FormField>
 
-          <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'end' }}>
-            <button type="submit" disabled={saving} className="btn-primary" style={{ width: 180 }}>
+          <div className="flex items-end gap-2">
+            <button type="submit" disabled={saving} className="btn-primary w-[180px]">
               {saving ? '저장 중...' : editingAssetId ? '연금 수정' : '연금 추가'}
             </button>
             {editingAssetId ? (
-              <button type="button" onClick={onCancelEdit} className="btn-danger-outline" style={{ width: 120 }}>
+              <button type="button" onClick={onCancelEdit} className="btn-danger-outline w-[120px]">
                 취소
               </button>
             ) : null}
@@ -345,10 +345,10 @@ export default function PensionsPage() {
         </form>
       </SectionCard>
 
-      {message && <p style={{ marginTop: '1rem' }}>{message}</p>}
+      {message && <p className="mt-4">{message}</p>}
 
-      <SectionCard style={{ marginTop: '1rem' }}>
-        <h3 style={{ marginTop: 0, marginBottom: '0.75rem' }}>연금 자산 목록</h3>
+      <SectionCard className="mt-4">
+        <h3 className="mb-3 mt-0">연금 자산 목록</h3>
         <DataTable
           rows={pensions}
           rowKey={(asset) => asset.id}
@@ -382,7 +382,7 @@ export default function PensionsPage() {
               header: '관리',
               align: 'center',
               render: (asset) => (
-                <div style={{ display: 'flex', justifyContent: 'center', gap: '0.4rem' }}>
+                <div className="flex justify-center gap-1.5">
                   <button onClick={() => onEdit(asset)} className="btn-primary">수정</button>
                   <button onClick={() => onDelete(asset.id)} className="btn-danger-outline">삭제</button>
                 </div>
@@ -392,12 +392,12 @@ export default function PensionsPage() {
         />
       </SectionCard>
 
-      <SectionCard style={{ marginTop: '1rem' }}>
-        <h3 style={{ marginTop: 0, marginBottom: '0.75rem' }}>연금 유형별 비중</h3>
+      <SectionCard className="mt-4">
+        <h3 className="mb-3 mt-0">연금 유형별 비중</h3>
         {pensionSplitData.length === 0 ? (
           <p>연금 데이터가 없습니다.</p>
         ) : (
-          <div style={{ width: '100%', height: 300 }}>
+          <div className="h-[300px] w-full">
             <ResponsiveContainer>
               <PieChart>
                 <Pie

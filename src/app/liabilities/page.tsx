@@ -92,21 +92,21 @@ export default function LiabilitiesPage() {
   }
 
   if (loading) {
-    return <div style={{ padding: '2rem' }}>로딩 중...</div>;
+    return <div className="p-6">로딩 중...</div>;
   }
 
   return (
-    <div style={{ padding: '1rem 0' }}>
+    <div className="py-4">
       <h1>부채 관리</h1>
 
-      <SectionCard style={{ marginTop: '1.25rem', maxWidth: 980 }}>
+      <SectionCard className="mt-5 max-w-[980px]">
         <form onSubmit={onSubmit} className="form-grid">
           <FormField label="부채명" error={errors.name}>
             <input
               placeholder="부채명"
               value={form.name}
               onChange={(event) => setForm((prev) => ({ ...prev, name: event.target.value }))}
-              style={errors.name ? { borderColor: '#b91c1c' } : undefined}
+              className={errors.name ? 'border-red-700' : ''}
             />
           </FormField>
 
@@ -117,7 +117,7 @@ export default function LiabilitiesPage() {
               placeholder="금액"
               value={form.amount}
               onChange={(event) => setForm((prev) => ({ ...prev, amount: Number(event.target.value || 0) }))}
-              style={errors.amount ? { borderColor: '#b91c1c' } : undefined}
+              className={errors.amount ? 'border-red-700' : ''}
             />
           </FormField>
 
@@ -140,21 +140,20 @@ export default function LiabilitiesPage() {
           <button
             type="submit"
             disabled={saving}
-            className="btn-primary"
-            style={{ width: 140, alignSelf: 'end' }}
+            className="btn-primary w-[140px] self-end"
           >
             {saving ? '저장 중...' : '부채 추가'}
           </button>
         </form>
       </SectionCard>
 
-      <p style={{ marginTop: '1rem', fontWeight: 600 }}>
+      <p className="mt-4 font-semibold">
         총 부채: {totalLiabilities.toLocaleString()}원
       </p>
 
       {message && <p>{message}</p>}
 
-      <SectionCard style={{ marginTop: '1.25rem' }}>
+      <SectionCard className="mt-5 max-w-[980px]">
         <DataTable
           rows={items}
           rowKey={(liability) => liability.id}
