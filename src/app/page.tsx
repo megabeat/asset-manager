@@ -96,7 +96,7 @@ export default function Home() {
         }}
       >
         <div style={{ background: '#fff', border: '1px solid #ececec', borderRadius: 10, padding: '1rem' }}>
-          <h3 style={{ margin: 0, color: '#666', fontSize: '0.9rem' }}>총 자산</h3>
+          <h3 style={{ margin: 0, color: '#666', fontSize: '0.9rem' }}>총 자산(연금 제외)</h3>
           <p style={{ margin: '0.45rem 0 0', fontWeight: 700, fontSize: '1.25rem' }}>
             {summary?.totalAssets?.toLocaleString() ?? '-'}원
           </p>

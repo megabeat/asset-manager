@@ -158,7 +158,7 @@ export default function DashboardPage() {
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginTop: '1rem' }}>
         <SectionCard style={{ padding: '1.25rem' }}>
-          <h3 style={{ margin: 0, fontSize: '0.9rem', color: '#666' }}>총 자산</h3>
+          <h3 style={{ margin: 0, fontSize: '0.9rem', color: '#666' }}>총 자산(연금 제외)</h3>
           <p style={{ margin: '0.5rem 0 0', fontSize: '1.5rem', fontWeight: 'bold' }}>
             {summary.totalAssets.toLocaleString()}원
           </p>
