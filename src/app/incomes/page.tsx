@@ -25,6 +25,7 @@ export default function IncomesPage() {
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [form, setForm] = useState<IncomeForm>(defaultForm);
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
   async function loadIncomes() {
     const result = await api.getIncomes();
@@ -51,8 +52,16 @@ export default function IncomesPage() {
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setMessage(null);
+    const nextErrors: Record<string, string> = {};
 
-    if (!form.name.trim() || form.amount < 0) {
+    if (!form.name.trim()) nextErrors.name = '수입명을 입력해주세요.';
+    if (!Number.isFinite(form.amount) || form.amount < 0) {
+      nextErrors.amount = '금액은 0 이상이어야 합니다.';
+    }
+
+    setErrors(nextErrors);
+
+    if (Object.keys(nextErrors).length > 0) {
       setMessage('수입명과 금액을 확인해주세요.');
       return;
     }
@@ -93,30 +102,23 @@ export default function IncomesPage() {
     <div style={{ padding: '1rem 0' }}>
       <h1>수입 관리</h1>
 
-      <form
-        onSubmit={onSubmit}
-        style={{
-          marginTop: '1.25rem',
-          maxWidth: 840,
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
-          gap: '0.75rem'
-        }}
-      >
+      <form onSubmit={onSubmit} className="section-card form-grid" style={{ marginTop: '1.25rem', maxWidth: 980 }}>
         <input
           placeholder="수입명"
           value={form.name}
           onChange={(event) => setForm((prev) => ({ ...prev, name: event.target.value }))}
-          style={{ padding: '0.6rem', border: '1px solid #d0d0d0', borderRadius: 8 }}
+          style={errors.name ? { borderColor: '#b91c1c' } : undefined}
         />
+        {errors.name && <p className="form-error" style={{ gridColumn: '1 / -1' }}>{errors.name}</p>}
         <input
           type="number"
           min={0}
           placeholder="금액"
           value={form.amount}
           onChange={(event) => setForm((prev) => ({ ...prev, amount: Number(event.target.value || 0) }))}
-          style={{ padding: '0.6rem', border: '1px solid #d0d0d0', borderRadius: 8 }}
+          style={errors.amount ? { borderColor: '#b91c1c' } : undefined}
         />
+        {errors.amount && <p className="form-error" style={{ gridColumn: '1 / -1' }}>{errors.amount}</p>}
         <select
           value={form.cycle}
           onChange={(event) =>
@@ -143,7 +145,8 @@ export default function IncomesPage() {
         <button
           type="submit"
           disabled={saving}
-          style={{ width: 140, padding: '0.65rem 0.9rem', borderRadius: 8, border: '1px solid #0b63ce', background: '#0b63ce', color: '#fff' }}
+          className="btn-primary"
+          style={{ width: 140 }}
         >
           {saving ? '저장 중...' : '수입 추가'}
         </button>
@@ -155,11 +158,11 @@ export default function IncomesPage() {
 
       {message && <p>{message}</p>}
 
-      <div style={{ marginTop: '1.25rem' }}>
+      <div className="section-card" style={{ marginTop: '1.25rem' }}>
         {incomes.length === 0 ? (
           <p>등록된 수입이 없습니다.</p>
         ) : (
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+          <table>
             <thead>
               <tr style={{ borderBottom: '2px solid #ddd' }}>
                 <th style={{ padding: '0.8rem', textAlign: 'left' }}>수입명</th>
@@ -176,8 +179,8 @@ export default function IncomesPage() {
                   <td style={{ padding: '0.8rem', textAlign: 'right' }}>{income.amount.toLocaleString()}원</td>
                   <td style={{ padding: '0.8rem', textAlign: 'center' }}>
                     <button
+                      className="btn-danger-outline"
                       onClick={() => onDelete(income.id)}
-                      style={{ border: '1px solid #d32f2f', color: '#d32f2f', background: '#fff', borderRadius: 6, padding: '0.35rem 0.65rem' }}
                     >
                       삭제
                     </button>

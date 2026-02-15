@@ -28,6 +28,7 @@ export default function ExpensesPage() {
   const [filter, setFilter] = useState<'all' | 'fixed' | 'subscription'>('all');
   const [form, setForm] = useState<ExpenseForm>(defaultForm);
   const [message, setMessage] = useState<string | null>(null);
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
   async function loadExpenses(selectedType: 'all' | 'fixed' | 'subscription' = filter) {
     const result = await api.getExpenses(selectedType === 'all' ? undefined : selectedType);
@@ -57,8 +58,19 @@ export default function ExpensesPage() {
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setMessage(null);
+    const nextErrors: Record<string, string> = {};
 
-    if (!form.name.trim() || form.amount < 0) {
+    if (!form.name.trim()) nextErrors.name = '항목명을 입력해주세요.';
+    if (!Number.isFinite(form.amount) || form.amount < 0) {
+      nextErrors.amount = '금액은 0 이상이어야 합니다.';
+    }
+    if (!Number.isFinite(form.billingDay) || form.billingDay < 1 || form.billingDay > 31) {
+      nextErrors.billingDay = '청구일은 1~31 사이여야 합니다.';
+    }
+
+    setErrors(nextErrors);
+
+    if (Object.keys(nextErrors).length > 0) {
       setMessage('항목명과 금액을 확인해주세요.');
       return;
     }
@@ -105,26 +117,22 @@ export default function ExpensesPage() {
   }
 
   return (
-    <div style={{ padding: '2rem', fontFamily: 'system-ui, sans-serif' }}>
+    <div style={{ padding: '1rem 0' }}>
       <h1>지출 관리</h1>
 
       <form
         onSubmit={onSubmit}
-        style={{
-          marginTop: '1.25rem',
-          maxWidth: 820,
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
-          gap: '0.75rem'
-        }}
+        className="section-card form-grid"
+        style={{ marginTop: '1.25rem', maxWidth: 980 }}
       >
         <label style={{ display: 'grid', gap: '0.35rem' }}>
           <span>항목명</span>
           <input
             value={form.name}
             onChange={(event) => setForm((prev) => ({ ...prev, name: event.target.value }))}
-            style={{ padding: '0.6rem', border: '1px solid #d0d0d0', borderRadius: 8 }}
+            style={errors.name ? { borderColor: '#b91c1c' } : undefined}
           />
+          {errors.name && <p className="form-error">{errors.name}</p>}
         </label>
 
         <label style={{ display: 'grid', gap: '0.35rem' }}>
@@ -134,8 +142,9 @@ export default function ExpensesPage() {
             min={0}
             value={form.amount}
             onChange={(event) => setForm((prev) => ({ ...prev, amount: Number(event.target.value || 0) }))}
-            style={{ padding: '0.6rem', border: '1px solid #d0d0d0', borderRadius: 8 }}
+            style={errors.amount ? { borderColor: '#b91c1c' } : undefined}
           />
+          {errors.amount && <p className="form-error">{errors.amount}</p>}
         </label>
 
         <label style={{ display: 'grid', gap: '0.35rem' }}>
@@ -170,8 +179,9 @@ export default function ExpensesPage() {
             max={31}
             value={form.billingDay}
             onChange={(event) => setForm((prev) => ({ ...prev, billingDay: Number(event.target.value || 1) }))}
-            style={{ padding: '0.6rem', border: '1px solid #d0d0d0', borderRadius: 8 }}
+            style={errors.billingDay ? { borderColor: '#b91c1c' } : undefined}
           />
+          {errors.billingDay && <p className="form-error">{errors.billingDay}</p>}
         </label>
 
         <label style={{ display: 'grid', gap: '0.35rem' }}>
@@ -187,24 +197,18 @@ export default function ExpensesPage() {
         <button
           type="submit"
           disabled={saving}
-          style={{
-            width: 160,
-            padding: '0.7rem 1rem',
-            borderRadius: 8,
-            border: '1px solid #0b63ce',
-            backgroundColor: '#0b63ce',
-            color: '#fff'
-          }}
+          className="btn-primary"
+          style={{ width: 160 }}
         >
           {saving ? '저장 중...' : '지출 추가'}
         </button>
       </form>
 
-      <div style={{ marginTop: '1rem', display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+      <div className="section-card" style={{ marginTop: '1rem', display: 'flex', gap: '0.5rem', alignItems: 'center', maxWidth: 520 }}>
         <strong>필터:</strong>
-        <button onClick={() => onChangeFilter('all')}>전체</button>
-        <button onClick={() => onChangeFilter('fixed')}>고정</button>
-        <button onClick={() => onChangeFilter('subscription')}>구독</button>
+        <button className="btn-subtle" onClick={() => onChangeFilter('all')}>전체</button>
+        <button className="btn-subtle" onClick={() => onChangeFilter('fixed')}>고정</button>
+        <button className="btn-subtle" onClick={() => onChangeFilter('subscription')}>구독</button>
       </div>
 
       <p style={{ marginTop: '0.75rem', fontWeight: 600 }}>
@@ -213,11 +217,11 @@ export default function ExpensesPage() {
 
       {message && <p>{message}</p>}
 
-      <div style={{ marginTop: '2rem' }}>
+      <div className="section-card" style={{ marginTop: '1rem' }}>
         {expenses.length === 0 ? (
           <p>등록된 지출이 없습니다.</p>
         ) : (
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+          <table>
             <thead>
               <tr style={{ borderBottom: '2px solid #ddd' }}>
                 <th style={{ padding: '1rem', textAlign: 'left' }}>항목명</th>
@@ -238,8 +242,8 @@ export default function ExpensesPage() {
                   </td>
                   <td style={{ padding: '1rem', textAlign: 'center' }}>
                     <button
+                      className="btn-danger-outline"
                       onClick={() => onDelete(expense.id)}
-                      style={{ border: '1px solid #d32f2f', color: '#d32f2f', background: '#fff', borderRadius: 6, padding: '0.4rem 0.65rem' }}
                     >
                       삭제
                     </button>
