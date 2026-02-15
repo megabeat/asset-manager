@@ -11,6 +11,17 @@ import {
 } from "../shared/validators";
 import { parseJsonBody } from "../shared/request-body";
 
+function getStatusCode(error: unknown): number | undefined {
+  const candidate = error as { code?: number | string; statusCode?: number | string };
+  const raw = candidate.statusCode ?? candidate.code;
+  if (typeof raw === "number") return raw;
+  if (typeof raw === "string") {
+    const parsed = Number(raw);
+    return Number.isFinite(parsed) ? parsed : undefined;
+  }
+  return undefined;
+}
+
 
 export async function profileHandler(context: InvocationContext, req: HttpRequest): Promise<HttpResponseInit> {
   const { userId } = getAuthContext(req.headers);
@@ -70,7 +81,7 @@ export async function profileHandler(context: InvocationContext, req: HttpReques
         const { resource } = await container.items.create(profile);
         return ok(resource, 201);
       } catch (error: unknown) {
-        const status = (error as { code?: number; statusCode?: number }).statusCode;
+        const status = getStatusCode(error);
         if (status === 409) {
           return fail("CONFLICT", "Profile already exists", 409);
         }
@@ -107,7 +118,7 @@ export async function profileHandler(context: InvocationContext, req: HttpReques
         const { resource: saved } = await container.item(userId, userId).replace(updated);
         return ok(saved);
       } catch (error: unknown) {
-        const status = (error as { code?: number; statusCode?: number }).statusCode;
+        const status = getStatusCode(error);
         if (status === 404) {
           return fail("NOT_FOUND", "Profile not found", 404);
         }

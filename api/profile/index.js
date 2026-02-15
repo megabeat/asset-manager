@@ -6,6 +6,17 @@ const cosmosClient_1 = require("../shared/cosmosClient");
 const responses_1 = require("../shared/responses");
 const validators_1 = require("../shared/validators");
 const request_body_1 = require("../shared/request-body");
+function getStatusCode(error) {
+    const candidate = error;
+    const raw = candidate.statusCode ?? candidate.code;
+    if (typeof raw === "number")
+        return raw;
+    if (typeof raw === "string") {
+        const parsed = Number(raw);
+        return Number.isFinite(parsed) ? parsed : undefined;
+    }
+    return undefined;
+}
 async function profileHandler(context, req) {
     const { userId } = (0, auth_1.getAuthContext)(req.headers);
     try {
@@ -64,7 +75,7 @@ async function profileHandler(context, req) {
                 return (0, responses_1.ok)(resource, 201);
             }
             catch (error) {
-                const status = error.statusCode;
+                const status = getStatusCode(error);
                 if (status === 409) {
                     return (0, responses_1.fail)("CONFLICT", "Profile already exists", 409);
                 }
@@ -100,7 +111,7 @@ async function profileHandler(context, req) {
                 return (0, responses_1.ok)(saved);
             }
             catch (error) {
-                const status = error.statusCode;
+                const status = getStatusCode(error);
                 if (status === 404) {
                     return (0, responses_1.fail)("NOT_FOUND", "Profile not found", 404);
                 }
