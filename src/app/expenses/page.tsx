@@ -51,14 +51,13 @@ export default function ExpensesPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [entryMode, setEntryMode] = useState<'card' | 'general'>('card');
-  const [filter, setFilter] = useState<'all' | 'fixed' | 'subscription' | 'one_time'>('all');
   const [form, setForm] = useState<ExpenseForm>(defaultForm);
   const [cardQuickForm, setCardQuickForm] = useState<CardQuickForm>(defaultCardQuickForm);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const { message, clearMessage, setMessageText, setSuccessMessage, setErrorMessage } = useFeedbackMessage();
 
-  async function loadExpenses(selectedType: 'all' | 'fixed' | 'subscription' | 'one_time' = filter) {
-    const result = await api.getExpenses(selectedType === 'all' ? undefined : selectedType);
+  async function loadExpenses() {
+    const result = await api.getExpenses();
     if (result.data) {
       setExpenses(result.data);
     }
@@ -142,6 +141,14 @@ export default function ExpensesPage() {
     });
 
     return { rows, currentMonth, previousMonth };
+  }, [expenses]);
+
+  const recurringExpenses = useMemo(() => {
+    return expenses.filter((expense) => expense.cycle !== 'one_time' && expense.expenseType !== 'one_time');
+  }, [expenses]);
+
+  const oneTimeExpenses = useMemo(() => {
+    return expenses.filter((expense) => expense.cycle === 'one_time' || expense.expenseType === 'one_time');
   }, [expenses]);
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
@@ -230,13 +237,6 @@ export default function ExpensesPage() {
       return;
     }
     setExpenses((prev) => prev.filter((item) => item.id !== id));
-  }
-
-  async function onChangeFilter(nextFilter: 'all' | 'fixed' | 'subscription' | 'one_time') {
-    setFilter(nextFilter);
-    setLoading(true);
-    await loadExpenses(nextFilter);
-    setLoading(false);
   }
 
   if (loading) {
@@ -462,14 +462,6 @@ export default function ExpensesPage() {
         </table>
       </SectionCard>
 
-      <SectionCard style={{ marginTop: '1rem', display: 'flex', gap: '0.5rem', alignItems: 'center', maxWidth: 520 }}>
-        <strong>필터:</strong>
-        <button className="btn-subtle" onClick={() => onChangeFilter('all')}>전체</button>
-        <button className="btn-subtle" onClick={() => onChangeFilter('fixed')}>고정</button>
-        <button className="btn-subtle" onClick={() => onChangeFilter('subscription')}>구독</button>
-        <button className="btn-subtle" onClick={() => onChangeFilter('one_time')}>일회성</button>
-      </SectionCard>
-
       <p style={{ marginTop: '0.75rem', fontWeight: 600 }}>
         월 환산 지출 합계: {Math.round(totalMonthly).toLocaleString()}원
       </p>
@@ -477,10 +469,50 @@ export default function ExpensesPage() {
       {message && <p>{message}</p>}
 
       <SectionCard style={{ marginTop: '1rem' }}>
+        <h3 style={{ marginTop: 0, marginBottom: '0.75rem' }}>정기 지출 (고정/구독 생활비)</h3>
         <DataTable
-          rows={expenses}
+          rows={recurringExpenses}
           rowKey={(expense) => expense.id}
-          emptyMessage="등록된 지출이 없습니다."
+          emptyMessage="등록된 정기 지출이 없습니다."
+          columns={[
+            { key: 'name', header: '항목명', render: (expense) => expense.name },
+            { key: 'type', header: '유형', render: (expense) => expense.expenseType },
+            { key: 'cycle', header: '주기', render: (expense) => expense.cycle },
+            {
+              key: 'amount',
+              header: '금액',
+              align: 'right',
+              render: (expense) => `${expense.amount.toLocaleString()}원`,
+            },
+            {
+              key: 'reflect',
+              header: '자산차감',
+              align: 'right',
+              render: (expense) =>
+                expense.reflectToLiquidAsset && (expense.reflectedAmount ?? 0) > 0
+                  ? `-${Math.round(expense.reflectedAmount ?? 0).toLocaleString()}원`
+                  : '-',
+            },
+            {
+              key: 'actions',
+              header: '관리',
+              align: 'center',
+              render: (expense) => (
+                <button className="btn-danger-outline" onClick={() => onDelete(expense.id)}>
+                  삭제
+                </button>
+              ),
+            },
+          ]}
+        />
+      </SectionCard>
+
+      <SectionCard style={{ marginTop: '1rem' }}>
+        <h3 style={{ marginTop: 0, marginBottom: '0.75rem' }}>한시성 지출</h3>
+        <DataTable
+          rows={oneTimeExpenses}
+          rowKey={(expense) => expense.id}
+          emptyMessage="등록된 한시성 지출이 없습니다."
           columns={[
             { key: 'name', header: '항목명', render: (expense) => expense.name },
             { key: 'type', header: '유형', render: (expense) => expense.expenseType },
