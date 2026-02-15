@@ -50,6 +50,7 @@ export default function ExpensesPage() {
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [editingExpenseId, setEditingExpenseId] = useState<string | null>(null);
   const [entryMode, setEntryMode] = useState<'card' | 'general'>('card');
   const [form, setForm] = useState<ExpenseForm>(defaultForm);
   const [cardQuickForm, setCardQuickForm] = useState<CardQuickForm>(defaultCardQuickForm);
@@ -174,7 +175,7 @@ export default function ExpensesPage() {
     }
 
     setSaving(true);
-    const result = await api.createExpense({
+    const payload = {
       name: form.name.trim(),
       amount: amountValue,
       type: form.type,
@@ -183,13 +184,18 @@ export default function ExpensesPage() {
       occurredAt: form.occurredAt,
       reflectToLiquidAsset: form.reflectToLiquidAsset,
       category: form.category.trim()
-    });
+    };
+
+    const result = editingExpenseId
+      ? await api.updateExpense(editingExpenseId, payload)
+      : await api.createExpense(payload);
 
     if (result.error) {
-      setErrorMessage('저장 실패', result.error);
+      setErrorMessage(editingExpenseId ? '수정 실패' : '저장 실패', result.error);
     } else {
       setForm(defaultForm);
-      setSuccessMessage('지출이 저장되었습니다.');
+      setEditingExpenseId(null);
+      setSuccessMessage(editingExpenseId ? '지출이 수정되었습니다.' : '지출이 저장되었습니다.');
       await loadExpenses();
     }
 
@@ -237,6 +243,29 @@ export default function ExpensesPage() {
       return;
     }
     setExpenses((prev) => prev.filter((item) => item.id !== id));
+  }
+
+  function onEdit(expense: Expense) {
+    setEntryMode('general');
+    setEditingExpenseId(expense.id);
+    setErrors({});
+    clearMessage();
+    setForm({
+      name: expense.name ?? '',
+      amount: Number(expense.amount ?? 0),
+      type: (expense.expenseType as 'fixed' | 'subscription' | 'one_time') ?? 'fixed',
+      cycle: (expense.cycle as 'monthly' | 'yearly' | 'one_time') ?? 'monthly',
+      billingDay: expense.billingDay ?? '',
+      occurredAt: expense.occurredAt?.slice(0, 10) ?? new Date().toISOString().slice(0, 10),
+      reflectToLiquidAsset: Boolean(expense.reflectToLiquidAsset),
+      category: expense.category ?? ''
+    });
+  }
+
+  function onCancelEdit() {
+    setEditingExpenseId(null);
+    setErrors({});
+    setForm(defaultForm);
   }
 
   if (loading) {
@@ -373,8 +402,18 @@ export default function ExpensesPage() {
             className="btn-primary"
             style={{ width: 160, alignSelf: 'end' }}
           >
-            {saving ? '저장 중...' : '지출 추가'}
+            {saving ? '저장 중...' : editingExpenseId ? '지출 수정' : '지출 추가'}
           </button>
+          {editingExpenseId ? (
+            <button
+              type="button"
+              className="btn-danger-outline"
+              style={{ width: 120, alignSelf: 'end' }}
+              onClick={onCancelEdit}
+            >
+              취소
+            </button>
+          ) : null}
           </form>
         ) : (
           <div className="form-grid">
@@ -498,9 +537,14 @@ export default function ExpensesPage() {
               header: '관리',
               align: 'center',
               render: (expense) => (
-                <button className="btn-danger-outline" onClick={() => onDelete(expense.id)}>
-                  삭제
-                </button>
+                <div style={{ display: 'flex', justifyContent: 'center', gap: '0.4rem' }}>
+                  <button className="btn-primary" onClick={() => onEdit(expense)}>
+                    수정
+                  </button>
+                  <button className="btn-danger-outline" onClick={() => onDelete(expense.id)}>
+                    삭제
+                  </button>
+                </div>
               ),
             },
           ]}
@@ -537,9 +581,14 @@ export default function ExpensesPage() {
               header: '관리',
               align: 'center',
               render: (expense) => (
-                <button className="btn-danger-outline" onClick={() => onDelete(expense.id)}>
-                  삭제
-                </button>
+                <div style={{ display: 'flex', justifyContent: 'center', gap: '0.4rem' }}>
+                  <button className="btn-primary" onClick={() => onEdit(expense)}>
+                    수정
+                  </button>
+                  <button className="btn-danger-outline" onClick={() => onDelete(expense.id)}>
+                    삭제
+                  </button>
+                </div>
               ),
             },
           ]}
