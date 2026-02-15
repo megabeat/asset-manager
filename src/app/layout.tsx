@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import "./globals.css";
 
 export const metadata: Metadata = {
   title: "자산관리 앱",
@@ -25,14 +26,15 @@ export default function RootLayout({
 
   return (
     <html lang="ko">
-      <body style={{ margin: 0, fontFamily: "system-ui, sans-serif", background: "#fafafa" }}>
+      <body>
         <header
           style={{
             position: "sticky",
             top: 0,
             zIndex: 10,
             background: "#fff",
-            borderBottom: "1px solid #ececec"
+            borderBottom: "1px solid #e5e7eb",
+            backdropFilter: "saturate(180%) blur(8px)"
           }}
         >
           <div

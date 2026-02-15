@@ -25,6 +25,7 @@ export default function AssetsPage() {
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState<AssetForm>(defaultForm);
   const [message, setMessage] = useState<string | null>(null);
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
   async function loadAssets() {
     const result = await api.getAssets();
@@ -50,8 +51,14 @@ export default function AssetsPage() {
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setMessage(null);
+    const nextErrors: Record<string, string> = {};
 
-    if (!form.name.trim() || form.currentValue < 0 || !form.valuationDate) {
+    if (!form.name.trim()) nextErrors.name = '자산명을 입력해주세요.';
+    if (form.currentValue < 0) nextErrors.currentValue = '금액은 0 이상이어야 합니다.';
+    if (!form.valuationDate) nextErrors.valuationDate = '평가일을 선택해주세요.';
+    setErrors(nextErrors);
+
+    if (Object.keys(nextErrors).length > 0) {
       setMessage('자산명, 평가일, 금액을 확인해주세요.');
       return;
     }
@@ -129,6 +136,7 @@ export default function AssetsPage() {
             placeholder="예: CMA 통장"
             style={{ padding: '0.6rem', border: '1px solid #d0d0d0', borderRadius: 8 }}
           />
+          {errors.name && <p className="form-error">{errors.name}</p>}
         </label>
 
         <label style={{ display: 'grid', gap: '0.35rem' }}>
@@ -140,6 +148,7 @@ export default function AssetsPage() {
             onChange={(event) => setForm((prev) => ({ ...prev, currentValue: Number(event.target.value || 0) }))}
             style={{ padding: '0.6rem', border: '1px solid #d0d0d0', borderRadius: 8 }}
           />
+          {errors.currentValue && <p className="form-error">{errors.currentValue}</p>}
         </label>
 
         <label style={{ display: 'grid', gap: '0.35rem' }}>
@@ -150,6 +159,7 @@ export default function AssetsPage() {
             onChange={(event) => setForm((prev) => ({ ...prev, valuationDate: event.target.value }))}
             style={{ padding: '0.6rem', border: '1px solid #d0d0d0', borderRadius: 8 }}
           />
+          {errors.valuationDate && <p className="form-error">{errors.valuationDate}</p>}
         </label>
 
         <label style={{ display: 'grid', gap: '0.35rem', gridColumn: '1 / -1' }}>

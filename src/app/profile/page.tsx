@@ -16,6 +16,7 @@ export default function ProfilePage() {
   const [saving, setSaving] = useState(false);
   const [exists, setExists] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
   useEffect(() => {
     let mounted = true;
@@ -58,8 +59,18 @@ export default function ProfilePage() {
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setMessage(null);
+    const nextErrors: Record<string, string> = {};
 
-    if (!isValid) {
+    if (!form.fullName.trim()) nextErrors.fullName = '이름을 입력해주세요.';
+    if (!form.birthDate.trim()) nextErrors.birthDate = '생년월일을 입력해주세요.';
+    if (!Number.isFinite(form.householdSize) || form.householdSize <= 0) {
+      nextErrors.householdSize = '가구원 수는 1 이상이어야 합니다.';
+    }
+    if (!form.currency.trim()) nextErrors.currency = '통화를 입력해주세요.';
+
+    setErrors(nextErrors);
+
+    if (!isValid || Object.keys(nextErrors).length > 0) {
       setMessage('입력값을 확인해주세요.');
       return;
     }
@@ -103,6 +114,7 @@ export default function ProfilePage() {
             placeholder="홍길동"
             style={{ padding: '0.65rem', border: '1px solid #d0d0d0', borderRadius: 8 }}
           />
+          {errors.fullName && <p className="form-error">{errors.fullName}</p>}
         </label>
 
         <label style={{ display: 'grid', gap: '0.35rem' }}>
@@ -113,6 +125,7 @@ export default function ProfilePage() {
             onChange={(event) => setForm((prev) => ({ ...prev, birthDate: event.target.value }))}
             style={{ padding: '0.65rem', border: '1px solid #d0d0d0', borderRadius: 8 }}
           />
+          {errors.birthDate && <p className="form-error">{errors.birthDate}</p>}
         </label>
 
         <label style={{ display: 'grid', gap: '0.35rem' }}>
@@ -126,6 +139,7 @@ export default function ProfilePage() {
             }
             style={{ padding: '0.65rem', border: '1px solid #d0d0d0', borderRadius: 8 }}
           />
+          {errors.householdSize && <p className="form-error">{errors.householdSize}</p>}
         </label>
 
         <label style={{ display: 'grid', gap: '0.35rem' }}>
@@ -136,6 +150,7 @@ export default function ProfilePage() {
             placeholder="KRW"
             style={{ padding: '0.65rem', border: '1px solid #d0d0d0', borderRadius: 8 }}
           />
+          {errors.currency && <p className="form-error">{errors.currency}</p>}
         </label>
 
         <button

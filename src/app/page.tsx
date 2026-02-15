@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import { api, Asset, Expense } from '@/lib/api';
+import { api, Asset, Expense, Income } from '@/lib/api';
 
 type Summary = {
   totalAssets: number;
@@ -26,14 +26,16 @@ export default function Home() {
   const [summary, setSummary] = useState<Summary | null>(null);
   const [assets, setAssets] = useState<Asset[]>([]);
   const [expenses, setExpenses] = useState<Expense[]>([]);
+  const [incomes, setIncomes] = useState<Income[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    Promise.all([api.getDashboardSummary(), api.getAssets(), api.getExpenses()]).then(
-      ([summaryResult, assetsResult, expensesResult]) => {
+    Promise.all([api.getDashboardSummary(), api.getAssets(), api.getExpenses(), api.getIncomes()]).then(
+      ([summaryResult, assetsResult, expensesResult, incomesResult]) => {
         if (summaryResult.data) setSummary(summaryResult.data);
         if (assetsResult.data) setAssets(assetsResult.data);
         if (expensesResult.data) setExpenses(expensesResult.data);
+        if (incomesResult.data) setIncomes(incomesResult.data);
         setLoading(false);
       }
     );
@@ -47,6 +49,16 @@ export default function Home() {
   const monthlyExpense = useMemo(() => {
     return expenses.reduce((sum, item) => sum + (item.cycle === 'yearly' ? item.amount / 12 : item.amount), 0);
   }, [expenses]);
+
+  const monthlyIncome = useMemo(() => {
+    return incomes.reduce((sum, item) => {
+      if (item.cycle === 'yearly') return sum + item.amount / 12;
+      if (item.cycle === 'one_time') return sum;
+      return sum + item.amount;
+    }, 0);
+  }, [incomes]);
+
+  const monthlySurplus = monthlyIncome - monthlyExpense;
 
   return (
     <div style={{ padding: '1rem 0 2rem' }}>
@@ -94,6 +106,25 @@ export default function Home() {
           <h3 style={{ margin: 0, color: '#666', fontSize: '0.9rem' }}>월 지출(환산)</h3>
           <p style={{ margin: '0.45rem 0 0', fontWeight: 700, fontSize: '1.25rem' }}>
             {Math.round(monthlyExpense).toLocaleString()}원
+          </p>
+        </div>
+        <div style={{ background: '#fff', border: '1px solid #ececec', borderRadius: 10, padding: '1rem' }}>
+          <h3 style={{ margin: 0, color: '#666', fontSize: '0.9rem' }}>월 수입(환산)</h3>
+          <p style={{ margin: '0.45rem 0 0', fontWeight: 700, fontSize: '1.25rem' }}>
+            {Math.round(monthlyIncome).toLocaleString()}원
+          </p>
+        </div>
+        <div style={{ background: '#fff', border: '1px solid #ececec', borderRadius: 10, padding: '1rem' }}>
+          <h3 style={{ margin: 0, color: '#666', fontSize: '0.9rem' }}>월 잉여자금</h3>
+          <p
+            style={{
+              margin: '0.45rem 0 0',
+              fontWeight: 700,
+              fontSize: '1.25rem',
+              color: monthlySurplus >= 0 ? '#2e7d32' : '#d32f2f'
+            }}
+          >
+            {Math.round(monthlySurplus).toLocaleString()}원
           </p>
         </div>
       </section>
