@@ -3,10 +3,17 @@
   "entryPoint": "monthlyExpenseSettlement",
   "bindings": [
     {
-      "name": "timer",
-      "type": "timerTrigger",
+      "authLevel": "anonymous",
+      "type": "httpTrigger",
       "direction": "in",
-      "schedule": "0 0 * * * *"
+      "name": "req",
+      "methods": ["post"],
+      "route": "monthly-expense-settlement"
+    },
+    {
+      "type": "http",
+      "direction": "out",
+      "name": "$return"
     }
   ]
 }

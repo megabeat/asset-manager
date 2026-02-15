@@ -125,6 +125,10 @@ git remote set-url origin git@github.com:megabeat/asset-manager.git
    2. GitHub 저장소 → **Settings → Secrets and variables → Actions**에 토큰 재등록
    3. Actions에서 실패한 워크플로우를 **Re-run jobs**
 
+### Oryx 빌드에서 timerTrigger 오류
+- SWA 내장 Functions는 `httpTrigger`만 지원합니다. `timerTrigger`가 있으면 배포가 실패합니다.
+- 정기 실행이 필요하면 별도 Azure Function App(Consumption) + Timer Trigger를 사용하거나, SWA의 HTTP API를 외부 스케줄러에서 호출하세요.
+
 ### 빌드 실패
 - package.json 의존성 확인
 - Azure Functions runtime 버전 확인 (Node 18)

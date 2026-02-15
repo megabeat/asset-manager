@@ -69,14 +69,22 @@ async function createSettlementMarker(expensesContainer, userId, monthKey, settl
     };
     await expensesContainer.items.create(marker);
 }
-async function monthlyExpenseSettlement(timer, context) {
-    if (timer.isPastDue) {
-        context.log("Monthly expense settlement timer is running late.");
-    }
+async function monthlyExpenseSettlement(req, context) {
     const now = new Date();
     const { day, monthKey, isoDate } = getKstDateParts(now);
-    if (day !== 26) {
-        return;
+    const forceRun = req.query.get("force") === "1";
+    if (day !== 26 && !forceRun) {
+        return {
+            status: 200,
+            jsonBody: {
+                ok: true,
+                skipped: true,
+                reason: "not_settlement_day",
+                settlementDayKst: 26,
+                todayKstDay: day,
+                monthKey
+            }
+        };
     }
     const expensesContainer = (0, cosmosClient_1.getContainer)("expenses");
     const assetsContainer = (0, cosmosClient_1.getContainer)("assets");
@@ -85,10 +93,14 @@ async function monthlyExpenseSettlement(timer, context) {
         parameters: []
     };
     const { resources: userIds } = await expensesContainer.items.query(usersQuery).fetchAll();
+    let processedUsers = 0;
+    let settledUsers = 0;
+    let totalSettledAmount = 0;
     for (const userId of userIds) {
         if (!userId) {
             continue;
         }
+        processedUsers += 1;
         const settled = await hasSettledThisMonth(expensesContainer, userId, monthKey);
         if (settled) {
             continue;
@@ -102,6 +114,7 @@ async function monthlyExpenseSettlement(timer, context) {
         const totalAmount = recurringExpenses.reduce((sum, item) => sum + Number(item.amount ?? 0), 0);
         if (totalAmount <= 0) {
             await createSettlementMarker(expensesContainer, userId, monthKey, isoDate, 0, "");
+            settledUsers += 1;
             continue;
         }
         const liquidAsset = await resolveLiquidAsset(assetsContainer, userId);
@@ -115,5 +128,19 @@ async function monthlyExpenseSettlement(timer, context) {
         };
         await assetsContainer.item(liquidAsset.id, userId).replace(updatedAsset);
         await createSettlementMarker(expensesContainer, userId, monthKey, isoDate, totalAmount, liquidAsset.id);
+        settledUsers += 1;
+        totalSettledAmount += totalAmount;
     }
+    context.log(`monthly-expense-settlement complete: processed=${processedUsers}, settled=${settledUsers}, amount=${totalSettledAmount}, month=${monthKey}`);
+    return {
+        status: 200,
+        jsonBody: {
+            ok: true,
+            skipped: false,
+            monthKey,
+            processedUsers,
+            settledUsers,
+            totalSettledAmount
+        }
+    };
 }
