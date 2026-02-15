@@ -1,8 +1,26 @@
 const API_BASE = '/api';
+const DEFAULT_USER_ID = 'demo-user';
 
 export type ApiResponse<T> = {
   data: T | null;
   error: { code: string; message: string; details?: unknown } | null;
+};
+
+export type Profile = {
+  id?: string;
+  fullName: string;
+  birthDate: string;
+  householdSize: number;
+  currency: string;
+};
+
+export type Asset = {
+  id: string;
+  name: string;
+  category: string;
+  currentValue: number;
+  valuationDate: string;
+  note?: string;
 };
 
 async function fetchApi<T>(
@@ -14,12 +32,32 @@ async function fetchApi<T>(
       ...options,
       headers: {
         'Content-Type': 'application/json',
+        'x-user-id': DEFAULT_USER_ID,
         ...options?.headers
       }
     });
 
-    const json = await response.json();
-    return json as ApiResponse<T>;
+    let json: unknown = null;
+    try {
+      json = await response.json();
+    } catch {
+      json = null;
+    }
+
+    if (!response.ok) {
+      const fallbackMessage = `HTTP ${response.status}`;
+      const parsed = json as { error?: { code?: string; message?: string; details?: unknown } } | null;
+      return {
+        data: null,
+        error: {
+          code: parsed?.error?.code ?? 'API_ERROR',
+          message: parsed?.error?.message ?? fallbackMessage,
+          details: parsed?.error?.details
+        }
+      };
+    }
+
+    return (json as ApiResponse<T>) ?? { data: null, error: null };
   } catch (error) {
     return {
       data: null,
@@ -33,15 +71,14 @@ async function fetchApi<T>(
 
 export const api = {
   // Profile
-  getProfile: () => fetchApi<{ fullName: string; birthDate: string; householdSize: number; currency: string }>('/profile'),
-  createProfile: (data: { fullName: string; birthDate: string; householdSize: number; currency: string }) =>
+  getProfile: () => fetchApi<Profile>('/profile'),
+  createProfile: (data: Profile) =>
     fetchApi('/profile', { method: 'POST', body: JSON.stringify(data) }),
-  updateProfile: (data: Partial<{ fullName: string; birthDate: string; householdSize: number; currency: string }>) =>
+  updateProfile: (data: Partial<Profile>) =>
     fetchApi('/profile', { method: 'PUT', body: JSON.stringify(data) }),
 
   // Assets
-  getAssets: (category?: string) =>
-    fetchApi<Array<{ id: string; name: string; currentValue: number; category: string }>>(`/assets${category ? `?category=${category}` : ''}`),
+  getAssets: (category?: string) => fetchApi<Asset[]>(`/assets${category ? `?category=${category}` : ''}`),
   createAsset: (data: unknown) => fetchApi('/assets', { method: 'POST', body: JSON.stringify(data) }),
   updateAsset: (id: string, data: unknown) => fetchApi(`/assets/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
   deleteAsset: (id: string) => fetchApi(`/assets/${id}`, { method: 'DELETE' }),

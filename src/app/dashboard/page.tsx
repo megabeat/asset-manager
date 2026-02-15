@@ -2,6 +2,19 @@
 
 import { useEffect, useState } from 'react';
 import { api } from '@/lib/api';
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  Tooltip,
+  ResponsiveContainer,
+  CartesianGrid,
+  PieChart,
+  Pie,
+  Cell,
+  Legend
+} from 'recharts';
 
 type Summary = {
   totalAssets: number;
@@ -10,17 +23,50 @@ type Summary = {
   monthlyFixedExpense: number;
 };
 
+type TrendPoint = {
+  time: string;
+  value: number;
+};
+
+type AssetItem = {
+  id: string;
+  name: string;
+  category: string;
+  currentValue: number;
+};
+
+const COLORS = ['#0b63ce', '#2e7d32', '#f57c00', '#7b1fa2', '#c2185b', '#00796b'];
+
 export default function DashboardPage() {
   const [summary, setSummary] = useState<Summary | null>(null);
+  const [trend, setTrend] = useState<TrendPoint[]>([]);
+  const [assets, setAssets] = useState<AssetItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    api.getDashboardSummary().then((result) => {
-      if (result.data) {
-        setSummary(result.data);
+    Promise.all([api.getDashboardSummary(), api.getAssetTrend('30d'), api.getAssets()]).then(
+      ([summaryResult, trendResult, assetsResult]) => {
+        if (summaryResult.data) {
+          setSummary(summaryResult.data);
+        }
+
+        if (trendResult.data) {
+          setTrend(trendResult.data);
+        }
+
+        if (assetsResult.data) {
+          setAssets(assetsResult.data as AssetItem[]);
+        }
+
+        const firstError = summaryResult.error ?? trendResult.error ?? assetsResult.error;
+        if (firstError) {
+          setError(firstError.message);
+        }
+
+        setLoading(false);
       }
-      setLoading(false);
-    });
+    );
   }, []);
 
   if (loading) {
@@ -31,9 +77,20 @@ export default function DashboardPage() {
     return <div style={{ padding: '2rem' }}>데이터를 불러올 수 없습니다.</div>;
   }
 
+  const categoryData = Object.entries(
+    assets.reduce<Record<string, number>>((acc, asset) => {
+      const category = asset.category || 'etc';
+      acc[category] = (acc[category] ?? 0) + (asset.currentValue ?? 0);
+      return acc;
+    }, {})
+  ).map(([name, value]) => ({ name, value }));
+
   return (
     <div style={{ padding: '2rem', fontFamily: 'system-ui, sans-serif' }}>
       <h1>대시보드</h1>
+
+      {error && <p style={{ marginTop: '0.75rem' }}>일부 데이터 로드 실패: {error}</p>}
+
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginTop: '2rem' }}>
         <div style={{ padding: '1.5rem', border: '1px solid #ddd', borderRadius: '8px' }}>
           <h3 style={{ margin: 0, fontSize: '0.9rem', color: '#666' }}>총 자산</h3>
@@ -58,6 +115,55 @@ export default function DashboardPage() {
           <p style={{ margin: '0.5rem 0 0', fontSize: '1.5rem', fontWeight: 'bold' }}>
             {summary.monthlyFixedExpense.toLocaleString()}원
           </p>
+        </div>
+      </div>
+
+      <div style={{ marginTop: '2rem', display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '1rem' }}>
+        <div style={{ border: '1px solid #ddd', borderRadius: 8, padding: '1rem' }}>
+          <h3 style={{ marginTop: 0 }}>자산 추이 (30일)</h3>
+          {trend.length === 0 ? (
+            <p>추이 데이터가 없습니다.</p>
+          ) : (
+            <div style={{ width: '100%', height: 320 }}>
+              <ResponsiveContainer>
+                <LineChart data={trend.map((point) => ({ ...point, label: point.time.slice(5, 10) }))}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="label" />
+                  <YAxis tickFormatter={(value) => `${Math.round(value / 10000)}만`} />
+                  <Tooltip formatter={(value: number) => `${Number(value).toLocaleString()}원`} />
+                  <Line type="monotone" dataKey="value" stroke="#0b63ce" strokeWidth={2} dot={false} />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          )}
+        </div>
+
+        <div style={{ border: '1px solid #ddd', borderRadius: 8, padding: '1rem' }}>
+          <h3 style={{ marginTop: 0 }}>자산 카테고리 비중</h3>
+          {categoryData.length === 0 ? (
+            <p>카테고리 데이터가 없습니다.</p>
+          ) : (
+            <div style={{ width: '100%', height: 320 }}>
+              <ResponsiveContainer>
+                <PieChart>
+                  <Pie
+                    data={categoryData}
+                    dataKey="value"
+                    nameKey="name"
+                    innerRadius={50}
+                    outerRadius={90}
+                    paddingAngle={2}
+                  >
+                    {categoryData.map((_, index) => (
+                      <Cell key={index} fill={COLORS[index % COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip formatter={(value: number) => `${Number(value).toLocaleString()}원`} />
+                  <Legend />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+          )}
         </div>
       </div>
     </div>
