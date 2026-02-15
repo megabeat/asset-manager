@@ -2,6 +2,10 @@
 
 import { FormEvent, useEffect, useMemo, useState } from 'react';
 import { api, Child, EducationPlan, EducationSimulationResult } from '@/lib/api';
+import { SectionCard } from '@/components/ui/SectionCard';
+import { FormField } from '@/components/ui/FormField';
+import { DataTable } from '@/components/ui/DataTable';
+import { useFeedbackMessage } from '@/hooks/useFeedbackMessage';
 
 type ChildForm = {
   name: string;
@@ -41,10 +45,10 @@ export default function EducationPage() {
   const [childForm, setChildForm] = useState<ChildForm>(defaultChildForm);
   const [planForm, setPlanForm] = useState<PlanForm>(defaultPlanForm);
   const [simulation, setSimulation] = useState<EducationSimulationResult | null>(null);
-  const [message, setMessage] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [childErrors, setChildErrors] = useState<Record<string, string>>({});
   const [planErrors, setPlanErrors] = useState<Record<string, string>>({});
+  const { message, clearMessage, setMessageText, setSuccessMessage, setErrorMessage } = useFeedbackMessage();
 
   const selectedChildName = useMemo(
     () => children.find((child) => child.id === planForm.childId)?.name ?? '-',
@@ -71,7 +75,7 @@ export default function EducationPage() {
 
     const firstError = childrenResult.error ?? plansResult.error;
     if (firstError) {
-      setMessage(`조회 실패: ${firstError.message}`);
+      setErrorMessage('조회 실패', firstError);
     }
   }
 
@@ -83,7 +87,7 @@ export default function EducationPage() {
 
   async function onCreateChild(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setMessage(null);
+    clearMessage();
     const nextErrors: Record<string, string> = {};
 
     if (!childForm.name.trim()) nextErrors.name = '이름을 입력해주세요.';
@@ -97,7 +101,7 @@ export default function EducationPage() {
 
     setChildErrors(nextErrors);
     if (Object.keys(nextErrors).length > 0) {
-      setMessage('자녀 입력값을 확인해주세요.');
+      setMessageText('자녀 입력값을 확인해주세요.');
       return;
     }
 
@@ -109,18 +113,18 @@ export default function EducationPage() {
     });
 
     if (result.error) {
-      setMessage(`자녀 저장 실패: ${result.error.message}`);
+      setErrorMessage('자녀 저장 실패', result.error);
       return;
     }
 
     setChildForm(defaultChildForm);
-    setMessage('자녀 정보가 저장되었습니다.');
+    setSuccessMessage('자녀 정보가 저장되었습니다.');
     await loadAll();
   }
 
   async function onCreatePlan(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setMessage(null);
+    clearMessage();
     const nextErrors: Record<string, string> = {};
     if (!planForm.childId) nextErrors.childId = '대상 자녀를 선택해주세요.';
     if (!Number.isFinite(planForm.annualCost) || planForm.annualCost <= 0) {
@@ -137,17 +141,17 @@ export default function EducationPage() {
 
     setPlanErrors(nextErrors);
     if (Object.keys(nextErrors).length > 0) {
-      setMessage('계획 입력값을 확인해주세요.');
+      setMessageText('계획 입력값을 확인해주세요.');
       return;
     }
 
     const result = await api.createEducationPlan(planForm);
     if (result.error) {
-      setMessage(`계획 저장 실패: ${result.error.message}`);
+      setErrorMessage('계획 저장 실패', result.error);
       return;
     }
 
-    setMessage('교육비 계획이 저장되었습니다.');
+    setSuccessMessage('교육비 계획이 저장되었습니다.');
     await loadAll();
   }
 
@@ -163,7 +167,7 @@ export default function EducationPage() {
     });
 
     if (result.error) {
-      setMessage(`시뮬레이션 실패: ${result.error.message}`);
+      setErrorMessage('시뮬레이션 실패', result.error);
       return;
     }
 
@@ -173,7 +177,7 @@ export default function EducationPage() {
   async function onDeletePlan(planId: string) {
     const result = await api.deleteEducationPlan(planId);
     if (result.error) {
-      setMessage(`삭제 실패: ${result.error.message}`);
+      setErrorMessage('삭제 실패', result.error);
       return;
     }
 
@@ -188,80 +192,55 @@ export default function EducationPage() {
     <div style={{ padding: '1rem 0' }}>
       <h1>교육비 시뮬레이션</h1>
 
-      <form
-        onSubmit={onCreateChild}
-        className="section-card"
-        style={{ marginTop: '1.25rem', maxWidth: 980 }}
-      >
-        <h3 style={{ gridColumn: '1 / -1', marginBottom: 0 }}>자녀 등록</h3>
-        <div className="form-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))' }}>
-          <label style={{ display: 'grid', gap: '0.35rem' }}>
-            <span>이름</span>
+      <SectionCard style={{ marginTop: '1.25rem', maxWidth: 980 }}>
+        <h3 style={{ marginTop: 0, marginBottom: '0.75rem' }}>자녀 등록</h3>
+        <form onSubmit={onCreateChild} className="form-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))' }}>
+          <FormField label="이름" error={childErrors.name}>
             <input placeholder="이름" value={childForm.name} onChange={(e) => setChildForm((p) => ({ ...p, name: e.target.value }))} style={childErrors.name ? { borderColor: '#b91c1c' } : undefined} />
-            {childErrors.name && <p className="form-error">{childErrors.name}</p>}
-          </label>
-          <label style={{ display: 'grid', gap: '0.35rem' }}>
-            <span>출생연도</span>
+          </FormField>
+          <FormField label="출생연도" error={childErrors.birthYear}>
             <input type="number" placeholder="출생연도" value={childForm.birthYear} onChange={(e) => setChildForm((p) => ({ ...p, birthYear: Number(e.target.value || currentYear) }))} style={childErrors.birthYear ? { borderColor: '#b91c1c' } : undefined} />
-            {childErrors.birthYear && <p className="form-error">{childErrors.birthYear}</p>}
-          </label>
-          <label style={{ display: 'grid', gap: '0.35rem' }}>
-            <span>학년</span>
+          </FormField>
+          <FormField label="학년" error={childErrors.grade}>
             <input placeholder="학년" value={childForm.grade} onChange={(e) => setChildForm((p) => ({ ...p, grade: e.target.value }))} style={childErrors.grade ? { borderColor: '#b91c1c' } : undefined} />
-            {childErrors.grade && <p className="form-error">{childErrors.grade}</p>}
-          </label>
-          <label style={{ display: 'grid', gap: '0.35rem' }}>
-            <span>대학진학 예상연도</span>
+          </FormField>
+          <FormField label="대학진학 예상연도" error={childErrors.targetUniversityYear}>
             <input type="number" placeholder="대학진학 예상연도" value={childForm.targetUniversityYear} onChange={(e) => setChildForm((p) => ({ ...p, targetUniversityYear: Number(e.target.value || currentYear) }))} style={childErrors.targetUniversityYear ? { borderColor: '#b91c1c' } : undefined} />
-            {childErrors.targetUniversityYear && <p className="form-error">{childErrors.targetUniversityYear}</p>}
-          </label>
+          </FormField>
           <button type="submit" className="btn-primary" style={{ width: 140, alignSelf: 'end' }}>자녀 추가</button>
-        </div>
-      </form>
+        </form>
+      </SectionCard>
 
-      <form
-        onSubmit={onCreatePlan}
-        className="section-card"
-        style={{ marginTop: '1.5rem', maxWidth: 980 }}
-      >
-        <h3 style={{ gridColumn: '1 / -1', marginBottom: 0 }}>교육비 계획 등록</h3>
-        <div className="form-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))' }}>
-          <label style={{ display: 'grid', gap: '0.35rem' }}>
-            <span>자녀</span>
+      <SectionCard style={{ marginTop: '1.5rem', maxWidth: 980 }}>
+        <h3 style={{ marginTop: 0, marginBottom: '0.75rem' }}>교육비 계획 등록</h3>
+        <form onSubmit={onCreatePlan} className="form-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))' }}>
+          <FormField label="자녀" error={planErrors.childId}>
             <select value={planForm.childId} onChange={(e) => setPlanForm((p) => ({ ...p, childId: e.target.value }))} style={planErrors.childId ? { borderColor: '#b91c1c' } : undefined}>
               <option value="">자녀 선택</option>
               {children.map((child) => (
                 <option key={child.id} value={child.id}>{child.name}</option>
               ))}
             </select>
-            {planErrors.childId && <p className="form-error">{planErrors.childId}</p>}
-          </label>
-          <label style={{ display: 'grid', gap: '0.35rem' }}>
-            <span>연간비용</span>
+          </FormField>
+          <FormField label="연간비용" error={planErrors.annualCost}>
             <input type="number" value={planForm.annualCost} onChange={(e) => setPlanForm((p) => ({ ...p, annualCost: Number(e.target.value || 0) }))} placeholder="연간비용" style={planErrors.annualCost ? { borderColor: '#b91c1c' } : undefined} />
-            {planErrors.annualCost && <p className="form-error">{planErrors.annualCost}</p>}
-          </label>
-          <label style={{ display: 'grid', gap: '0.35rem' }}>
-            <span>물가상승률(0~1)</span>
+          </FormField>
+          <FormField label="물가상승률(0~1)" error={planErrors.inflationRate}>
             <input type="number" step="0.01" min="0" max="1" value={planForm.inflationRate} onChange={(e) => setPlanForm((p) => ({ ...p, inflationRate: Number(e.target.value || 0) }))} placeholder="물가상승률" style={planErrors.inflationRate ? { borderColor: '#b91c1c' } : undefined} />
-            {planErrors.inflationRate && <p className="form-error">{planErrors.inflationRate}</p>}
-          </label>
-          <label style={{ display: 'grid', gap: '0.35rem' }}>
-            <span>시작연도</span>
+          </FormField>
+          <FormField label="시작연도" error={planErrors.years}>
             <input type="number" value={planForm.startYear} onChange={(e) => setPlanForm((p) => ({ ...p, startYear: Number(e.target.value || currentYear) }))} placeholder="시작연도" style={planErrors.years ? { borderColor: '#b91c1c' } : undefined} />
-          </label>
-          <label style={{ display: 'grid', gap: '0.35rem' }}>
-            <span>종료연도</span>
+          </FormField>
+          <FormField label="종료연도" error={planErrors.years}>
             <input type="number" value={planForm.endYear} onChange={(e) => setPlanForm((p) => ({ ...p, endYear: Number(e.target.value || currentYear) }))} placeholder="종료연도" style={planErrors.years ? { borderColor: '#b91c1c' } : undefined} />
-            {planErrors.years && <p className="form-error">{planErrors.years}</p>}
-          </label>
+          </FormField>
           <button type="submit" className="btn-primary" style={{ width: 140, alignSelf: 'end' }}>계획 추가</button>
-        </div>
-      </form>
+        </form>
+      </SectionCard>
 
       {message && <p style={{ marginTop: '1rem' }}>{message}</p>}
 
-      <div className="section-card" style={{ marginTop: '1rem' }}>
+      <SectionCard style={{ marginTop: '1rem' }}>
         {children.length === 0 ? (
           <p>등록된 자녀가 없습니다.</p>
         ) : (
@@ -275,63 +254,65 @@ export default function EducationPage() {
             ))}
           </div>
         )}
-      </div>
+      </SectionCard>
 
-      <div className="section-card" style={{ marginTop: '1rem' }}>
+      <SectionCard style={{ marginTop: '1rem' }}>
         <h2>교육비 계획 목록</h2>
-        {plans.length === 0 ? (
-          <p>등록된 계획이 없습니다.</p>
-        ) : (
-          <table>
-            <thead>
-              <tr style={{ borderBottom: '2px solid #ddd' }}>
-                <th style={{ padding: '0.8rem', textAlign: 'left' }}>자녀</th>
-                <th style={{ padding: '0.8rem', textAlign: 'right' }}>연간비용</th>
-                <th style={{ padding: '0.8rem', textAlign: 'center' }}>기간</th>
-                <th style={{ padding: '0.8rem', textAlign: 'center' }}>관리</th>
-              </tr>
-            </thead>
-            <tbody>
-              {plans.map((plan) => {
-                const childName = children.find((child) => child.id === plan.childId)?.name ?? plan.childId;
-                return (
-                  <tr key={plan.id} style={{ borderBottom: '1px solid #eee' }}>
-                    <td style={{ padding: '0.8rem' }}>{childName}</td>
-                    <td style={{ padding: '0.8rem', textAlign: 'right' }}>{plan.annualCost.toLocaleString()}원</td>
-                    <td style={{ padding: '0.8rem', textAlign: 'center' }}>{plan.startYear}~{plan.endYear}</td>
-                    <td style={{ padding: '0.8rem', textAlign: 'center', display: 'flex', justifyContent: 'center', gap: '0.4rem' }}>
-                      <button className="btn-subtle" onClick={() => onSimulate(plan.id)} style={{ padding: '0.35rem 0.6rem' }}>시뮬</button>
-                      <button className="btn-danger-outline" onClick={() => onDeletePlan(plan.id)}>삭제</button>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        )}
-      </div>
+        <DataTable
+          rows={plans}
+          rowKey={(plan) => plan.id}
+          emptyMessage="등록된 계획이 없습니다."
+          columns={[
+            {
+              key: 'child',
+              header: '자녀',
+              render: (plan) => children.find((child) => child.id === plan.childId)?.name ?? plan.childId,
+            },
+            {
+              key: 'annualCost',
+              header: '연간비용',
+              align: 'right',
+              render: (plan) => `${plan.annualCost.toLocaleString()}원`,
+            },
+            {
+              key: 'years',
+              header: '기간',
+              align: 'center',
+              render: (plan) => `${plan.startYear}~${plan.endYear}`,
+            },
+            {
+              key: 'actions',
+              header: '관리',
+              align: 'center',
+              render: (plan) => (
+                <div style={{ display: 'flex', justifyContent: 'center', gap: '0.4rem' }}>
+                  <button className="btn-subtle" onClick={() => onSimulate(plan.id)} style={{ padding: '0.35rem 0.6rem' }}>시뮬</button>
+                  <button className="btn-danger-outline" onClick={() => onDeletePlan(plan.id)}>삭제</button>
+                </div>
+              ),
+            },
+          ]}
+        />
+      </SectionCard>
 
       {simulation && (
-        <div className="section-card" style={{ marginTop: '1rem' }}>
+        <SectionCard style={{ marginTop: '1rem' }}>
           <h3 style={{ marginTop: 0 }}>시뮬레이션 결과 ({selectedChildName})</h3>
           <p>총 예상 비용: {simulation.totalCost.toLocaleString()}원</p>
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-            <thead>
-              <tr style={{ borderBottom: '1px solid #ddd' }}>
-                <th style={{ padding: '0.6rem', textAlign: 'left' }}>연도</th>
-                <th style={{ padding: '0.6rem', textAlign: 'right' }}>예상비용</th>
-              </tr>
-            </thead>
-            <tbody>
-              {simulation.yearly.map((row) => (
-                <tr key={row.year} style={{ borderBottom: '1px solid #f1f1f1' }}>
-                  <td style={{ padding: '0.6rem' }}>{row.year}</td>
-                  <td style={{ padding: '0.6rem', textAlign: 'right' }}>{row.cost.toLocaleString()}원</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+          <DataTable
+            rows={simulation.yearly}
+            rowKey={(row) => String(row.year)}
+            columns={[
+              { key: 'year', header: '연도', render: (row) => row.year },
+              {
+                key: 'cost',
+                header: '예상비용',
+                align: 'right',
+                render: (row) => `${row.cost.toLocaleString()}원`,
+              },
+            ]}
+          />
+        </SectionCard>
       )}
     </div>
   );
