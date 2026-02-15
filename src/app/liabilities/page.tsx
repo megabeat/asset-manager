@@ -25,6 +25,7 @@ export default function LiabilitiesPage() {
   const [items, setItems] = useState<Liability[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [editingLiabilityId, setEditingLiabilityId] = useState<string | null>(null);
   const [form, setForm] = useState<LiabilityForm>(defaultForm);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const { message, clearMessage, setMessageText, setSuccessMessage, setErrorMessage } = useFeedbackMessage();
@@ -65,21 +66,43 @@ export default function LiabilitiesPage() {
     }
 
     setSaving(true);
-    const result = await api.createLiability({
+    const payload = {
       name: form.name.trim(),
       amount: Number(form.amount),
       category: form.category.trim(),
       note: form.note.trim()
-    });
+    };
+
+    const result = editingLiabilityId
+      ? await api.updateLiability(editingLiabilityId, payload)
+      : await api.createLiability(payload);
 
     if (result.error) {
-      setErrorMessage('저장 실패', result.error);
+      setErrorMessage(editingLiabilityId ? '수정 실패' : '저장 실패', result.error);
     } else {
+      setEditingLiabilityId(null);
       setForm(defaultForm);
-      setSuccessMessage('부채가 저장되었습니다.');
+      setSuccessMessage(editingLiabilityId ? '부채가 수정되었습니다.' : '부채가 저장되었습니다.');
       await loadLiabilities();
     }
     setSaving(false);
+  }
+
+  function onEdit(liability: Liability) {
+    setEditingLiabilityId(liability.id);
+    setErrors({});
+    setForm({
+      name: liability.name,
+      amount: liability.amount,
+      category: liability.category ?? '',
+      note: liability.note ?? ''
+    });
+  }
+
+  function onCancelEdit() {
+    setEditingLiabilityId(null);
+    setErrors({});
+    setForm(defaultForm);
   }
 
   async function onDelete(id: string) {
@@ -142,8 +165,17 @@ export default function LiabilitiesPage() {
             disabled={saving}
             className="btn-primary w-[140px] self-end"
           >
-            {saving ? '저장 중...' : '부채 추가'}
+            {saving ? '저장 중...' : editingLiabilityId ? '부채 수정' : '부채 추가'}
           </button>
+          {editingLiabilityId ? (
+            <button
+              type="button"
+              onClick={onCancelEdit}
+              className="btn-danger-outline w-[120px] self-end"
+            >
+              취소
+            </button>
+          ) : null}
         </form>
       </SectionCard>
 
@@ -172,9 +204,14 @@ export default function LiabilitiesPage() {
               header: '관리',
               align: 'center',
               render: (liability) => (
-                <button className="btn-danger-outline" onClick={() => onDelete(liability.id)}>
-                  삭제
-                </button>
+                <div className="flex justify-center gap-1.5">
+                  <button className="btn-primary" onClick={() => onEdit(liability)}>
+                    수정
+                  </button>
+                  <button className="btn-danger-outline" onClick={() => onDelete(liability.id)}>
+                    삭제
+                  </button>
+                </div>
               ),
             },
           ]}

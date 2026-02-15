@@ -37,11 +37,11 @@ export function ThemeToggle() {
     <button
       type="button"
       onClick={onToggle}
-      className="btn-subtle min-w-[92px]"
+      className="btn-subtle h-9 w-9 !px-0 !py-0"
       aria-label="다크모드 전환"
       title="다크모드 전환"
     >
-      {isDark ? '☀️ 라이트' : '🌙 다크'}
+      {isDark ? '☀️' : '🌙'}
     </button>
   );
 }
