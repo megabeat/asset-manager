@@ -46,6 +46,9 @@ export type Income = {
   name: string;
   amount: number;
   cycle: 'monthly' | 'yearly' | 'one_time';
+  reflectToLiquidAsset?: boolean;
+  reflectedAmount?: number;
+  reflectedAssetId?: string;
   category?: string;
   note?: string;
 };

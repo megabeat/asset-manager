@@ -11,6 +11,7 @@ type IncomeForm = {
   name: string;
   amount: number;
   cycle: 'monthly' | 'yearly' | 'one_time';
+  reflectToLiquidAsset: boolean;
   category: string;
   note: string;
 };
@@ -19,6 +20,7 @@ const defaultForm: IncomeForm = {
   name: '',
   amount: 0,
   cycle: 'monthly',
+  reflectToLiquidAsset: false,
   category: '',
   note: ''
 };
@@ -75,6 +77,7 @@ export default function IncomesPage() {
       name: form.name.trim(),
       amount: Number(form.amount),
       cycle: form.cycle,
+      reflectToLiquidAsset: form.reflectToLiquidAsset,
       category: form.category.trim(),
       note: form.note.trim()
     });
@@ -132,13 +135,38 @@ export default function IncomesPage() {
             <select
               value={form.cycle}
               onChange={(event) =>
-                setForm((prev) => ({ ...prev, cycle: event.target.value as 'monthly' | 'yearly' | 'one_time' }))
+                setForm((prev) => {
+                  const nextCycle = event.target.value as 'monthly' | 'yearly' | 'one_time';
+                  return {
+                    ...prev,
+                    cycle: nextCycle,
+                    reflectToLiquidAsset: nextCycle === 'monthly' ? false : true,
+                  };
+                })
               }
             >
               <option value="monthly">월간</option>
               <option value="yearly">연간</option>
               <option value="one_time">일회성</option>
             </select>
+          </FormField>
+
+          <FormField label="현금성 자산 반영" fullWidth>
+            <label style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+              <input
+                type="checkbox"
+                checked={form.reflectToLiquidAsset}
+                disabled={form.cycle === 'monthly'}
+                onChange={(event) =>
+                  setForm((prev) => ({ ...prev, reflectToLiquidAsset: event.target.checked }))
+                }
+              />
+              <span>
+                {form.cycle === 'monthly'
+                  ? '월간 수입은 자동 반영하지 않습니다.'
+                  : '저장 시 입출금 통장(현금성 자산)에 즉시 반영'}
+              </span>
+            </label>
           </FormField>
 
           <FormField label="카테고리">
@@ -197,6 +225,15 @@ export default function IncomesPage() {
                   삭제
                 </button>
               ),
+            },
+            {
+              key: 'reflect',
+              header: '자산반영',
+              align: 'right',
+              render: (income) =>
+                income.reflectToLiquidAsset && (income.reflectedAmount ?? 0) > 0
+                  ? `+${Math.round(income.reflectedAmount ?? 0).toLocaleString()}원`
+                  : '-',
             },
           ]}
         />
