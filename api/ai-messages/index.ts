@@ -146,12 +146,14 @@ ${userContext.topExpenses.map((e) => `- ${e.name}: ${e.amount.toLocaleString()}ì
             { role: "user" as const, content }
           ];
 
-          const completion = await client.chat.completions.create({
-            model: deploymentName,
+          const completion = await client.getChatCompletions(
+            deploymentName,
             messages,
-            max_tokens: 800,
-            temperature: 0.7
-          });
+            {
+              maxTokens: 800,
+              temperature: 0.7
+            }
+          );
 
           assistantContent = completion.choices[0]?.message?.content ?? assistantContent;
         } catch (aiError: unknown) {
