@@ -56,10 +56,13 @@ export async function diagCosmosHandler(_context: InvocationContext, req: HttpRe
 
   return {
     status: hasFailure ? 500 : 200,
-    jsonBody: {
+    headers: {
+      "content-type": "application/json; charset=utf-8"
+    },
+    body: JSON.stringify({
       ok: !hasFailure,
       runtime: process.version,
       results
-    }
+    })
   };
 }
