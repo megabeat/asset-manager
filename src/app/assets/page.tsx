@@ -6,7 +6,7 @@ import { SectionCard } from '@/components/ui/SectionCard';
 import { FormField } from '@/components/ui/FormField';
 import { DataTable } from '@/components/ui/DataTable';
 
-type AssetCategory = 'cash' | 'deposit' | 'pension' | 'stock_kr' | 'stock_us' | 'real_estate' | 'etc';
+type AssetCategory = 'cash' | 'deposit' | 'stock_kr' | 'stock_us' | 'real_estate' | 'etc';
 type NumericInput = number | '';
 
 type AssetForm = {
@@ -51,7 +51,6 @@ const defaultForm: AssetForm = {
 const categoryLabel: Record<AssetCategory, string> = {
   cash: '현금',
   deposit: '예금',
-  pension: '연금(국민연금 포함)',
   stock_kr: '국내주식',
   stock_us: '미국주식',
   real_estate: '부동산',
@@ -70,12 +69,6 @@ const quickPresets: QuickPreset[] = [
     label: '예금-CMA',
     category: 'deposit',
     values: { name: 'CMA 통장' }
-  },
-  {
-    id: 'pension-national',
-    label: '국민연금',
-    category: 'pension',
-    values: { name: '국민연금', pensionReceiveAge: 63 }
   },
   {
     id: 'stock-kr',
@@ -107,10 +100,19 @@ export default function AssetsPage() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [fxLoading, setFxLoading] = useState(false);
 
+  function isPensionCategory(category?: string) {
+    return (
+      category === 'pension' ||
+      category === 'pension_national' ||
+      category === 'pension_personal' ||
+      category === 'pension_retirement'
+    );
+  }
+
   async function loadAssets() {
     const result = await api.getAssets();
     if (result.data) {
-      setAssets(result.data);
+      setAssets(result.data.filter((asset) => !isPensionCategory(asset.category)));
     }
     if (result.error) {
       setMessage(`목록 조회 실패: ${result.error.message}`);
@@ -198,11 +200,6 @@ export default function AssetsPage() {
     [assets]
   );
 
-  const pensionAssetValue = useMemo(
-    () => assets.filter((asset) => asset.category === 'pension').reduce((sum, asset) => sum + (asset.currentValue ?? 0), 0),
-    [assets]
-  );
-
   const stockAssetValue = useMemo(
     () =>
       assets
@@ -227,14 +224,6 @@ export default function AssetsPage() {
 
     if (form.category === 'stock_us') {
       if (Number(form.exchangeRate || 0) <= 0) nextErrors.exchangeRate = '환율은 0보다 커야 합니다.';
-    } else if (form.category === 'pension') {
-      if (Number(form.pensionMonthlyContribution || 0) < 0) nextErrors.pensionMonthlyContribution = '납입액은 0 이상이어야 합니다.';
-      const pensionAge = Number(form.pensionReceiveAge || 0);
-      if (pensionAge < 40 || pensionAge > 100) {
-        nextErrors.pensionReceiveAge = '수령 나이는 40~100 범위로 입력해주세요.';
-      }
-      if (!form.pensionReceiveStart) nextErrors.pensionReceiveStart = '수령 시작 시기를 입력해주세요.';
-      if (Number(form.currentValue || 0) < 0) nextErrors.currentValue = '현재가치는 0 이상이어야 합니다.';
     } else if (Number(form.currentValue || 0) < 0) {
       nextErrors.currentValue = '금액은 0 이상이어야 합니다.';
     }
@@ -257,9 +246,9 @@ export default function AssetsPage() {
       symbol: isStockCategory ? form.symbol.trim() : null,
       usdAmount: form.category === 'stock_us' ? Number(effectiveUsdAmount) : null,
       exchangeRate: form.category === 'stock_us' ? Number(form.exchangeRate) : null,
-      pensionMonthlyContribution: form.category === 'pension' ? Number(form.pensionMonthlyContribution) : null,
-      pensionReceiveAge: form.category === 'pension' ? Number(form.pensionReceiveAge) : null,
-      pensionReceiveStart: form.category === 'pension' ? form.pensionReceiveStart : null
+      pensionMonthlyContribution: null,
+      pensionReceiveAge: null,
+      pensionReceiveStart: null
     };
 
     const result = editingAssetId
@@ -322,9 +311,9 @@ export default function AssetsPage() {
       symbol: asset.symbol ?? '',
       usdAmount: Number(asset.usdAmount ?? 0),
       exchangeRate: Number(asset.exchangeRate ?? form.exchangeRate ?? 0),
-      pensionMonthlyContribution: Number(asset.pensionMonthlyContribution ?? 0),
-      pensionReceiveAge: Number(asset.pensionReceiveAge ?? 60),
-      pensionReceiveStart: asset.pensionReceiveStart ?? ''
+      pensionMonthlyContribution: '',
+      pensionReceiveAge: '',
+      pensionReceiveStart: ''
     });
   }
 
@@ -344,12 +333,8 @@ export default function AssetsPage() {
 
       <div className="form-grid" style={{ marginTop: '1rem' }}>
         <SectionCard>
-          <p className="helper-text">총 자산</p>
+          <p className="helper-text">총 자산(연금 제외)</p>
           <h2 style={{ margin: 0 }}>{totalAssetValue.toLocaleString()}원</h2>
-        </SectionCard>
-        <SectionCard>
-          <p className="helper-text">연금 자산</p>
-          <h2 style={{ margin: 0 }}>{pensionAssetValue.toLocaleString()}원</h2>
         </SectionCard>
         <SectionCard>
           <p className="helper-text">주식 자산</p>
@@ -396,7 +381,7 @@ export default function AssetsPage() {
             <input
               value={form.name}
               onChange={(event) => setForm((prev) => ({ ...prev, name: event.target.value }))}
-              placeholder={form.category === 'pension' ? '예: 국민연금' : '예: CMA 통장'}
+              placeholder={'예: CMA 통장'}
             />
           </FormField>
 
@@ -494,45 +479,6 @@ export default function AssetsPage() {
             </FormField>
           )}
 
-          {form.category === 'pension' ? (
-            <>
-              <FormField label="현재 월 납입액(원)" error={errors.pensionMonthlyContribution}>
-                <input
-                  type="number"
-                  min={0}
-                  value={form.pensionMonthlyContribution}
-                  onChange={(event) =>
-                    setForm((prev) => ({
-                      ...prev,
-                      pensionMonthlyContribution: event.target.value === '' ? '' : Number(event.target.value)
-                    }))
-                  }
-                />
-              </FormField>
-              <FormField label="수령 나이" error={errors.pensionReceiveAge}>
-                <input
-                  type="number"
-                  min={40}
-                  max={100}
-                  value={form.pensionReceiveAge}
-                  onChange={(event) =>
-                    setForm((prev) => ({
-                      ...prev,
-                      pensionReceiveAge: event.target.value === '' ? '' : Number(event.target.value)
-                    }))
-                  }
-                />
-              </FormField>
-              <FormField label="수령 시작 시기" error={errors.pensionReceiveStart}>
-                <input
-                  type="month"
-                  value={form.pensionReceiveStart}
-                  onChange={(event) => setForm((prev) => ({ ...prev, pensionReceiveStart: event.target.value }))}
-                />
-              </FormField>
-            </>
-          ) : null}
-
           <FormField label="평가일" error={errors.valuationDate}>
             <input
               type="date"
@@ -546,9 +492,7 @@ export default function AssetsPage() {
               value={form.note}
               onChange={(event) => setForm((prev) => ({ ...prev, note: event.target.value }))}
               placeholder={
-                form.category === 'pension'
-                  ? '예: 추납 포함, 예상 수령액 재확인 필요'
-                  : isStockCategory
+                isStockCategory
                     ? '예: 분할매수 2차'
                     : '선택 입력'
               }
@@ -588,9 +532,6 @@ export default function AssetsPage() {
               render: (asset) => {
                 if (asset.category === 'stock_us') {
                   return `${asset.symbol || '-'} / ${asset.usdAmount?.toLocaleString() ?? 0} USD`;
-                }
-                if (asset.category === 'pension') {
-                  return `납입 ${asset.pensionMonthlyContribution?.toLocaleString() ?? 0}원`;
                 }
                 return asset.symbol || '-';
               },

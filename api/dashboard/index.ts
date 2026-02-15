@@ -114,7 +114,8 @@ export async function dashboardHandler(context: InvocationContext, req: HttpRequ
         }
 
         const assetsQuery = {
-          query: "SELECT VALUE SUM(c.currentValue) FROM c WHERE c.userId = @userId AND c.type = 'Asset'",
+          query:
+            "SELECT VALUE SUM(c.currentValue) FROM c WHERE c.userId = @userId AND c.type = 'Asset' AND NOT (c.category = 'pension' OR c.category = 'pension_national' OR c.category = 'pension_personal' OR c.category = 'pension_retirement')",
           parameters: [{ name: "@userId", value: userId }]
         };
 

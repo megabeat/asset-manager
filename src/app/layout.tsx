@@ -17,6 +17,7 @@ export default function RootLayout({
     { href: "/dashboard", label: "대시보드" },
     { href: "/profile", label: "프로파일" },
     { href: "/assets", label: "자산" },
+    { href: "/pensions", label: "연금" },
     { href: "/incomes", label: "수입" },
     { href: "/expenses", label: "지출" },
     { href: "/liabilities", label: "부채" },

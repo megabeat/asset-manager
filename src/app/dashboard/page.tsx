@@ -38,6 +38,15 @@ type AssetItem = {
   exchangeRate?: number;
 };
 
+function isPensionCategory(category?: string): boolean {
+  return (
+    category === 'pension' ||
+    category === 'pension_national' ||
+    category === 'pension_personal' ||
+    category === 'pension_retirement'
+  );
+}
+
 const COLORS = ['#0b63ce', '#2e7d32', '#f57c00', '#7b1fa2', '#c2185b', '#00796b'];
 
 export default function DashboardPage() {
@@ -94,7 +103,7 @@ export default function DashboardPage() {
   ).map(([name, value]) => ({ name, value }));
 
   const pensionValue = assets
-    .filter((asset) => asset.category === 'pension')
+    .filter((asset) => isPensionCategory(asset.category))
     .reduce((sum, asset) => sum + (asset.currentValue ?? 0), 0);
 
   const krStockValue = assets

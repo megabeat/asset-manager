@@ -14,6 +14,7 @@ type Summary = {
 const quickActions = [
   { href: '/profile', label: '프로파일 작성', desc: '기본 정보와 가구 구성 입력' },
   { href: '/assets', label: '자산 등록', desc: '현금/투자/부동산 등 자산 입력' },
+  { href: '/pensions', label: '연금 관리', desc: '국민/개인/퇴직연금 분리 관리' },
   { href: '/incomes', label: '수입 관리', desc: '월/연/일회성 수입 기록' },
   { href: '/expenses', label: '지출 관리', desc: '고정/구독 지출과 월 환산 확인' },
   { href: '/liabilities', label: '부채 관리', desc: '대출/카드/기타 채무 기록' },
