@@ -54,6 +54,21 @@ async function listUserAssetIds(userId) {
         .map((item) => item.id)
         .filter((id) => typeof id === "string" && id.length > 0);
 }
+async function queryAssetHistoryRows(container, userId, querySpec) {
+    const partitionCandidates = [[userId], userId, undefined];
+    let lastError = null;
+    for (const partitionKey of partitionCandidates) {
+        try {
+            const options = partitionKey === undefined ? undefined : { partitionKey };
+            const { resources } = await container.items.query(querySpec, options).fetchAll();
+            return resources;
+        }
+        catch (error) {
+            lastError = error;
+        }
+    }
+    throw lastError ?? new Error("Failed to query asset history");
+}
 async function dashboardHandler(context, req) {
     const { userId } = (0, auth_1.getAuthContext)(req.headers);
     try {
@@ -123,19 +138,16 @@ async function dashboardHandler(context, req) {
                 if (assetIds.length === 0) {
                     return (0, responses_1.ok)([]);
                 }
-                const historyResults = await Promise.all(assetIds.map(async (assetId) => {
-                    const partitionKey = [userId, assetId];
-                    const query = {
-                        query: "SELECT c.recordedAt, c.value FROM c WHERE c.type = 'AssetHistory' AND c.recordedAt >= @from AND c.recordedAt <= @to AND (NOT IS_DEFINED(c.isWindowRecord) OR c.isWindowRecord = false)",
-                        parameters: [
-                            { name: "@from", value: range.from },
-                            { name: "@to", value: range.to }
-                        ]
-                    };
-                    const { resources } = await container.items.query(query, { partitionKey }).fetchAll();
-                    return resources;
-                }));
-                const resources = historyResults.flat();
+                const query = {
+                    query: "SELECT c.recordedAt, c.value, c.assetId FROM c WHERE c.userId = @userId AND c.type = 'AssetHistory' AND c.recordedAt >= @from AND c.recordedAt <= @to AND (NOT IS_DEFINED(c.isWindowRecord) OR c.isWindowRecord = false) AND ARRAY_CONTAINS(@assetIds, c.assetId)",
+                    parameters: [
+                        { name: "@userId", value: userId },
+                        { name: "@from", value: range.from },
+                        { name: "@to", value: range.to },
+                        { name: "@assetIds", value: assetIds }
+                    ]
+                };
+                const resources = await queryAssetHistoryRows(container, userId, query);
                 const buckets = new Map();
                 for (const entry of resources) {
                     const recordedAt = typeof entry.recordedAt === "string" ? entry.recordedAt : "";
@@ -170,17 +182,14 @@ async function dashboardHandler(context, req) {
                 if (assetIds.length === 0) {
                     return (0, responses_1.ok)([]);
                 }
-                const historyResults = await Promise.all(assetIds.map(async (assetId) => {
-                    const partitionKey = [userId, assetId];
-                    const query = {
-                        query: "SELECT c.assetId, c.windowMonth, c.value, c.monthlyDelta, c.recordedAt FROM c WHERE c.type = 'AssetHistory' AND c.isWindowRecord = true",
-                        parameters: []
-                    };
-                    const { resources } = await container.items.query(query, { partitionKey }).fetchAll();
-                    return resources;
-                }));
-                const resources = historyResults
-                    .flat()
+                const query = {
+                    query: "SELECT c.assetId, c.windowMonth, c.value, c.monthlyDelta, c.recordedAt FROM c WHERE c.userId = @userId AND c.type = 'AssetHistory' AND c.isWindowRecord = true AND ARRAY_CONTAINS(@assetIds, c.assetId)",
+                    parameters: [
+                        { name: "@userId", value: userId },
+                        { name: "@assetIds", value: assetIds }
+                    ]
+                };
+                const resources = (await queryAssetHistoryRows(container, userId, query))
                     .sort((a, b) => String(a.recordedAt ?? "").localeCompare(String(b.recordedAt ?? "")));
                 const latestByMonthAndAsset = new Map();
                 for (const row of resources) {
