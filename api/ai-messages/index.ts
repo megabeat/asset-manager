@@ -17,6 +17,9 @@ type ProfileContext = {
   baseSalaryAnnual?: number;
   annualBonus?: number;
   annualRsu?: number;
+  rsuShares?: number;
+  rsuVestingPriceUsd?: number;
+  rsuVestingCycle?: "monthly" | "quarterly" | "yearly" | "irregular";
   annualRaiseRatePct?: number;
   child1Name?: string;
   child1BirthDate?: string;
@@ -150,6 +153,8 @@ export async function aiMessagesHandler(context: InvocationContext, req: HttpReq
             const annualBase = Number(profile.baseSalaryAnnual ?? 0);
             const annualBonus = Number(profile.annualBonus ?? 0);
             const annualRsu = Number(profile.annualRsu ?? 0);
+            const rsuShares = Number(profile.rsuShares ?? 0);
+            const rsuVestingPriceUsd = Number(profile.rsuVestingPriceUsd ?? 0);
             const totalAnnualComp = annualBase + annualBonus + annualRsu;
             const annualRaiseRate = Number(profile.annualRaiseRatePct ?? 0);
             const projectedCompNextYear =
@@ -167,6 +172,9 @@ export async function aiMessagesHandler(context: InvocationContext, req: HttpReq
               `- 연 기본급: ${annualBase > 0 ? `${annualBase.toLocaleString()}원` : "미설정"}`,
               `- 연간 보너스: ${annualBonus > 0 ? `${annualBonus.toLocaleString()}원` : "미설정"}`,
               `- 연간 RSU: ${annualRsu > 0 ? `${annualRsu.toLocaleString()}원` : "미설정"}`,
+              `- RSU 주식수: ${rsuShares > 0 ? `${rsuShares.toLocaleString()}주` : "미설정"}`,
+              `- RSU 베스팅 시가(USD): ${rsuVestingPriceUsd > 0 ? `${rsuVestingPriceUsd.toLocaleString()} USD` : "미설정"}`,
+              `- RSU 베스팅 주기: ${profile.rsuVestingCycle ?? "미설정"}`,
               `- 연봉 상승률(연): ${profile.annualRaiseRatePct !== undefined ? `${annualRaiseRate}%` : "미설정"}`,
               `- 연 총보상(기본급+보너스+RSU): ${totalAnnualComp > 0 ? `${totalAnnualComp.toLocaleString()}원` : "미설정"}`,
               `- 내년 예상 총보상: ${projectedCompNextYear > 0 ? `${projectedCompNextYear.toLocaleString()}원` : "미설정"}`,

@@ -71,6 +71,14 @@ async function profileHandler(context, req) {
                     baseSalaryAnnual: (0, validators_1.ensureOptionalNumber)(body.baseSalaryAnnual, "baseSalaryAnnual"),
                     annualBonus: (0, validators_1.ensureOptionalNumber)(body.annualBonus, "annualBonus"),
                     annualRsu: (0, validators_1.ensureOptionalNumber)(body.annualRsu, "annualRsu"),
+                    rsuShares: (0, validators_1.ensureOptionalNumber)(body.rsuShares, "rsuShares"),
+                    rsuVestingPriceUsd: (0, validators_1.ensureOptionalNumber)(body.rsuVestingPriceUsd, "rsuVestingPriceUsd"),
+                    rsuVestingCycle: (0, validators_1.ensureOptionalEnum)(body.rsuVestingCycle, "rsuVestingCycle", [
+                        "monthly",
+                        "quarterly",
+                        "yearly",
+                        "irregular"
+                    ]),
                     annualRaiseRatePct: (0, validators_1.ensureOptionalNumberInRange)(body.annualRaiseRatePct, "annualRaiseRatePct", -20, 100),
                     child1Name: (0, validators_1.ensureOptionalString)(body.child1Name, "child1Name"),
                     child1BirthDate: (0, validators_1.ensureOptionalString)(body.child1BirthDate, "child1BirthDate"),
@@ -119,6 +127,15 @@ async function profileHandler(context, req) {
                     baseSalaryAnnual: (0, validators_1.ensureOptionalNumber)(body.baseSalaryAnnual, "baseSalaryAnnual") ?? resource.baseSalaryAnnual,
                     annualBonus: (0, validators_1.ensureOptionalNumber)(body.annualBonus, "annualBonus") ?? resource.annualBonus,
                     annualRsu: (0, validators_1.ensureOptionalNumber)(body.annualRsu, "annualRsu") ?? resource.annualRsu,
+                    rsuShares: (0, validators_1.ensureOptionalNumber)(body.rsuShares, "rsuShares") ?? resource.rsuShares,
+                    rsuVestingPriceUsd: (0, validators_1.ensureOptionalNumber)(body.rsuVestingPriceUsd, "rsuVestingPriceUsd") ??
+                        resource.rsuVestingPriceUsd,
+                    rsuVestingCycle: (0, validators_1.ensureOptionalEnum)(body.rsuVestingCycle, "rsuVestingCycle", [
+                        "monthly",
+                        "quarterly",
+                        "yearly",
+                        "irregular"
+                    ]) ?? resource.rsuVestingCycle,
                     annualRaiseRatePct: (0, validators_1.ensureOptionalNumberInRange)(body.annualRaiseRatePct, "annualRaiseRatePct", -20, 100) ??
                         resource.annualRaiseRatePct,
                     child1Name: (0, validators_1.ensureOptionalString)(body.child1Name, "child1Name") ?? resource.child1Name,

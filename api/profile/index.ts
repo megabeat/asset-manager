@@ -4,6 +4,7 @@ import { getContainer } from "../shared/cosmosClient";
 import { fail, ok } from "../shared/responses";
 import {
   ensureNumber,
+  ensureOptionalEnum,
   ensureOptionalNumber,
   ensureOptionalNumberInRange,
   ensureOptionalString,
@@ -78,6 +79,14 @@ export async function profileHandler(context: InvocationContext, req: HttpReques
           baseSalaryAnnual: ensureOptionalNumber(body.baseSalaryAnnual, "baseSalaryAnnual"),
           annualBonus: ensureOptionalNumber(body.annualBonus, "annualBonus"),
           annualRsu: ensureOptionalNumber(body.annualRsu, "annualRsu"),
+          rsuShares: ensureOptionalNumber(body.rsuShares, "rsuShares"),
+          rsuVestingPriceUsd: ensureOptionalNumber(body.rsuVestingPriceUsd, "rsuVestingPriceUsd"),
+          rsuVestingCycle: ensureOptionalEnum(body.rsuVestingCycle, "rsuVestingCycle", [
+            "monthly",
+            "quarterly",
+            "yearly",
+            "irregular"
+          ]),
           annualRaiseRatePct: ensureOptionalNumberInRange(
             body.annualRaiseRatePct,
             "annualRaiseRatePct",
@@ -138,6 +147,17 @@ export async function profileHandler(context: InvocationContext, req: HttpReques
             ensureOptionalNumber(body.baseSalaryAnnual, "baseSalaryAnnual") ?? resource.baseSalaryAnnual,
           annualBonus: ensureOptionalNumber(body.annualBonus, "annualBonus") ?? resource.annualBonus,
           annualRsu: ensureOptionalNumber(body.annualRsu, "annualRsu") ?? resource.annualRsu,
+          rsuShares: ensureOptionalNumber(body.rsuShares, "rsuShares") ?? resource.rsuShares,
+          rsuVestingPriceUsd:
+            ensureOptionalNumber(body.rsuVestingPriceUsd, "rsuVestingPriceUsd") ??
+            resource.rsuVestingPriceUsd,
+          rsuVestingCycle:
+            ensureOptionalEnum(body.rsuVestingCycle, "rsuVestingCycle", [
+              "monthly",
+              "quarterly",
+              "yearly",
+              "irregular"
+            ]) ?? resource.rsuVestingCycle,
           annualRaiseRatePct:
             ensureOptionalNumberInRange(body.annualRaiseRatePct, "annualRaiseRatePct", -20, 100) ??
             resource.annualRaiseRatePct,

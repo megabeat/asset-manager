@@ -16,6 +16,9 @@ export type Profile = {
   annualBonus?: number;
   annualRsu?: number;
   annualRaiseRatePct?: number;
+  rsuShares?: number;
+  rsuVestingPriceUsd?: number;
+  rsuVestingCycle?: 'monthly' | 'quarterly' | 'yearly' | 'irregular';
   child1Name?: string;
   child1BirthDate?: string;
   child2Name?: string;

@@ -5,14 +5,24 @@ import { api, Profile } from '@/lib/api';
 
 type ProfileForm = Omit<
   Profile,
-  'retirementTargetAge' | 'baseSalaryAnnual' | 'annualBonus' | 'annualRsu' | 'annualRaiseRatePct'
+  | 'retirementTargetAge'
+  | 'baseSalaryAnnual'
+  | 'annualBonus'
+  | 'annualRsu'
+  | 'annualRaiseRatePct'
+  | 'rsuShares'
+  | 'rsuVestingPriceUsd'
 > & {
   retirementTargetAge: number | '';
   baseSalaryAnnual: number | '';
   annualBonus: number | '';
   annualRsu: number | '';
   annualRaiseRatePct: number | '';
+  rsuShares: number | '';
+  rsuVestingPriceUsd: number | '';
 };
+
+type ProfileTab = 'basic' | 'income' | 'family';
 
 const defaultForm: ProfileForm = {
   fullName: '',
@@ -23,6 +33,9 @@ const defaultForm: ProfileForm = {
   annualBonus: '',
   annualRsu: '',
   annualRaiseRatePct: '',
+  rsuShares: '',
+  rsuVestingPriceUsd: '',
+  rsuVestingCycle: 'quarterly',
   child1Name: '',
   child1BirthDate: '',
   child2Name: '',
@@ -34,6 +47,7 @@ const defaultForm: ProfileForm = {
 
 export default function ProfilePage() {
   const [form, setForm] = useState<ProfileForm>(defaultForm);
+  const [activeTab, setActiveTab] = useState<ProfileTab>('basic');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [exists, setExists] = useState(false);
@@ -56,6 +70,9 @@ export default function ProfilePage() {
           annualBonus: result.data.annualBonus ?? '',
           annualRsu: result.data.annualRsu ?? '',
           annualRaiseRatePct: result.data.annualRaiseRatePct ?? '',
+          rsuShares: result.data.rsuShares ?? '',
+          rsuVestingPriceUsd: result.data.rsuVestingPriceUsd ?? '',
+          rsuVestingCycle: result.data.rsuVestingCycle ?? 'quarterly',
           child1Name: result.data.child1Name ?? '',
           child1BirthDate: result.data.child1BirthDate ?? '',
           child2Name: result.data.child2Name ?? '',
@@ -86,6 +103,8 @@ export default function ProfilePage() {
       (form.baseSalaryAnnual === '' || Number(form.baseSalaryAnnual) >= 0) &&
       (form.annualBonus === '' || Number(form.annualBonus) >= 0) &&
       (form.annualRsu === '' || Number(form.annualRsu) >= 0) &&
+      (form.rsuShares === '' || Number(form.rsuShares) >= 0) &&
+      (form.rsuVestingPriceUsd === '' || Number(form.rsuVestingPriceUsd) >= 0) &&
       (form.annualRaiseRatePct === '' ||
         (Number.isFinite(form.annualRaiseRatePct) &&
           Number(form.annualRaiseRatePct) >= -20 &&
@@ -119,6 +138,12 @@ export default function ProfilePage() {
     }
     if (form.annualRsu !== '' && Number(form.annualRsu) < 0) {
       nextErrors.annualRsu = '연간 RSU는 0 이상이어야 합니다.';
+    }
+    if (form.rsuShares !== '' && Number(form.rsuShares) < 0) {
+      nextErrors.rsuShares = 'RSU 주식수는 0 이상이어야 합니다.';
+    }
+    if (form.rsuVestingPriceUsd !== '' && Number(form.rsuVestingPriceUsd) < 0) {
+      nextErrors.rsuVestingPriceUsd = '베스팅 시가는 0 이상이어야 합니다.';
     }
     if (
       form.annualRaiseRatePct !== '' &&
@@ -168,6 +193,10 @@ export default function ProfilePage() {
       baseSalaryAnnual: form.baseSalaryAnnual === '' ? undefined : Number(form.baseSalaryAnnual),
       annualBonus: form.annualBonus === '' ? undefined : Number(form.annualBonus),
       annualRsu: form.annualRsu === '' ? undefined : Number(form.annualRsu),
+      rsuShares: form.rsuShares === '' ? undefined : Number(form.rsuShares),
+      rsuVestingPriceUsd:
+        form.rsuVestingPriceUsd === '' ? undefined : Number(form.rsuVestingPriceUsd),
+      rsuVestingCycle: form.rsuVestingCycle || undefined,
       annualRaiseRatePct:
         form.annualRaiseRatePct === '' ? undefined : Number(form.annualRaiseRatePct),
       child1Name: form.child1Name?.trim() || undefined,
@@ -218,198 +247,285 @@ export default function ProfilePage() {
       </div>
 
       <form onSubmit={onSubmit} style={{ marginTop: '1.5rem', maxWidth: 520, display: 'grid', gap: '0.9rem' }}>
-        <label style={{ display: 'grid', gap: '0.35rem' }}>
-          <span>이름</span>
-          <input
-            value={form.fullName}
-            onChange={(event) => setForm((prev) => ({ ...prev, fullName: event.target.value }))}
-            placeholder="홍길동"
-            style={{ padding: '0.65rem', border: '1px solid #d0d0d0', borderRadius: 8 }}
-          />
-          {errors.fullName && <p className="form-error">{errors.fullName}</p>}
-        </label>
+        <div style={{ display: 'flex', gap: '0.45rem', flexWrap: 'wrap' }}>
+          <button
+            type="button"
+            className={activeTab === 'basic' ? 'btn-primary' : 'btn-subtle'}
+            onClick={() => setActiveTab('basic')}
+          >
+            기본정보
+          </button>
+          <button
+            type="button"
+            className={activeTab === 'income' ? 'btn-primary' : 'btn-subtle'}
+            onClick={() => setActiveTab('income')}
+          >
+            소득정보
+          </button>
+          <button
+            type="button"
+            className={activeTab === 'family' ? 'btn-primary' : 'btn-subtle'}
+            onClick={() => setActiveTab('family')}
+          >
+            가족/은퇴
+          </button>
+        </div>
 
-        <label style={{ display: 'grid', gap: '0.35rem' }}>
-          <span>생년월일</span>
-          <input
-            type="date"
-            value={form.birthDate}
-            onChange={(event) => setForm((prev) => ({ ...prev, birthDate: event.target.value }))}
-            style={{ padding: '0.65rem', border: '1px solid #d0d0d0', borderRadius: 8 }}
-          />
-          {errors.birthDate && <p className="form-error">{errors.birthDate}</p>}
-        </label>
+        {activeTab === 'basic' ? (
+          <>
+            <label style={{ display: 'grid', gap: '0.35rem' }}>
+              <span>이름</span>
+              <input
+                value={form.fullName}
+                onChange={(event) => setForm((prev) => ({ ...prev, fullName: event.target.value }))}
+                placeholder="홍길동"
+              />
+              {errors.fullName && <p className="form-error">{errors.fullName}</p>}
+            </label>
 
-        <label style={{ display: 'grid', gap: '0.35rem' }}>
-          <span>직장명</span>
-          <input
-            value={form.employerName ?? ''}
-            onChange={(event) => setForm((prev) => ({ ...prev, employerName: event.target.value }))}
-            placeholder="예: Microsoft"
-          />
-        </label>
+            <label style={{ display: 'grid', gap: '0.35rem' }}>
+              <span>생년월일</span>
+              <input
+                type="date"
+                value={form.birthDate}
+                onChange={(event) => setForm((prev) => ({ ...prev, birthDate: event.target.value }))}
+              />
+              {errors.birthDate && <p className="form-error">{errors.birthDate}</p>}
+            </label>
 
-        <label style={{ display: 'grid', gap: '0.35rem' }}>
-          <span>직무/직급</span>
-          <input
-            value={form.jobTitle ?? ''}
-            onChange={(event) => setForm((prev) => ({ ...prev, jobTitle: event.target.value }))}
-            placeholder="예: Senior Software Engineer"
-          />
-        </label>
+            <label style={{ display: 'grid', gap: '0.35rem' }}>
+              <span>가구원 수</span>
+              <input
+                type="number"
+                min={1}
+                value={form.householdSize}
+                onChange={(event) =>
+                  setForm((prev) => ({ ...prev, householdSize: Number(event.target.value || 1) }))
+                }
+              />
+              {errors.householdSize && <p className="form-error">{errors.householdSize}</p>}
+            </label>
 
-        <label style={{ display: 'grid', gap: '0.35rem' }}>
-          <span>직장 기본급(연)</span>
-          <input
-            type="number"
-            min={0}
-            value={form.baseSalaryAnnual}
-            onChange={(event) =>
-              setForm((prev) => ({
-                ...prev,
-                baseSalaryAnnual: event.target.value === '' ? '' : Number(event.target.value)
-              }))
-            }
-            placeholder="예: 120000000"
-          />
-          {errors.baseSalaryAnnual && <p className="form-error">{errors.baseSalaryAnnual}</p>}
-        </label>
+            <label style={{ display: 'grid', gap: '0.35rem' }}>
+              <span>통화</span>
+              <input
+                value={form.currency}
+                onChange={(event) => setForm((prev) => ({ ...prev, currency: event.target.value }))}
+                placeholder="KRW"
+              />
+              {errors.currency && <p className="form-error">{errors.currency}</p>}
+            </label>
+          </>
+        ) : null}
 
-        <label style={{ display: 'grid', gap: '0.35rem' }}>
-          <span>연간 보너스</span>
-          <input
-            type="number"
-            min={0}
-            value={form.annualBonus}
-            onChange={(event) =>
-              setForm((prev) => ({
-                ...prev,
-                annualBonus: event.target.value === '' ? '' : Number(event.target.value)
-              }))
-            }
-            placeholder="예: 15000000"
-          />
-          {errors.annualBonus && <p className="form-error">{errors.annualBonus}</p>}
-        </label>
+        {activeTab === 'income' ? (
+          <>
+            <label style={{ display: 'grid', gap: '0.35rem' }}>
+              <span>직장명</span>
+              <input
+                value={form.employerName ?? ''}
+                onChange={(event) => setForm((prev) => ({ ...prev, employerName: event.target.value }))}
+                placeholder="예: Microsoft"
+              />
+            </label>
 
-        <label style={{ display: 'grid', gap: '0.35rem' }}>
-          <span>연간 RSU</span>
-          <input
-            type="number"
-            min={0}
-            value={form.annualRsu}
-            onChange={(event) =>
-              setForm((prev) => ({
-                ...prev,
-                annualRsu: event.target.value === '' ? '' : Number(event.target.value)
-              }))
-            }
-            placeholder="예: 20000000"
-          />
-          {errors.annualRsu && <p className="form-error">{errors.annualRsu}</p>}
-        </label>
+            <label style={{ display: 'grid', gap: '0.35rem' }}>
+              <span>직무/직급</span>
+              <input
+                value={form.jobTitle ?? ''}
+                onChange={(event) => setForm((prev) => ({ ...prev, jobTitle: event.target.value }))}
+                placeholder="예: Senior Software Engineer"
+              />
+            </label>
 
-        <label style={{ display: 'grid', gap: '0.35rem' }}>
-          <span>연간 연봉 상승률(%)</span>
-          <input
-            type="number"
-            min={-20}
-            max={100}
-            step="0.1"
-            value={form.annualRaiseRatePct}
-            onChange={(event) =>
-              setForm((prev) => ({
-                ...prev,
-                annualRaiseRatePct: event.target.value === '' ? '' : Number(event.target.value)
-              }))
-            }
-            placeholder="예: 5"
-          />
-          {errors.annualRaiseRatePct && <p className="form-error">{errors.annualRaiseRatePct}</p>}
-        </label>
+            <label style={{ display: 'grid', gap: '0.35rem' }}>
+              <span>직장 기본급(연)</span>
+              <input
+                type="number"
+                min={0}
+                value={form.baseSalaryAnnual}
+                onChange={(event) =>
+                  setForm((prev) => ({
+                    ...prev,
+                    baseSalaryAnnual: event.target.value === '' ? '' : Number(event.target.value)
+                  }))
+                }
+                placeholder="예: 120000000"
+              />
+              {errors.baseSalaryAnnual && <p className="form-error">{errors.baseSalaryAnnual}</p>}
+            </label>
 
-        <label style={{ display: 'grid', gap: '0.35rem' }}>
-          <span>자녀1 이름</span>
-          <input
-            value={form.child1Name ?? ''}
-            onChange={(event) => setForm((prev) => ({ ...prev, child1Name: event.target.value }))}
-            placeholder="예: 자녀1"
-          />
-          {errors.child1Name && <p className="form-error">{errors.child1Name}</p>}
-        </label>
+            <label style={{ display: 'grid', gap: '0.35rem' }}>
+              <span>연간 보너스</span>
+              <input
+                type="number"
+                min={0}
+                value={form.annualBonus}
+                onChange={(event) =>
+                  setForm((prev) => ({
+                    ...prev,
+                    annualBonus: event.target.value === '' ? '' : Number(event.target.value)
+                  }))
+                }
+                placeholder="예: 15000000"
+              />
+              {errors.annualBonus && <p className="form-error">{errors.annualBonus}</p>}
+            </label>
 
-        <label style={{ display: 'grid', gap: '0.35rem' }}>
-          <span>자녀1 생년월일</span>
-          <input
-            type="date"
-            value={form.child1BirthDate ?? ''}
-            onChange={(event) => setForm((prev) => ({ ...prev, child1BirthDate: event.target.value }))}
-          />
-          {errors.child1BirthDate && <p className="form-error">{errors.child1BirthDate}</p>}
-        </label>
+            <label style={{ display: 'grid', gap: '0.35rem' }}>
+              <span>연간 RSU(원화 환산)</span>
+              <input
+                type="number"
+                min={0}
+                value={form.annualRsu}
+                onChange={(event) =>
+                  setForm((prev) => ({
+                    ...prev,
+                    annualRsu: event.target.value === '' ? '' : Number(event.target.value)
+                  }))
+                }
+                placeholder="예: 20000000"
+              />
+              {errors.annualRsu && <p className="form-error">{errors.annualRsu}</p>}
+            </label>
 
-        <label style={{ display: 'grid', gap: '0.35rem' }}>
-          <span>자녀2 이름</span>
-          <input
-            value={form.child2Name ?? ''}
-            onChange={(event) => setForm((prev) => ({ ...prev, child2Name: event.target.value }))}
-            placeholder="예: 자녀2"
-          />
-          {errors.child2Name && <p className="form-error">{errors.child2Name}</p>}
-        </label>
+            <label style={{ display: 'grid', gap: '0.35rem' }}>
+              <span>RSU 주식수</span>
+              <input
+                type="number"
+                min={0}
+                step="0.0001"
+                value={form.rsuShares}
+                onChange={(event) =>
+                  setForm((prev) => ({
+                    ...prev,
+                    rsuShares: event.target.value === '' ? '' : Number(event.target.value)
+                  }))
+                }
+                placeholder="예: 240"
+              />
+              {errors.rsuShares && <p className="form-error">{errors.rsuShares}</p>}
+            </label>
 
-        <label style={{ display: 'grid', gap: '0.35rem' }}>
-          <span>자녀2 생년월일</span>
-          <input
-            type="date"
-            value={form.child2BirthDate ?? ''}
-            onChange={(event) => setForm((prev) => ({ ...prev, child2BirthDate: event.target.value }))}
-          />
-          {errors.child2BirthDate && <p className="form-error">{errors.child2BirthDate}</p>}
-        </label>
+            <label style={{ display: 'grid', gap: '0.35rem' }}>
+              <span>RSU 베스팅 시가(USD)</span>
+              <input
+                type="number"
+                min={0}
+                step="0.01"
+                value={form.rsuVestingPriceUsd}
+                onChange={(event) =>
+                  setForm((prev) => ({
+                    ...prev,
+                    rsuVestingPriceUsd:
+                      event.target.value === '' ? '' : Number(event.target.value)
+                  }))
+                }
+                placeholder="예: 420"
+              />
+              {errors.rsuVestingPriceUsd && <p className="form-error">{errors.rsuVestingPriceUsd}</p>}
+            </label>
 
-        <label style={{ display: 'grid', gap: '0.35rem' }}>
-          <span>은퇴 목표 연령</span>
-          <input
-            type="number"
-            min={45}
-            max={90}
-            value={form.retirementTargetAge}
-            onChange={(event) =>
-              setForm((prev) => ({
-                ...prev,
-                retirementTargetAge: event.target.value === '' ? '' : Number(event.target.value)
-              }))
-            }
-            placeholder="예: 60"
-          />
-          {errors.retirementTargetAge && <p className="form-error">{errors.retirementTargetAge}</p>}
-        </label>
+            <label style={{ display: 'grid', gap: '0.35rem' }}>
+              <span>RSU 베스팅 주기</span>
+              <select
+                value={form.rsuVestingCycle ?? 'quarterly'}
+                onChange={(event) =>
+                  setForm((prev) => ({
+                    ...prev,
+                    rsuVestingCycle: event.target.value as Profile['rsuVestingCycle']
+                  }))
+                }
+              >
+                <option value="monthly">월별</option>
+                <option value="quarterly">분기별</option>
+                <option value="yearly">연별</option>
+                <option value="irregular">비정기</option>
+              </select>
+            </label>
 
-        <label style={{ display: 'grid', gap: '0.35rem' }}>
-          <span>가구원 수</span>
-          <input
-            type="number"
-            min={1}
-            value={form.householdSize}
-            onChange={(event) =>
-              setForm((prev) => ({ ...prev, householdSize: Number(event.target.value || 1) }))
-            }
-            style={{ padding: '0.65rem', border: '1px solid #d0d0d0', borderRadius: 8 }}
-          />
-          {errors.householdSize && <p className="form-error">{errors.householdSize}</p>}
-        </label>
+            <label style={{ display: 'grid', gap: '0.35rem' }}>
+              <span>연간 연봉 상승률(%)</span>
+              <input
+                type="number"
+                min={-20}
+                max={100}
+                step="0.1"
+                value={form.annualRaiseRatePct}
+                onChange={(event) =>
+                  setForm((prev) => ({
+                    ...prev,
+                    annualRaiseRatePct: event.target.value === '' ? '' : Number(event.target.value)
+                  }))
+                }
+                placeholder="예: 5"
+              />
+              {errors.annualRaiseRatePct && <p className="form-error">{errors.annualRaiseRatePct}</p>}
+            </label>
+          </>
+        ) : null}
 
-        <label style={{ display: 'grid', gap: '0.35rem' }}>
-          <span>통화</span>
-          <input
-            value={form.currency}
-            onChange={(event) => setForm((prev) => ({ ...prev, currency: event.target.value }))}
-            placeholder="KRW"
-            style={{ padding: '0.65rem', border: '1px solid #d0d0d0', borderRadius: 8 }}
-          />
-          {errors.currency && <p className="form-error">{errors.currency}</p>}
-        </label>
+        {activeTab === 'family' ? (
+          <>
+            <label style={{ display: 'grid', gap: '0.35rem' }}>
+              <span>자녀1 이름</span>
+              <input
+                value={form.child1Name ?? ''}
+                onChange={(event) => setForm((prev) => ({ ...prev, child1Name: event.target.value }))}
+                placeholder="예: 자녀1"
+              />
+              {errors.child1Name && <p className="form-error">{errors.child1Name}</p>}
+            </label>
+
+            <label style={{ display: 'grid', gap: '0.35rem' }}>
+              <span>자녀1 생년월일</span>
+              <input
+                type="date"
+                value={form.child1BirthDate ?? ''}
+                onChange={(event) => setForm((prev) => ({ ...prev, child1BirthDate: event.target.value }))}
+              />
+              {errors.child1BirthDate && <p className="form-error">{errors.child1BirthDate}</p>}
+            </label>
+
+            <label style={{ display: 'grid', gap: '0.35rem' }}>
+              <span>자녀2 이름</span>
+              <input
+                value={form.child2Name ?? ''}
+                onChange={(event) => setForm((prev) => ({ ...prev, child2Name: event.target.value }))}
+                placeholder="예: 자녀2"
+              />
+              {errors.child2Name && <p className="form-error">{errors.child2Name}</p>}
+            </label>
+
+            <label style={{ display: 'grid', gap: '0.35rem' }}>
+              <span>자녀2 생년월일</span>
+              <input
+                type="date"
+                value={form.child2BirthDate ?? ''}
+                onChange={(event) => setForm((prev) => ({ ...prev, child2BirthDate: event.target.value }))}
+              />
+              {errors.child2BirthDate && <p className="form-error">{errors.child2BirthDate}</p>}
+            </label>
+
+            <label style={{ display: 'grid', gap: '0.35rem' }}>
+              <span>은퇴 목표 연령</span>
+              <input
+                type="number"
+                min={45}
+                max={90}
+                value={form.retirementTargetAge}
+                onChange={(event) =>
+                  setForm((prev) => ({
+                    ...prev,
+                    retirementTargetAge: event.target.value === '' ? '' : Number(event.target.value)
+                  }))
+                }
+                placeholder="예: 60"
+              />
+              {errors.retirementTargetAge && <p className="form-error">{errors.retirementTargetAge}</p>}
+            </label>
+          </>
+        ) : null}
 
         <button
           type="submit"
