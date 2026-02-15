@@ -11,6 +11,7 @@ type IncomeForm = {
   name: string;
   amount: number;
   cycle: 'monthly' | 'yearly' | 'one_time';
+  occurredAt: string;
   reflectToLiquidAsset: boolean;
   category: string;
   note: string;
@@ -20,6 +21,7 @@ const defaultForm: IncomeForm = {
   name: '',
   amount: 0,
   cycle: 'monthly',
+  occurredAt: new Date().toISOString().slice(0, 10),
   reflectToLiquidAsset: false,
   category: '',
   note: ''
@@ -77,6 +79,7 @@ export default function IncomesPage() {
       name: form.name.trim(),
       amount: Number(form.amount),
       cycle: form.cycle,
+      occurredAt: form.occurredAt,
       reflectToLiquidAsset: form.reflectToLiquidAsset,
       category: form.category.trim(),
       note: form.note.trim()
@@ -149,6 +152,14 @@ export default function IncomesPage() {
               <option value="yearly">연간</option>
               <option value="one_time">일회성</option>
             </select>
+          </FormField>
+
+          <FormField label="발생일">
+            <input
+              type="date"
+              value={form.occurredAt}
+              onChange={(event) => setForm((prev) => ({ ...prev, occurredAt: event.target.value }))}
+            />
           </FormField>
 
           <FormField label="현금성 자산 반영" fullWidth>
@@ -232,7 +243,7 @@ export default function IncomesPage() {
               align: 'right',
               render: (income) =>
                 income.reflectToLiquidAsset && (income.reflectedAmount ?? 0) > 0
-                  ? `+${Math.round(income.reflectedAmount ?? 0).toLocaleString()}원`
+                  ? `+${Math.round(income.reflectedAmount ?? 0).toLocaleString()}원 (${income.occurredAt ?? '-'})`
                   : '-',
             },
           ]}

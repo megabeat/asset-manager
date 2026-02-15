@@ -37,6 +37,11 @@ export type Expense = {
   amount: number;
   expenseType: 'fixed' | 'subscription';
   cycle: 'monthly' | 'yearly';
+  occurredAt?: string;
+  reflectToLiquidAsset?: boolean;
+  reflectedAmount?: number;
+  reflectedAssetId?: string;
+  reflectedAt?: string;
   billingDay?: number | null;
   category?: string;
 };
@@ -46,9 +51,11 @@ export type Income = {
   name: string;
   amount: number;
   cycle: 'monthly' | 'yearly' | 'one_time';
+  occurredAt?: string;
   reflectToLiquidAsset?: boolean;
   reflectedAmount?: number;
   reflectedAssetId?: string;
+  reflectedAt?: string;
   category?: string;
   note?: string;
 };

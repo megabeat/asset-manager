@@ -24,9 +24,11 @@ type IncomeRecord = {
   userId: string;
   cycle: "monthly" | "yearly" | "one_time";
   amount: number;
+  occurredAt?: string;
   reflectToLiquidAsset?: boolean;
   reflectedAmount?: number;
   reflectedAssetId?: string;
+  reflectedAt?: string;
 };
 
 type AssetRecord = {
@@ -44,6 +46,23 @@ type AssetRecord = {
 
 function isReflectableCycle(cycle: string): boolean {
   return REFLECTABLE_CYCLES.has(cycle);
+}
+
+function resolveOccurredAt(value: unknown): string {
+  const candidate = ensureOptionalString(value, "occurredAt") ?? new Date().toISOString().slice(0, 10);
+  const date = new Date(candidate);
+  if (Number.isNaN(date.getTime())) {
+    throw new Error("Invalid occurredAt");
+  }
+  return date.toISOString().slice(0, 10);
+}
+
+function shouldReflectNow(cycle: string, reflectToLiquidAsset: boolean, occurredAt: string): boolean {
+  if (!reflectToLiquidAsset || !isReflectableCycle(cycle)) {
+    return false;
+  }
+  const today = new Date().toISOString().slice(0, 10);
+  return occurredAt <= today;
 }
 
 async function resolveLiquidAsset(
@@ -177,6 +196,7 @@ export async function incomesHandler(
       try {
         const cycle = ensureEnum(body.cycle, "cycle", incomeCycles) as "monthly" | "yearly" | "one_time";
         const amount = ensureNumberInRange(body.amount, "amount", 0, Number.MAX_SAFE_INTEGER);
+        const occurredAt = resolveOccurredAt(body.occurredAt);
         const reflectToLiquidAsset = ensureOptionalBoolean(body.reflectToLiquidAsset, "reflectToLiquidAsset") ?? (cycle !== "monthly");
 
         const income = {
@@ -186,9 +206,11 @@ export async function incomesHandler(
           name: ensureString(body.name, "name"),
           amount,
           cycle,
+          occurredAt,
           reflectToLiquidAsset,
           reflectedAmount: 0,
           reflectedAssetId: "",
+          reflectedAt: "",
           category: ensureOptionalString(body.category, "category") ?? "",
           note: ensureOptionalString(body.note, "note") ?? "",
           createdAt: new Date().toISOString(),
@@ -201,17 +223,19 @@ export async function incomesHandler(
           return fail("SERVER_ERROR", "Failed to create income", 500);
         }
 
-        const shouldReflect = reflectToLiquidAsset && isReflectableCycle(cycle);
+        const shouldReflect = shouldReflectNow(cycle, reflectToLiquidAsset, occurredAt);
         if (!shouldReflect) {
           return ok(resource, 201);
         }
 
         const reflected = await applyLiquidAssetDelta(assetsContainer, userId, amount);
+        const nowIso = new Date().toISOString();
         const updatedIncome = {
           ...resource,
           reflectedAmount: reflected?.appliedDelta ?? 0,
           reflectedAssetId: reflected?.assetId ?? "",
-          updatedAt: new Date().toISOString()
+          reflectedAt: reflected ? nowIso : "",
+          updatedAt: nowIso
         };
 
         const { resource: savedIncome } = await container.item(updatedIncome.id, userId).replace(updatedIncome);
@@ -250,15 +274,17 @@ export async function incomesHandler(
         const nextAmount =
           ensureOptionalNumberInRange(body.amount, "amount", 0, Number.MAX_SAFE_INTEGER) ??
           Number(existing.amount ?? 0);
+        const nextOccurredAt = resolveOccurredAt(body.occurredAt ?? existing.occurredAt);
         const nextReflectSetting =
           ensureOptionalBoolean(body.reflectToLiquidAsset, "reflectToLiquidAsset") ??
           (existing.reflectToLiquidAsset ?? existing.cycle !== "monthly");
 
         const prevReflectedAmount = Number(existing.reflectedAmount ?? 0);
-        const nextReflectedAmount = nextReflectSetting && isReflectableCycle(nextCycle) ? nextAmount : 0;
+        const nextReflectedAmount = shouldReflectNow(nextCycle, nextReflectSetting, nextOccurredAt) ? nextAmount : 0;
         const reflectDelta = nextReflectedAmount - prevReflectedAmount;
 
         let reflectedAssetId = (existing.reflectedAssetId ?? "") as string;
+        let reflectedAt = (existing.reflectedAt ?? "") as string;
         if (reflectDelta !== 0) {
           const reflected = await applyLiquidAssetDelta(
             assetsContainer,
@@ -267,6 +293,11 @@ export async function incomesHandler(
             reflectedAssetId || undefined
           );
           reflectedAssetId = reflected?.assetId ?? reflectedAssetId;
+          reflectedAt = reflected ? new Date().toISOString() : reflectedAt;
+        }
+
+        if (nextReflectedAmount === 0) {
+          reflectedAt = "";
         }
 
         const updated = {
@@ -274,9 +305,11 @@ export async function incomesHandler(
           name: ensureOptionalString(body.name, "name") ?? existing.name,
           amount: nextAmount,
           cycle: nextCycle,
+          occurredAt: nextOccurredAt,
           reflectToLiquidAsset: nextReflectSetting,
           reflectedAmount: nextReflectedAmount,
           reflectedAssetId,
+          reflectedAt,
           category: ensureOptionalString(body.category, "category") ?? existing.category,
           note: ensureOptionalString(body.note, "note") ?? existing.note,
           updatedAt: new Date().toISOString()

@@ -13,6 +13,8 @@ type ExpenseForm = {
   type: 'fixed' | 'subscription';
   cycle: 'monthly' | 'yearly';
   billingDay: number;
+  occurredAt: string;
+  reflectToLiquidAsset: boolean;
   category: string;
 };
 
@@ -22,6 +24,8 @@ const defaultForm: ExpenseForm = {
   type: 'fixed',
   cycle: 'monthly',
   billingDay: 1,
+  occurredAt: new Date().toISOString().slice(0, 10),
+  reflectToLiquidAsset: false,
   category: ''
 };
 
@@ -86,6 +90,8 @@ export default function ExpensesPage() {
       type: form.type,
       cycle: form.cycle,
       billingDay: form.billingDay,
+      occurredAt: form.occurredAt,
+      reflectToLiquidAsset: form.reflectToLiquidAsset,
       category: form.category.trim()
     });
 
@@ -125,6 +131,26 @@ export default function ExpensesPage() {
       <h1>지출 관리</h1>
 
       <SectionCard style={{ marginTop: '1.25rem', maxWidth: 980 }}>
+        <div style={{ marginBottom: '0.75rem', display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+          <button
+            type="button"
+            className="btn-danger-outline"
+            onClick={() =>
+              setForm((prev) => ({
+                ...prev,
+                name: '월말 카드값',
+                type: 'fixed',
+                cycle: 'monthly',
+                billingDay: 31,
+                category: '카드대금',
+                reflectToLiquidAsset: true
+              }))
+            }
+          >
+            월말 카드값 템플릿
+          </button>
+        </div>
+
         <form onSubmit={onSubmit} className="form-grid">
           <FormField label="항목명" error={errors.name}>
             <input
@@ -175,6 +201,27 @@ export default function ExpensesPage() {
             />
           </FormField>
 
+          <FormField label="출금(발생)일">
+            <input
+              type="date"
+              value={form.occurredAt}
+              onChange={(event) => setForm((prev) => ({ ...prev, occurredAt: event.target.value }))}
+            />
+          </FormField>
+
+          <FormField label="현금성 자산 차감" fullWidth>
+            <label style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+              <input
+                type="checkbox"
+                checked={form.reflectToLiquidAsset}
+                onChange={(event) =>
+                  setForm((prev) => ({ ...prev, reflectToLiquidAsset: event.target.checked }))
+                }
+              />
+              <span>입력 시 입출금 통장/현금 자산에서 금액 차감</span>
+            </label>
+          </FormField>
+
           <FormField label="카테고리">
             <input
               value={form.category}
@@ -221,6 +268,15 @@ export default function ExpensesPage() {
               header: '금액',
               align: 'right',
               render: (expense) => `${expense.amount.toLocaleString()}원`,
+            },
+            {
+              key: 'reflect',
+              header: '자산차감',
+              align: 'right',
+              render: (expense) =>
+                expense.reflectToLiquidAsset && (expense.reflectedAmount ?? 0) > 0
+                  ? `-${Math.round(expense.reflectedAmount ?? 0).toLocaleString()}원`
+                  : '-',
             },
             {
               key: 'actions',
