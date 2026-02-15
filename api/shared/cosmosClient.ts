@@ -4,11 +4,14 @@ if (!(globalThis as { crypto?: Crypto }).crypto) {
   (globalThis as { crypto: Crypto }).crypto = webcrypto as unknown as Crypto;
 }
 
-const { CosmosClient } = require("@azure/cosmos") as typeof import("@azure/cosmos");
-type CosmosClientType = import("@azure/cosmos").CosmosClient;
 type Container = import("@azure/cosmos").Container;
 
-let client: CosmosClientType | null = null;
+let client: import("@azure/cosmos").CosmosClient | null = null;
+
+function createClient(config: { endpoint: string; key: string } | string): import("@azure/cosmos").CosmosClient {
+  const cosmosModule = require("@azure/cosmos") as typeof import("@azure/cosmos");
+  return new cosmosModule.CosmosClient(config as never);
+}
 
 function firstDefined(...values: Array<string | undefined>): string | undefined {
   return values.find((value) => typeof value === "string" && value.trim().length > 0)?.trim();
@@ -30,7 +33,7 @@ function normalizeKey(rawKey: string | undefined): string | undefined {
   return normalized.length > 0 ? normalized : undefined;
 }
 
-function getClient(): CosmosClientType {
+function getClient(): import("@azure/cosmos").CosmosClient {
   if (!client) {
     const connectionString = firstDefined(
       process.env.COSMOS_CONNECTION_STRING,
@@ -38,7 +41,7 @@ function getClient(): CosmosClientType {
     );
 
     if (connectionString) {
-      client = new CosmosClient(connectionString);
+      client = createClient(connectionString);
       return client;
     }
 
@@ -61,7 +64,7 @@ function getClient(): CosmosClientType {
       );
     }
 
-    client = new CosmosClient({ endpoint, key });
+    client = createClient({ endpoint, key });
   }
 
   return client;

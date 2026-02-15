@@ -5,8 +5,11 @@ const node_crypto_1 = require("node:crypto");
 if (!globalThis.crypto) {
     globalThis.crypto = node_crypto_1.webcrypto;
 }
-const { CosmosClient } = require("@azure/cosmos");
 let client = null;
+function createClient(config) {
+    const cosmosModule = require("@azure/cosmos");
+    return new cosmosModule.CosmosClient(config);
+}
 function firstDefined(...values) {
     return values.find((value) => typeof value === "string" && value.trim().length > 0)?.trim();
 }
@@ -23,7 +26,7 @@ function getClient() {
     if (!client) {
         const connectionString = firstDefined(process.env.COSMOS_CONNECTION_STRING, process.env.COSMOSDB_CONNECTION_STRING);
         if (connectionString) {
-            client = new CosmosClient(connectionString);
+            client = createClient(connectionString);
             return client;
         }
         const endpoint = firstDefined(process.env.COSMOS_ENDPOINT, process.env.COSMOSDB_ENDPOINT, process.env.ACCOUNT_ENDPOINT, process.env.COSMOS_URI);
@@ -31,7 +34,7 @@ function getClient() {
         if (!endpoint || !key) {
             throw new Error("Missing Cosmos DB configuration. Set COSMOS_CONNECTION_STRING or COSMOS_ENDPOINT + COSMOS_KEY.");
         }
-        client = new CosmosClient({ endpoint, key });
+        client = createClient({ endpoint, key });
     }
     return client;
 }
