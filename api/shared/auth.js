@@ -1,9 +1,22 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.getAuthContext = getAuthContext;
+function defaultAuthContext() {
+    const demoUserId = process.env.DEFAULT_USER_ID ?? "demo-user";
+    return { userId: demoUserId, roles: ["authenticated"], userDetails: demoUserId };
+}
 function readHeader(headers, key) {
+    if (!headers)
+        return undefined;
     if (typeof headers.get === "function") {
-        return headers.get(key) ?? undefined;
+        try {
+            return (headers.get(key) ??
+                headers.get(key.toLowerCase()) ??
+                undefined);
+        }
+        catch {
+            return undefined;
+        }
     }
     const record = headers;
     return record[key] ?? record[key.toLowerCase()] ?? record[key.toUpperCase()];
@@ -15,8 +28,7 @@ function getAuthContext(headers) {
     }
     const principal = readHeader(headers, "x-ms-client-principal");
     if (!principal) {
-        const demoUserId = process.env.DEFAULT_USER_ID ?? "demo-user";
-        return { userId: demoUserId, roles: ["authenticated"], userDetails: demoUserId };
+        return defaultAuthContext();
     }
     try {
         const decoded = Buffer.from(principal, "base64").toString("utf8");
@@ -28,6 +40,6 @@ function getAuthContext(headers) {
         };
     }
     catch {
-        return { userId: null, roles: [], userDetails: null };
+        return defaultAuthContext();
     }
 }

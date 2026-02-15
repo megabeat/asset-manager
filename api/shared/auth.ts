@@ -11,11 +11,26 @@ export type AuthContext = {
   userDetails: string | null;
 };
 
-type HeaderMap = { get(name: string): string | null } | Record<string, string | undefined>;
+type HeaderMap = { get(name: string): string | null } | Record<string, string | undefined> | null | undefined;
+
+function defaultAuthContext(): AuthContext {
+  const demoUserId = process.env.DEFAULT_USER_ID ?? "demo-user";
+  return { userId: demoUserId, roles: ["authenticated"], userDetails: demoUserId };
+}
 
 function readHeader(headers: HeaderMap, key: string): string | undefined {
+  if (!headers) return undefined;
+
   if (typeof (headers as { get?: (name: string) => string | null }).get === "function") {
-    return (headers as { get(name: string): string | null }).get(key) ?? undefined;
+    try {
+      return (
+        (headers as { get(name: string): string | null }).get(key) ??
+        (headers as { get(name: string): string | null }).get(key.toLowerCase()) ??
+        undefined
+      );
+    } catch {
+      return undefined;
+    }
   }
 
   const record = headers as Record<string, string | undefined>;
@@ -30,8 +45,7 @@ export function getAuthContext(headers: HeaderMap): AuthContext {
 
   const principal = readHeader(headers, "x-ms-client-principal");
   if (!principal) {
-    const demoUserId = process.env.DEFAULT_USER_ID ?? "demo-user";
-    return { userId: demoUserId, roles: ["authenticated"], userDetails: demoUserId };
+    return defaultAuthContext();
   }
 
   try {
@@ -43,6 +57,6 @@ export function getAuthContext(headers: HeaderMap): AuthContext {
       userDetails: parsed.userDetails ?? null
     };
   } catch {
-    return { userId: null, roles: [], userDetails: null };
+    return defaultAuthContext();
   }
 }
