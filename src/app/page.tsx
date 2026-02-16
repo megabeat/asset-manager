@@ -39,10 +39,10 @@ export default function Home() {
   const [incomes, setIncomes] = useState<Income[]>([]);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
-  const settlementMonthKey = useMemo(() => {
+  const [settlementMonthKey, setSettlementMonthKey] = useState(() => {
     const now = new Date();
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-  }, []);
+  });
 
   useEffect(() => {
     Promise.all([
@@ -200,6 +200,17 @@ export default function Home() {
         </div>
         <div className="kpi-card">
           <h3 className="kpi-label">월 순현금흐름(정산)</h3>
+          <div className="mt-1">
+            <label className="helper-text flex items-center gap-2">
+              <span>기준월</span>
+              <input
+                type="month"
+                value={settlementMonthKey}
+                onChange={(event) => setSettlementMonthKey(event.target.value)}
+                className="max-w-[170px] px-2 py-1.5"
+              />
+            </label>
+          </div>
           <p className={`kpi-value ${monthlyNetCashflow >= 0 ? 'kpi-positive' : 'kpi-negative'}`}>
             {Math.round(monthlyNetCashflow).toLocaleString()}원
           </p>
