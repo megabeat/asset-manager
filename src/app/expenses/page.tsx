@@ -40,12 +40,12 @@ const defaultForm: ExpenseForm = {
 
 const INVESTMENT_TARGET_OPTIONS = [
   { value: 'stock_kr', label: '국내주식' },
+  { value: 'pension_personal', label: '개인연금' },
+  { value: 'etc', label: '기타' },
   { value: 'stock_us', label: '미국주식' },
   { value: 'deposit', label: '예금' },
   { value: 'cash', label: '현금' },
-  { value: 'pension_personal', label: '개인연금' },
-  { value: 'pension_retirement', label: '퇴직연금' },
-  { value: 'etc', label: '기타' }
+  { value: 'pension_retirement', label: '퇴직연금' }
 ] as const;
 
 function getCurrentMonthKey(): string {
