@@ -18,6 +18,14 @@ export default function AIAdvisorPage() {
     [conversations, conversationId]
   );
 
+  function getConversationLabel(conversation: Conversation, isSelected: boolean): string {
+    const title = conversation.title?.trim();
+    if (title) {
+      return title;
+    }
+    return isSelected ? '새 대화' : '지난 대화';
+  }
+
   function formatKoreanDate(iso?: string): string {
     if (!iso) return '-';
     const date = new Date(iso);
@@ -190,7 +198,7 @@ export default function AIAdvisorPage() {
                       }}
                       className="w-full border-none bg-transparent p-0 text-left text-inherit"
                     >
-                      <strong className="block">{conversation.title?.trim() || '새 대화'}</strong>
+                      <strong className="block">{getConversationLabel(conversation, selected)}</strong>
                       <span className="mt-1 block text-[0.79rem] opacity-90">
                         {formatKoreanDate(conversation.createdAt)}
                       </span>
