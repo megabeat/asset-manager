@@ -688,7 +688,7 @@ export default function EducationPage() {
         </form>
       </SectionCard>
 
-      <SectionCard className="mt-4">
+      <SectionCard className="mt-4 max-w-[980px]">
         <h2>교육비 계획 목록</h2>
         <DataTable
           rows={plans}
@@ -728,7 +728,7 @@ export default function EducationPage() {
       </SectionCard>
 
       {simulation && (
-        <SectionCard className="mt-4">
+        <SectionCard className="mt-4 max-w-[980px]">
           <h3 className="mt-0">교육비 시뮬레이션 결과 ({selectedChildName})</h3>
           <p>총 예상 비용: {simulation.totalCost.toLocaleString()}원</p>
           <DataTable
@@ -748,7 +748,7 @@ export default function EducationPage() {
       )}
 
       {assetSimulation && (
-        <SectionCard className="mt-4">
+        <SectionCard className="mt-4 max-w-[980px]">
           <h3 className="mt-0">미래 자산 시뮬레이션 결과</h3>
 
           <div className="mt-3 grid gap-3 [grid-template-columns:repeat(auto-fit,minmax(180px,1fr))]">
