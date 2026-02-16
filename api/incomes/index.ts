@@ -14,6 +14,7 @@ import {
   requireUserId
 } from "../shared/validators";
 import { parseJsonBody } from "../shared/request-body";
+import { attachIncomeLabels } from "../shared/labels";
 
 
 const incomeCycles = ["monthly", "yearly", "one_time"];
@@ -195,7 +196,7 @@ export async function incomesHandler(
           if (!resource) {
             return fail("NOT_FOUND", "Income not found", 404);
           }
-          return ok(resource);
+          return ok(attachIncomeLabels(resource as Record<string, unknown>));
         } catch (error: unknown) {
           const status = (error as { code?: number; statusCode?: number }).statusCode;
           if (status === 404) {
@@ -212,7 +213,7 @@ export async function incomesHandler(
           parameters: [{ name: "@userId", value: userId }]
         };
         const { resources } = await container.items.query(query).fetchAll();
-        return ok(resources);
+        return ok((resources as Array<Record<string, unknown>>).map(attachIncomeLabels));
       } catch (error: unknown) {
         context.log(error);
         return fail("SERVER_ERROR", "Failed to list incomes", 500);

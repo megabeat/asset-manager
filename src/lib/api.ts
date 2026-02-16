@@ -70,6 +70,8 @@ export type Expense = {
   reflectedAt?: string;
   billingDay?: number | null;
   category?: string;
+  expenseTypeLabel?: string;
+  cycleLabel?: string;
 };
 
 export type Income = {
@@ -89,6 +91,7 @@ export type Income = {
   reflectedAt?: string;
   category?: string;
   note?: string;
+  cycleLabel?: string;
 };
 
 export type Liability = {

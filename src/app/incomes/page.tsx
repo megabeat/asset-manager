@@ -38,16 +38,6 @@ function getCurrentMonthKey(): string {
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
 }
 
-function getIncomeCycleLabel(cycle: Income['cycle'] | undefined): string {
-  if (cycle === 'yearly') {
-    return '매년';
-  }
-  if (cycle === 'one_time') {
-    return '일회성';
-  }
-  return '매월';
-}
-
 export default function IncomesPage() {
   const [incomes, setIncomes] = useState<Income[]>([]);
   const [loading, setLoading] = useState(true);
@@ -385,7 +375,7 @@ export default function IncomesPage() {
               header: '유형',
               render: (income) => (income.isFixedIncome ? '고정' : '변동'),
             },
-            { key: 'cycle', header: '주기', render: (income) => getIncomeCycleLabel(income.cycle) },
+            { key: 'cycle', header: '주기', render: (income) => income.cycleLabel ?? income.cycle },
             {
               key: 'entrySource',
               header: '생성방식',

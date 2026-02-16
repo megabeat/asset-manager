@@ -14,6 +14,7 @@ import {
   requireUserId
 } from "../shared/validators";
 import { parseJsonBody } from "../shared/request-body";
+import { attachExpenseLabels } from "../shared/labels";
 
 
 const expenseTypes = ["fixed", "subscription", "one_time"];
@@ -306,7 +307,7 @@ export async function expensesHandler(context: InvocationContext, req: HttpReque
           if (!resource) {
             return fail("NOT_FOUND", "Expense not found", 404);
           }
-          return ok(resource);
+          return ok(attachExpenseLabels(resource as Record<string, unknown>));
         } catch (error: unknown) {
           const status = (error as { code?: number; statusCode?: number }).statusCode;
           if (status === 404) {
@@ -334,7 +335,7 @@ export async function expensesHandler(context: InvocationContext, req: HttpReque
             };
 
         const { resources } = await container.items.query(query).fetchAll();
-        return ok(resources);
+        return ok((resources as Array<Record<string, unknown>>).map(attachExpenseLabels));
       } catch (error: unknown) {
         context.log(error);
         return fail("SERVER_ERROR", "Failed to list expenses", 500);
