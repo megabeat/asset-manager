@@ -30,6 +30,9 @@ type ExpenseRecord = {
   billingDay?: number | null;
   category?: string;
   isInvestmentTransfer?: boolean;
+  investmentTargetCategory?: string;
+  investmentTargetAssetId?: string;
+  transferredAmount?: number;
   isCardIncluded?: boolean;
   entrySource?: "manual" | "auto_settlement";
   sourceExpenseId?: string;
@@ -39,6 +42,17 @@ type ExpenseRecord = {
   reflectedAmount?: number;
   reflectedAssetId?: string;
   reflectedAt?: string;
+};
+
+const INVESTMENT_TARGET_DEFAULT_NAME: Record<string, string> = {
+  stock_kr: "국내주식",
+  stock_us: "미국주식",
+  deposit: "예금",
+  cash: "현금",
+  pension: "연금",
+  pension_personal: "개인연금",
+  pension_retirement: "퇴직연금",
+  etc: "기타 투자"
 };
 
 type AssetRecord = {
@@ -135,6 +149,94 @@ async function applyLiquidAssetDelta(
 
   await assetsContainer.item(liquidAsset.id, userId).replace(updated);
   return { assetId: liquidAsset.id, appliedDelta: delta };
+}
+
+async function resolveInvestmentTargetAsset(
+  assetsContainer: ReturnType<typeof getContainer>,
+  userId: string,
+  targetCategory: string,
+  preferredAssetId?: string
+): Promise<AssetRecord> {
+  if (preferredAssetId) {
+    const { resource } = await assetsContainer.item(preferredAssetId, userId).read();
+    if (resource) {
+      return resource as AssetRecord;
+    }
+  }
+
+  const query = {
+    query:
+      "SELECT TOP 1 * FROM c WHERE c.userId = @userId AND c.type = 'Asset' AND c.category = @category ORDER BY c.updatedAt DESC",
+    parameters: [
+      { name: "@userId", value: userId },
+      { name: "@category", value: targetCategory }
+    ]
+  };
+
+  const { resources } = await assetsContainer.items.query(query).fetchAll();
+  if (resources.length > 0) {
+    return resources[0] as AssetRecord;
+  }
+
+  const nowIso = new Date().toISOString();
+  const newAsset = {
+    id: randomUUID(),
+    userId,
+    type: "Asset",
+    category: targetCategory,
+    name: INVESTMENT_TARGET_DEFAULT_NAME[targetCategory] ?? "투자자산",
+    currentValue: 0,
+    acquiredValue: null,
+    quantity: null,
+    valuationDate: nowIso.slice(0, 10),
+    symbol: "",
+    exchangeRate: null,
+    usdAmount: null,
+    pensionMonthlyContribution: null,
+    pensionReceiveStart: "",
+    pensionReceiveAge: null,
+    carYear: null,
+    exchange: "",
+    priceSource: "",
+    autoUpdate: false,
+    note: "투자이체 반영용 자동 생성",
+    createdAt: nowIso,
+    updatedAt: nowIso
+  };
+
+  const { resource } = await assetsContainer.items.create(newAsset);
+  return resource as AssetRecord;
+}
+
+async function applyInvestmentAssetDelta(
+  assetsContainer: ReturnType<typeof getContainer>,
+  userId: string,
+  delta: number,
+  targetCategory: string,
+  preferredAssetId?: string
+): Promise<{ assetId: string; appliedDelta: number } | null> {
+  if (!Number.isFinite(delta) || delta === 0) {
+    return null;
+  }
+
+  const targetAsset = await resolveInvestmentTargetAsset(
+    assetsContainer,
+    userId,
+    targetCategory,
+    preferredAssetId
+  );
+  const nextValue = Math.max(0, Number(targetAsset.currentValue ?? 0) + delta);
+  const nowIso = new Date().toISOString();
+
+  const updated = {
+    ...targetAsset,
+    currentValue: nextValue,
+    valuationDate: nowIso.slice(0, 10),
+    updatedAt: nowIso
+  };
+
+  await assetsContainer.item(targetAsset.id, userId).replace(updated);
+  return { assetId: targetAsset.id, appliedDelta: delta };
 }
 
 function getQueryValue(req: HttpRequest, key: string): string | undefined {
@@ -365,9 +467,17 @@ export async function expensesHandler(context: InvocationContext, req: HttpReque
         const cycle = ensureEnum(body.cycle, "cycle", billingCycles);
         const expenseType = ensureEnum(body.type, "type", expenseTypes);
         const billingDay = ensureOptionalNumberInRange(body.billingDay, "billingDay", 1, 31) ?? null;
+        const isInvestmentTransfer =
+          ensureOptionalBoolean(body.isInvestmentTransfer, "isInvestmentTransfer") ?? false;
+        const investmentTargetCategory =
+          ensureOptionalString(body.investmentTargetCategory, "investmentTargetCategory") ?? "";
 
         if ((expenseType === "subscription" || expenseType === "fixed") && billingDay === null) {
           return fail("VALIDATION_ERROR", "billingDay is required for recurring expenses", 400);
+        }
+
+        if (isInvestmentTransfer && !investmentTargetCategory) {
+          return fail("VALIDATION_ERROR", "investmentTargetCategory is required for investment transfer", 400);
         }
 
         const expense = {
@@ -381,8 +491,10 @@ export async function expensesHandler(context: InvocationContext, req: HttpReque
           billingDay,
           occurredAt,
           reflectToLiquidAsset,
-          isInvestmentTransfer:
-            ensureOptionalBoolean(body.isInvestmentTransfer, "isInvestmentTransfer") ?? false,
+          isInvestmentTransfer,
+          investmentTargetCategory,
+          investmentTargetAssetId: "",
+          transferredAmount: 0,
           isCardIncluded: ensureOptionalBoolean(body.isCardIncluded, "isCardIncluded") ?? false,
           reflectedAmount: 0,
           reflectedAssetId: "",
@@ -406,11 +518,25 @@ export async function expensesHandler(context: InvocationContext, req: HttpReque
         }
 
         const reflected = await applyLiquidAssetDelta(assetsContainer, userId, -amount);
+        let targetAssetId = "";
+        let transferredAmount = 0;
+        if (isInvestmentTransfer && investmentTargetCategory) {
+          const transferred = await applyInvestmentAssetDelta(
+            assetsContainer,
+            userId,
+            amount,
+            investmentTargetCategory
+          );
+          targetAssetId = transferred?.assetId ?? "";
+          transferredAmount = transferred?.appliedDelta ?? 0;
+        }
         const nowIso = new Date().toISOString();
         const updatedExpense = {
           ...resource,
           reflectedAmount: reflected ? amount : 0,
           reflectedAssetId: reflected?.assetId ?? "",
+          investmentTargetAssetId: targetAssetId,
+          transferredAmount,
           reflectedAt: reflected ? nowIso : "",
           updatedAt: nowIso
         };
@@ -451,6 +577,12 @@ export async function expensesHandler(context: InvocationContext, req: HttpReque
         const nextReflectSetting =
           ensureOptionalBoolean(body.reflectToLiquidAsset, "reflectToLiquidAsset") ??
           (existing.reflectToLiquidAsset ?? false);
+        const nextIsInvestmentTransfer =
+          ensureOptionalBoolean(body.isInvestmentTransfer, "isInvestmentTransfer") ??
+          Boolean(existing.isInvestmentTransfer ?? false);
+        const nextInvestmentTargetCategory =
+          ensureOptionalString(body.investmentTargetCategory, "investmentTargetCategory") ??
+          String(existing.investmentTargetCategory ?? "");
         const nextExpenseType =
           ensureOptionalEnum(body.type, "type", expenseTypes) ??
           String(existing.expenseType ?? "fixed");
@@ -461,6 +593,10 @@ export async function expensesHandler(context: InvocationContext, req: HttpReque
 
         if ((nextExpenseType === "subscription" || nextExpenseType === "fixed") && nextBillingDay === null) {
           return fail("VALIDATION_ERROR", "billingDay is required for recurring expenses", 400);
+        }
+
+        if (nextIsInvestmentTransfer && !nextInvestmentTargetCategory) {
+          return fail("VALIDATION_ERROR", "investmentTargetCategory is required for investment transfer", 400);
         }
 
         const prevReflectedAmount = Number(existing.reflectedAmount ?? 0);
@@ -484,6 +620,39 @@ export async function expensesHandler(context: InvocationContext, req: HttpReque
           reflectedAt = "";
         }
 
+        const prevTransferredAmount = Number(existing.transferredAmount ?? 0);
+        const prevTargetCategory = String(existing.investmentTargetCategory ?? "");
+        const prevTargetAssetId = String(existing.investmentTargetAssetId ?? "");
+        const nextTransferredAmount =
+          nextIsInvestmentTransfer && shouldReflectNow(nextReflectSetting, nextOccurredAt)
+            ? nextAmount
+            : 0;
+
+        let nextTargetAssetId = prevTargetAssetId;
+        if (prevTransferredAmount > 0 && prevTargetCategory) {
+          await applyInvestmentAssetDelta(
+            assetsContainer,
+            userId,
+            -prevTransferredAmount,
+            prevTargetCategory,
+            prevTargetAssetId || undefined
+          );
+          nextTargetAssetId = "";
+        }
+
+        if (nextTransferredAmount > 0 && nextInvestmentTargetCategory) {
+          const transferred = await applyInvestmentAssetDelta(
+            assetsContainer,
+            userId,
+            nextTransferredAmount,
+            nextInvestmentTargetCategory,
+            prevTargetCategory === nextInvestmentTargetCategory && prevTargetAssetId
+              ? prevTargetAssetId
+              : undefined
+          );
+          nextTargetAssetId = transferred?.assetId ?? nextTargetAssetId;
+        }
+
         const updated = {
           ...existing,
           expenseType: nextExpenseType,
@@ -493,9 +662,10 @@ export async function expensesHandler(context: InvocationContext, req: HttpReque
           billingDay: nextBillingDay,
           occurredAt: nextOccurredAt,
           reflectToLiquidAsset: nextReflectSetting,
-          isInvestmentTransfer:
-            ensureOptionalBoolean(body.isInvestmentTransfer, "isInvestmentTransfer") ??
-            Boolean(existing.isInvestmentTransfer ?? false),
+          isInvestmentTransfer: nextIsInvestmentTransfer,
+          investmentTargetCategory: nextInvestmentTargetCategory,
+          investmentTargetAssetId: nextTargetAssetId,
+          transferredAmount: nextTransferredAmount,
           isCardIncluded:
             ensureOptionalBoolean(body.isCardIncluded, "isCardIncluded") ??
             Boolean(existing.isCardIncluded ?? false),
@@ -539,6 +709,18 @@ export async function expensesHandler(context: InvocationContext, req: HttpReque
             userId,
             reflectedAmount,
             expense.reflectedAssetId || undefined
+          );
+        }
+
+        const transferredAmount = Number(expense.transferredAmount ?? 0);
+        const targetCategory = String(expense.investmentTargetCategory ?? "");
+        if (transferredAmount > 0 && targetCategory) {
+          await applyInvestmentAssetDelta(
+            assetsContainer,
+            userId,
+            -transferredAmount,
+            targetCategory,
+            expense.investmentTargetAssetId || undefined
           );
         }
 

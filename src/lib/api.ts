@@ -58,6 +58,9 @@ export type Expense = {
   occurredAt?: string;
   reflectToLiquidAsset?: boolean;
   isInvestmentTransfer?: boolean;
+  investmentTargetCategory?: string;
+  investmentTargetAssetId?: string;
+  transferredAmount?: number;
   isCardIncluded?: boolean;
   entrySource?: 'manual' | 'auto_settlement';
   sourceExpenseId?: string;

@@ -18,6 +18,7 @@ type ExpenseForm = {
   occurredAt: string;
   reflectToLiquidAsset: boolean;
   isInvestmentTransfer: boolean;
+  investmentTargetCategory: string;
   isCardIncluded: boolean;
   category: string;
 };
@@ -31,9 +32,20 @@ const defaultForm: ExpenseForm = {
   occurredAt: new Date().toISOString().slice(0, 10),
   reflectToLiquidAsset: false,
   isInvestmentTransfer: false,
+  investmentTargetCategory: 'stock_kr',
   isCardIncluded: false,
   category: ''
 };
+
+const INVESTMENT_TARGET_OPTIONS = [
+  { value: 'stock_kr', label: '국내주식' },
+  { value: 'stock_us', label: '미국주식' },
+  { value: 'deposit', label: '예금' },
+  { value: 'cash', label: '현금' },
+  { value: 'pension_personal', label: '개인연금' },
+  { value: 'pension_retirement', label: '퇴직연금' },
+  { value: 'etc', label: '기타' }
+] as const;
 
 function getCurrentMonthKey(): string {
   const now = new Date();
@@ -230,6 +242,10 @@ export default function ExpensesPage() {
       }
     }
 
+    if (form.isInvestmentTransfer && !form.investmentTargetCategory) {
+      nextErrors.investmentTargetCategory = '투자 대상 자산을 선택해주세요.';
+    }
+
     setErrors(nextErrors);
 
     if (Object.keys(nextErrors).length > 0) {
@@ -255,6 +271,7 @@ export default function ExpensesPage() {
       occurredAt: resolvedOccurredAt,
       reflectToLiquidAsset: form.reflectToLiquidAsset,
       isInvestmentTransfer: form.isInvestmentTransfer,
+      investmentTargetCategory: form.isInvestmentTransfer ? form.investmentTargetCategory : '',
       isCardIncluded: form.type === 'subscription' || form.type === 'fixed' ? form.isCardIncluded : false,
       category: form.category.trim()
     };
@@ -363,6 +380,7 @@ export default function ExpensesPage() {
       occurredAt: expense.occurredAt?.slice(0, 10) ?? new Date().toISOString().slice(0, 10),
       reflectToLiquidAsset: Boolean(expense.reflectToLiquidAsset),
       isInvestmentTransfer: Boolean(expense.isInvestmentTransfer),
+      investmentTargetCategory: expense.investmentTargetCategory ?? 'stock_kr',
       isCardIncluded: Boolean(expense.isCardIncluded),
       category: expense.category ?? ''
     });
@@ -562,6 +580,22 @@ export default function ExpensesPage() {
             </label>
           </FormField>
 
+          {form.isInvestmentTransfer ? (
+            <FormField label="투자 대상 자산" error={errors.investmentTargetCategory}>
+              <select
+                value={form.investmentTargetCategory}
+                onChange={(event) =>
+                  setForm((prev) => ({ ...prev, investmentTargetCategory: event.target.value }))
+                }
+                className={errors.investmentTargetCategory ? 'border-red-700' : ''}
+              >
+                {INVESTMENT_TARGET_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>{option.label}</option>
+                ))}
+              </select>
+            </FormField>
+          ) : null}
+
           {(form.type === 'subscription' || form.type === 'fixed') ? (
             <FormField label="카드 포함 여부" fullWidth>
               <label className="flex items-center gap-2">
@@ -703,6 +737,12 @@ export default function ExpensesPage() {
               align: 'center',
               render: (expense) => (expense.isInvestmentTransfer ? '투자이체' : '소비'),
             },
+            {
+              key: 'target',
+              header: '투자대상',
+              align: 'center',
+              render: (expense) => (expense.isInvestmentTransfer ? expense.investmentTargetCategory || '-' : '-'),
+            },
             { key: 'cycle', header: '주기', render: (expense) => expense.cycle },
             {
               key: 'cardIncluded',
@@ -767,6 +807,12 @@ export default function ExpensesPage() {
               header: '흐름',
               align: 'center',
               render: (expense) => (expense.isInvestmentTransfer ? '투자이체' : '소비'),
+            },
+            {
+              key: 'target',
+              header: '투자대상',
+              align: 'center',
+              render: (expense) => (expense.isInvestmentTransfer ? expense.investmentTargetCategory || '-' : '-'),
             },
             {
               key: 'entrySource',
