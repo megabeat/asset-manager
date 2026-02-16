@@ -514,10 +514,7 @@ ${webSearchContext}
           ];
 
           const completion = await withTimeout(
-            client.getChatCompletions(deploymentName, messages, {
-              maxTokens: 900,
-              temperature: 0.7
-            }),
+            client.getChatCompletions(deploymentName, messages),
             45000,
             "OpenAI completion timeout"
           );
@@ -540,10 +537,7 @@ ${webSearchContext}
             ];
 
             const retryCompletion = await withTimeout(
-              client.getChatCompletions(deploymentName, compactMessages, {
-                maxTokens: 600,
-                temperature: 0.7
-              }),
+              client.getChatCompletions(deploymentName, compactMessages),
               20000,
               "OpenAI compact retry timeout"
             );
