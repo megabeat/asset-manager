@@ -136,6 +136,30 @@ function formatWon(value: number): string {
   return `${Math.round(value).toLocaleString()}원`;
 }
 
+/* Custom content renderer for Treemap – shows individual asset name inside each cell */
+function TreemapCustomContent(props: Record<string, unknown>) {
+  const { x, y, width, height, name, fill, depth } = props as {
+    x: number; y: number; width: number; height: number;
+    name?: string; fill?: string; depth?: number;
+  };
+  // Only render leaf nodes (depth === 2 in nested data, or 1 for flat)
+  if ((depth ?? 0) < 1) return null;
+  const w = width ?? 0;
+  const h = height ?? 0;
+  const fontSize = w < 60 || h < 28 ? 10 : w < 100 ? 11 : 12;
+  const showLabel = w > 30 && h > 18;
+  return (
+    <g>
+      <rect x={x} y={y} width={w} height={h} fill={fill ?? '#8884d8'} stroke="rgba(255,255,255,0.88)" strokeWidth={2} rx={3} />
+      {showLabel && (
+        <text x={x + w / 2} y={y + h / 2} textAnchor="middle" dominantBaseline="central" fill="#fff" fontSize={fontSize} fontWeight={600} style={{ pointerEvents: 'none' }}>
+          {(name ?? '').length > Math.floor(w / (fontSize * 0.6)) ? (name ?? '').slice(0, Math.floor(w / (fontSize * 0.6))) + '…' : name}
+        </text>
+      )}
+    </g>
+  );
+}
+
 function AssetTreemapTooltip({
   active,
   payload
@@ -816,6 +840,7 @@ export default function AssetsPage() {
                 aspectRatio={4 / 3}
                 isAnimationActive
                 animationDuration={500}
+                content={<TreemapCustomContent />}
               >
                 <Tooltip content={<AssetTreemapTooltip />} />
               </Treemap>
