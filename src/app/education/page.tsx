@@ -261,7 +261,7 @@ export default function EducationPage() {
     if (!selectedChild?.targetUniversityYear) return;
     setPlanForm((prev) => ({
       ...prev,
-      startYear: selectedChild.targetUniversityYear!,
+      startYear: currentYear,
       endYear: selectedChild.targetUniversityYear! + 4
     }));
   }, [planForm.childId, children]);
@@ -277,10 +277,10 @@ export default function EducationPage() {
     if (!Number.isFinite(planForm.inflationRate) || planForm.inflationRate < 0 || planForm.inflationRate > 1) {
       nextErrors.inflationRate = '물가상승률은 0~1 사이여야 합니다.';
     }
-    if (!Number.isFinite(planForm.startYear) || !Number.isFinite(planForm.endYear)) {
-      nextErrors.years = '기간을 확인해주세요.';
-    } else if (planForm.endYear < planForm.startYear) {
-      nextErrors.years = '종료연도는 시작연도 이후여야 합니다.';
+    if (!Number.isFinite(planForm.endYear)) {
+      nextErrors.years = '종료연도를 확인해주세요.';
+    } else if (planForm.endYear < currentYear) {
+      nextErrors.years = '종료연도는 현재 연도 이후여야 합니다.';
     }
 
     setPlanErrors(nextErrors);
@@ -289,7 +289,10 @@ export default function EducationPage() {
       return;
     }
 
-    const result = await api.createEducationPlan(planForm);
+    const result = await api.createEducationPlan({
+      ...planForm,
+      startYear: currentYear
+    });
     if (result.error) {
       setErrorMessage('계획 저장 실패', result.error);
       return;
@@ -459,11 +462,8 @@ export default function EducationPage() {
           <FormField label="물가상승률(0~1)" error={planErrors.inflationRate}>
             <input type="number" step="0.01" min="0" max="1" value={planForm.inflationRate} onChange={(e) => setPlanForm((p) => ({ ...p, inflationRate: Number(e.target.value || 0) }))} placeholder="물가상승률" className={planErrors.inflationRate ? 'border-red-700' : ''} />
           </FormField>
-          <FormField label="시작연도" error={planErrors.years}>
-            <input type="number" value={planForm.startYear} onChange={(e) => setPlanForm((p) => ({ ...p, startYear: Number(e.target.value || currentYear) }))} placeholder="시작연도" className={planErrors.years ? 'border-red-700' : ''} />
-          </FormField>
           <FormField label="종료연도" error={planErrors.years}>
-            <input type="number" value={planForm.endYear} onChange={(e) => setPlanForm((p) => ({ ...p, endYear: Number(e.target.value || currentYear) }))} placeholder="종료연도" className={planErrors.years ? 'border-red-700' : ''} />
+            <input type="number" min={currentYear} value={planForm.endYear} onChange={(e) => setPlanForm((p) => ({ ...p, endYear: Number(e.target.value || currentYear) }))} placeholder="종료연도" className={planErrors.years ? 'border-red-700' : ''} />
           </FormField>
           <button type="submit" className="btn-primary w-[140px] self-end">계획 추가</button>
         </form>
