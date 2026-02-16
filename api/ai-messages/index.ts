@@ -145,20 +145,62 @@ function buildFallbackAdvice(
   return lines.join("\n");
 }
 
+function serializeUnknownError(value: unknown): string {
+  try {
+    return JSON.stringify(value);
+  } catch {
+    return String(value);
+  }
+}
+
+function extractObjectMessage(errorObject: Record<string, unknown>): string {
+  const directMessage = errorObject.message;
+  if (typeof directMessage === "string" && directMessage.trim().length > 0) {
+    return directMessage;
+  }
+
+  const nestedError = errorObject.error;
+  if (nestedError && typeof nestedError === "object") {
+    const nestedMessage = (nestedError as { message?: unknown }).message;
+    if (typeof nestedMessage === "string" && nestedMessage.trim().length > 0) {
+      return nestedMessage;
+    }
+  }
+
+  const details = errorObject.details;
+  if (typeof details === "string" && details.trim().length > 0) {
+    return details;
+  }
+
+  const name = typeof errorObject.name === "string" ? errorObject.name : "ObjectError";
+  const code = errorObject.code ?? "NA";
+  return `${name} code=${String(code)} payload=${serializeUnknownError(errorObject)}`;
+}
+
 function extractErrorInfo(error: unknown): { statusCode?: number; message: string } {
   if (!error) {
     return { message: "Unknown error" };
   }
 
+  const errorObject =
+    typeof error === "object" && error !== null ? (error as Record<string, unknown>) : null;
+
   const statusCode = Number(
-    (error as { statusCode?: number; code?: number })?.statusCode ??
-      (error as { code?: number })?.code
+    (errorObject?.statusCode as number | string | undefined) ??
+      (errorObject?.code as number | string | undefined)
   );
 
   if (error instanceof Error) {
     return {
       statusCode: Number.isFinite(statusCode) ? statusCode : undefined,
       message: error.message
+    };
+  }
+
+  if (errorObject) {
+    return {
+      statusCode: Number.isFinite(statusCode) ? statusCode : undefined,
+      message: extractObjectMessage(errorObject)
     };
   }
 
