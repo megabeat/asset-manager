@@ -171,6 +171,7 @@ export default function AssetsPage() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [fxLoading, setFxLoading] = useState(false);
   const [fxManualOverride, setFxManualOverride] = useState(false);
+  const [treemapView, setTreemapView] = useState<'all' | 'stock'>('all');
 
   function isPensionCategory(category?: string) {
     return (
@@ -354,6 +355,34 @@ export default function AssetsPage() {
           }))
       }));
   }, [categoryGroups]);
+
+  const stockTreemapData = useMemo<TreemapNode[]>(() => {
+    const STOCK_COLORS: Record<string, string> = { stock_us: '#0b63ce', stock_kr: '#2e7d32' };
+    const stockCategories = ['stock_us', 'stock_kr'] as const;
+    return stockCategories
+      .map((cat) => {
+        const items = assets.filter((a) => a.category === cat && (a.currentValue ?? 0) > 0);
+        if (items.length === 0) return null;
+        const total = items.reduce((s, a) => s + (a.currentValue ?? 0), 0);
+        const label = cat === 'stock_us' ? '미국주식' : '국내주식';
+        const fill = STOCK_COLORS[cat];
+        return {
+          name: label,
+          size: total,
+          categoryLabel: label,
+          fill,
+          children: items
+            .sort((a, b) => (b.currentValue ?? 0) - (a.currentValue ?? 0))
+            .map((a) => ({
+              name: a.name || '이름 없음',
+              size: a.currentValue ?? 0,
+              categoryLabel: label,
+              fill
+            }))
+        };
+      })
+      .filter(Boolean) as TreemapNode[];
+  }, [assets]);
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -751,15 +780,37 @@ export default function AssetsPage() {
       </SectionCard>
 
       <SectionCard className="mt-4">
-        <h3 className="mt-0">자산 트리맵</h3>
-        <p className="helper-text mt-1.5">사각형 면적은 자산 금액 비중을 나타냅니다. 카테고리 내 개별 자산까지 한 번에 비교할 수 있습니다.</p>
-        {treemapData.length === 0 ? (
-          <p className="mt-3">표시할 자산 데이터가 없습니다.</p>
+        <div className="flex flex-wrap items-center gap-3">
+          <h3 className="mt-0">자산 트리맵</h3>
+          <div className="flex gap-1 rounded-lg border border-[var(--line)] bg-[var(--surface-2)] p-0.5">
+            <button
+              type="button"
+              className={treemapView === 'all' ? 'btn-primary px-3 py-1 text-xs' : 'btn-subtle px-3 py-1 text-xs'}
+              onClick={() => setTreemapView('all')}
+            >
+              전체
+            </button>
+            <button
+              type="button"
+              className={treemapView === 'stock' ? 'btn-primary px-3 py-1 text-xs' : 'btn-subtle px-3 py-1 text-xs'}
+              onClick={() => setTreemapView('stock')}
+            >
+              주식(미국/한국)
+            </button>
+          </div>
+        </div>
+        <p className="helper-text mt-1.5">
+          {treemapView === 'all'
+            ? '사각형 면적은 자산 금액 비중을 나타냅니다. 카테고리 내 개별 자산까지 한 번에 비교할 수 있습니다.'
+            : '미국주식 / 국내주식의 종목별 비중을 비교합니다.'}
+        </p>
+        {(treemapView === 'all' ? treemapData : stockTreemapData).length === 0 ? (
+          <p className="mt-3">{treemapView === 'all' ? '표시할 자산 데이터가 없습니다.' : '주식 자산이 없습니다.'}</p>
         ) : (
           <div className="mt-3 h-[360px] w-full overflow-hidden rounded-xl border border-[var(--line)] bg-[var(--surface-2)] p-2 sm:h-[420px]">
             <ResponsiveContainer width="100%" height="100%">
               <Treemap
-                data={treemapData}
+                data={treemapView === 'all' ? treemapData : stockTreemapData}
                 dataKey="size"
                 stroke="rgba(255,255,255,0.88)"
                 aspectRatio={4 / 3}
