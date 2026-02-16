@@ -18,7 +18,7 @@ const quickActions = [
   { href: '/incomes', label: '수입 관리', desc: '월/연/일회성 수입 기록' },
   { href: '/expenses', label: '지출 관리', desc: '고정/구독 지출과 월 환산 확인' },
   { href: '/liabilities', label: '부채 관리', desc: '대출/카드/기타 채무 기록' },
-  { href: '/education', label: '교육 계획', desc: '자녀별 교육비 시뮬레이션' },
+  { href: '/education', label: '자산시뮬레이션', desc: '교육비 포함 미래 자산 시나리오 분석' },
   { href: '/ai-advisor', label: 'AI 상담', desc: '재무 상태 기반 질문/답변' },
   { href: '/dashboard', label: '통합 대시보드', desc: '순자산/추이/구성 한눈에 보기' }
 ];

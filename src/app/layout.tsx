@@ -21,7 +21,7 @@ export default function RootLayout({
     { href: "/incomes", label: "수입" },
     { href: "/expenses", label: "지출" },
     { href: "/liabilities", label: "부채" },
-    { href: "/education", label: "교육" },
+    { href: "/education", label: "자산시뮬레이션" },
     { href: "/ai-advisor", label: "AI 상담" },
     { href: "/profile", label: "설정" }
   ];
