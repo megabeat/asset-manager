@@ -26,6 +26,8 @@
   --table-head-border: #dbe3ef;
   --table-row-even: #ffffff;
   --table-row-odd: #f8fbff;
+  --delta-positive: #15803d;
+  --delta-negative: #b91c1c;
   --danger-soft: #fff5f5;
   --chat-user-bg: #e8f1ff;
   --chat-user-border: #bfdbfe;
@@ -58,6 +60,8 @@
   --table-head-border: #3a4e66;
   --table-row-even: #131f32;
   --table-row-odd: #0f1a2c;
+  --delta-positive: #4ade80;
+  --delta-negative: #f87171;
   --danger-soft: rgba(239, 68, 68, 0.12);
   --chat-user-bg: rgba(37, 99, 235, 0.22);
   --chat-user-border: rgba(96, 165, 250, 0.5);
@@ -306,6 +310,16 @@ table {
 
   .ui-table-row-odd {
     background: var(--table-row-odd);
+  }
+
+  .ui-delta-positive {
+    color: var(--delta-positive);
+    font-weight: 600;
+  }
+
+  .ui-delta-negative {
+    color: var(--delta-negative);
+    font-weight: 600;
   }
 
   .ai-chat-bubble {

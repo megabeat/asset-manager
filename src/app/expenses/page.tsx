@@ -641,7 +641,7 @@ export default function ExpensesPage() {
                 <td className="ui-table-td text-left">{row.issuer}</td>
                 <td className="ui-table-td text-right">{Math.round(row.currentAmount).toLocaleString()}원</td>
                 <td className="ui-table-td text-right">{Math.round(row.previousAmount).toLocaleString()}원</td>
-                <td className={`ui-table-td text-right ${row.delta >= 0 ? 'text-red-700' : 'text-green-700'}`}>
+                <td className={`ui-table-td text-right ${row.delta >= 0 ? 'ui-delta-negative' : 'ui-delta-positive'}`}>
                   {row.delta >= 0 ? '+' : ''}{Math.round(row.delta).toLocaleString()}원
                 </td>
               </tr>

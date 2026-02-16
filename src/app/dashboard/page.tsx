@@ -303,7 +303,7 @@ export default function DashboardPage() {
                     <td className="ui-table-td text-right">
                       {item.totalValue.toLocaleString()}원
                     </td>
-                    <td className={`ui-table-td text-right ${item.delta >= 0 ? 'text-green-700' : 'text-red-700'}`}>
+                    <td className={`ui-table-td text-right ${item.delta >= 0 ? 'ui-delta-positive' : 'ui-delta-negative'}`}>
                       {item.delta >= 0 ? '+' : ''}
                       {item.delta.toLocaleString()}원
                     </td>
