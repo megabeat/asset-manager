@@ -13,6 +13,8 @@ type AssetItem = {
   autoUpdate?: boolean;
   quantity?: number | null;
   currentValue?: number;
+  exchangeRate?: number | null;
+  usdAmount?: number | null;
 };
 
 function buildStooqSymbol(symbol: string, exchange?: string): string {
@@ -68,6 +70,11 @@ async function resolvePrice(asset: AssetItem): Promise<number | null> {
   return null;
 }
 
+async function fetchUsdKrwRate(): Promise<number | null> {
+  // stooq symbol for USD/KRW
+  return fetchStooqPrice("usdkrw");
+}
+
 export async function priceUpdater(timer: Timer, context: InvocationContext): Promise<void> {
   if (timer.isPastDue) {
     context.log("Price updater is running late.");
@@ -76,6 +83,7 @@ export async function priceUpdater(timer: Timer, context: InvocationContext): Pr
   const assetsContainer = getContainer("assets");
   const historyContainer = getContainer("assetHistory");
 
+  // ── 1. Auto-update investment prices (existing) ──
   const query = {
     query:
       "SELECT * FROM c WHERE c.type = 'Asset' AND c.category = 'investment' AND c.autoUpdate = true AND c.priceSource = 'stooq'",
@@ -117,6 +125,64 @@ export async function priceUpdater(timer: Timer, context: InvocationContext): Pr
     };
 
     await historyContainer.items.create(historyItem);
+  }
+
+  // ── 2. Update USD/KRW exchange rate for stock_us assets ──
+  const fxRate = await fetchUsdKrwRate();
+  if (fxRate === null) {
+    context.log("Failed to fetch USD/KRW rate, skipping FX update.");
+    return;
+  }
+
+  context.log(`Fetched USD/KRW rate: ${fxRate}`);
+
+  const fxQuery = {
+    query:
+      "SELECT * FROM c WHERE c.type = 'Asset' AND c.category = 'stock_us' AND c.usdAmount > 0",
+    parameters: []
+  };
+
+  const { resources: usAssets } = await assetsContainer.items.query(fxQuery).fetchAll();
+  const stockUsAssets = usAssets as AssetItem[];
+
+  for (const asset of stockUsAssets) {
+    const usd = asset.usdAmount ?? 0;
+    if (usd <= 0) continue;
+
+    const oldRate = asset.exchangeRate ?? 0;
+    const newValue = Math.round(usd * fxRate);
+    const updatedAt = new Date().toISOString();
+
+    // Skip if rate barely changed (< 0.1%)
+    if (oldRate > 0 && Math.abs(fxRate - oldRate) / oldRate < 0.001) {
+      continue;
+    }
+
+    const updatedAsset = {
+      ...asset,
+      exchangeRate: Math.round(fxRate * 100) / 100,
+      currentValue: newValue,
+      valuationDate: updatedAt.slice(0, 10),
+      updatedAt
+    };
+
+    await assetsContainer.item(asset.id, asset.userId).replace(updatedAsset);
+
+    const historyItem = {
+      id: `${asset.id}-fx-${updatedAt}`,
+      userId: asset.userId,
+      assetId: asset.id,
+      type: "AssetHistory",
+      value: newValue,
+      quantity: asset.quantity ?? 1,
+      recordedAt: updatedAt,
+      note: `auto FX update (${oldRate.toFixed(2)} → ${fxRate.toFixed(2)} KRW/USD)`,
+      createdAt: updatedAt
+    };
+
+    await historyContainer.items.create(historyItem);
+
+    context.log(`Updated ${asset.id}: rate ${oldRate} → ${fxRate}, value → ${newValue}`);
   }
 }
 
