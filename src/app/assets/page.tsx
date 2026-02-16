@@ -6,6 +6,7 @@ import { SectionCard } from '@/components/ui/SectionCard';
 import { FormField } from '@/components/ui/FormField';
 import { DataTable } from '@/components/ui/DataTable';
 import { getAssetCategoryLabel } from '@/lib/assetCategory';
+import { ResponsiveContainer, Tooltip, Treemap } from 'recharts';
 
 type AssetCategory = 'cash' | 'deposit' | 'stock_kr' | 'stock_us' | 'real_estate' | 'etc';
 type NumericInput = number | '';
@@ -31,6 +32,32 @@ type QuickPreset = {
   label: string;
   category: AssetCategory;
   values: Partial<AssetForm>;
+};
+
+type CategoryGroup = {
+  category: string;
+  label: string;
+  total: number;
+  count: number;
+  color: string;
+  items: Array<{ name: string; size: number }>;
+};
+
+type CategorySummaryRow = {
+  category: string;
+  label: string;
+  count: number;
+  total: number;
+  ratio: number;
+  color: string;
+};
+
+type TreemapNode = {
+  name: string;
+  size: number;
+  categoryLabel?: string;
+  fill?: string;
+  children?: TreemapNode[];
 };
 
 const defaultForm: AssetForm = {
@@ -90,6 +117,37 @@ const quickPresets: QuickPreset[] = [
     values: { name: '아파트' }
   }
 ];
+
+const TREEMAP_COLORS = ['#0b63ce', '#2e7d32', '#f57c00', '#7b1fa2', '#c2185b', '#00796b', '#4f46e5'];
+
+function formatWon(value: number): string {
+  return `${Math.round(value).toLocaleString()}원`;
+}
+
+function AssetTreemapTooltip({
+  active,
+  payload
+}: {
+  active?: boolean;
+  payload?: Array<{ payload?: TreemapNode }>;
+}) {
+  if (!active || !payload || payload.length === 0) {
+    return null;
+  }
+
+  const node = payload[0]?.payload;
+  if (!node || typeof node.size !== 'number') {
+    return null;
+  }
+
+  return (
+    <div className="rounded-lg border border-[var(--line)] bg-[var(--surface)] px-3 py-2 shadow-md">
+      <p className="m-0 text-[0.85rem] font-semibold">{node.name}</p>
+      {node.categoryLabel ? <p className="helper-text mt-1">{node.categoryLabel}</p> : null}
+      <p className="m-0 mt-1 text-[0.85rem]">{formatWon(node.size)}</p>
+    </div>
+  );
+}
 
 export default function AssetsPage() {
   const [assets, setAssets] = useState<Asset[]>([]);
@@ -208,6 +266,81 @@ export default function AssetsPage() {
         .reduce((sum, asset) => sum + (asset.currentValue ?? 0), 0),
     [assets]
   );
+
+  const categoryGroups = useMemo<CategoryGroup[]>(() => {
+    const groupMap = new Map<string, CategoryGroup>();
+
+    assets.forEach((asset) => {
+      const category = asset.category || 'etc';
+      const currentValue = Math.max(0, Number(asset.currentValue ?? 0));
+
+      if (!groupMap.has(category)) {
+        const index = groupMap.size % TREEMAP_COLORS.length;
+        groupMap.set(category, {
+          category,
+          label: getAssetCategoryLabel(category),
+          total: 0,
+          count: 0,
+          color: TREEMAP_COLORS[index],
+          items: []
+        });
+      }
+
+      const group = groupMap.get(category);
+      if (!group) return;
+
+      group.total += currentValue;
+      group.count += 1;
+      group.items.push({
+        name: asset.name || '이름 없음',
+        size: currentValue
+      });
+    });
+
+    return Array.from(groupMap.values()).sort((left, right) => right.total - left.total);
+  }, [assets]);
+
+  const categorySummaryRows = useMemo<CategorySummaryRow[]>(() => {
+    if (totalAssetValue <= 0) {
+      return categoryGroups.map((group) => ({
+        category: group.category,
+        label: group.label,
+        count: group.count,
+        total: group.total,
+        ratio: 0,
+        color: group.color
+      }));
+    }
+
+    return categoryGroups.map((group) => ({
+      category: group.category,
+      label: group.label,
+      count: group.count,
+      total: group.total,
+      ratio: group.total / totalAssetValue,
+      color: group.color
+    }));
+  }, [categoryGroups, totalAssetValue]);
+
+  const treemapData = useMemo<TreemapNode[]>(() => {
+    return categoryGroups
+      .filter((group) => group.total > 0)
+      .map((group) => ({
+        name: group.label,
+        size: group.total,
+        categoryLabel: group.label,
+        fill: group.color,
+        children: group.items
+          .filter((item) => item.size > 0)
+          .sort((left, right) => right.size - left.size)
+          .map((item) => ({
+            name: item.name,
+            size: item.size,
+            categoryLabel: group.label,
+            fill: group.color
+          }))
+      }));
+  }, [categoryGroups]);
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -517,6 +650,72 @@ export default function AssetsPage() {
       {message && <p className="mt-4">{message}</p>}
 
       <SectionCard className="mt-4">
+        <h3 className="mt-0">자산 분류 요약</h3>
+        <DataTable
+          rows={categorySummaryRows}
+          rowKey={(row) => row.category}
+          emptyMessage="요약할 자산이 없습니다."
+          columns={[
+            {
+              key: 'label',
+              header: '분류',
+              render: (row) => (
+                <div className="flex items-center gap-2">
+                  <span
+                    className="inline-block h-2.5 w-2.5 rounded-full"
+                    style={{ backgroundColor: row.color }}
+                  />
+                  <span>{row.label}</span>
+                </div>
+              )
+            },
+            {
+              key: 'count',
+              header: '건수',
+              align: 'center',
+              render: (row) => `${row.count}건`
+            },
+            {
+              key: 'total',
+              header: '총 평가금액',
+              align: 'right',
+              render: (row) => formatWon(row.total)
+            },
+            {
+              key: 'ratio',
+              header: '비중',
+              align: 'right',
+              render: (row) => `${(row.ratio * 100).toFixed(1)}%`
+            }
+          ]}
+        />
+      </SectionCard>
+
+      <SectionCard className="mt-4">
+        <h3 className="mt-0">자산 트리맵</h3>
+        <p className="helper-text mt-1.5">사각형 면적은 자산 금액 비중을 나타냅니다. 카테고리 내 개별 자산까지 한 번에 비교할 수 있습니다.</p>
+        {treemapData.length === 0 ? (
+          <p className="mt-3">표시할 자산 데이터가 없습니다.</p>
+        ) : (
+          <div className="mt-3 h-[360px] w-full overflow-hidden rounded-xl border border-[var(--line)] bg-[var(--surface-2)] p-2 sm:h-[420px]">
+            <ResponsiveContainer width="100%" height="100%">
+              <Treemap
+                data={treemapData}
+                dataKey="size"
+                stroke="rgba(255,255,255,0.88)"
+                aspectRatio={4 / 3}
+                isAnimationActive
+                animationDuration={500}
+              >
+                <Tooltip content={<AssetTreemapTooltip />} />
+              </Treemap>
+            </ResponsiveContainer>
+          </div>
+        )}
+      </SectionCard>
+
+      <SectionCard className="mt-4">
+        <h3 className="mt-0">자산 상세 목록</h3>
         <DataTable
           rows={assets}
           rowKey={(asset) => asset.id}
