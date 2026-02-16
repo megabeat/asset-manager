@@ -11,6 +11,15 @@ type Summary = {
   monthlyFixedExpense: number;
 };
 
+function isPensionCategory(category?: string): boolean {
+  return (
+    category === 'pension' ||
+    category === 'pension_national' ||
+    category === 'pension_personal' ||
+    category === 'pension_retirement'
+  );
+}
+
 const quickActions = [
   { href: '/profile', label: '설정', desc: '기본 정보와 로그인 설정 확인' },
   { href: '/assets', label: '자산 등록', desc: '현금/투자/부동산 등 자산 입력' },
@@ -59,6 +68,16 @@ export default function Home() {
       .reduce((sum, asset) => sum + (asset.currentValue ?? 0), 0);
   }, [assets]);
 
+  const pensionAssetsTotal = useMemo(() => {
+    return assets
+      .filter((asset) => isPensionCategory(asset.category))
+      .reduce((sum, asset) => sum + (asset.currentValue ?? 0), 0);
+  }, [assets]);
+
+  const totalAssetsWithPension = useMemo(() => {
+    return (summary?.totalAssets ?? 0) + pensionAssetsTotal;
+  }, [summary?.totalAssets, pensionAssetsTotal]);
+
   const monthlyExpense = useMemo(() => {
     return expenses.reduce((sum, item) => {
       if (item.cycle === 'yearly') return sum + item.amount / 12;
@@ -91,6 +110,12 @@ export default function Home() {
           <h3 className="kpi-label">총 자산(연금 제외)</h3>
           <p className="kpi-value">
             {summary?.totalAssets?.toLocaleString() ?? '-'}원
+          </p>
+        </div>
+        <div className="kpi-card">
+          <h3 className="kpi-label">총 자산(연금 포함)</h3>
+          <p className="kpi-value">
+            {totalAssetsWithPension.toLocaleString()}원
           </p>
         </div>
         <div className="kpi-card">
