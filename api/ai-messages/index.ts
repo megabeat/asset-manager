@@ -52,6 +52,24 @@ function toErrorDetails(error: unknown): string {
   return String(error);
 }
 
+async function withTimeout<T>(promise: Promise<T>, ms: number, timeoutMessage: string): Promise<T> {
+  let timeoutId: NodeJS.Timeout | null = null;
+
+  const timeoutPromise = new Promise<never>((_, reject) => {
+    timeoutId = setTimeout(() => {
+      reject(new Error(timeoutMessage));
+    }, ms);
+  });
+
+  try {
+    return await Promise.race([promise, timeoutPromise]);
+  } finally {
+    if (timeoutId) {
+      clearTimeout(timeoutId);
+    }
+  }
+}
+
 
 export async function aiMessagesHandler(context: InvocationContext, req: HttpRequest): Promise<HttpResponseInit> {
   const { userId } = getAuthContext(req.headers);
@@ -194,7 +212,11 @@ export async function aiMessagesHandler(context: InvocationContext, req: HttpReq
 
         let webSearchContext = "웹 검색 결과 없음";
         try {
-          const webResults = await searchWeb(content, 4);
+          const webResults = await withTimeout(
+            searchWeb(content, 4),
+            5000,
+            "Web search timeout"
+          );
           if (webResults.length > 0) {
             webSearchContext = webResults
               .map(
@@ -288,11 +310,14 @@ ${webSearchContext}
 
           const messages = [
             { role: "system" as const, content: systemPrompt },
-            ...history.map((h) => ({ role: h.role as "user" | "assistant", content: h.content })),
-            { role: "user" as const, content }
+            ...history.map((h) => ({ role: h.role as "user" | "assistant", content: h.content }))
           ];
 
-          const completion = await client.getChatCompletions(deploymentName, messages);
+          const completion = await withTimeout(
+            client.getChatCompletions(deploymentName, messages),
+            25000,
+            "OpenAI completion timeout"
+          );
 
           assistantContent = completion.choices[0]?.message?.content ?? assistantContent;
         } catch (aiError: unknown) {

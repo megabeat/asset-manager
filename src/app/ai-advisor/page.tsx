@@ -92,23 +92,56 @@ export default function AIAdvisorPage() {
   };
 
   const sendMessage = async () => {
-    if (!conversationId || !input.trim()) return;
+    if (!conversationId || !input.trim() || loading) return;
 
     setMessage(null);
+    const pendingText = input.trim();
+    const tempUserMessageId = `temp-user-${Date.now()}`;
+
+    setMessages((prev) => [
+      ...prev,
+      {
+        id: tempUserMessageId,
+        role: 'user',
+        content: pendingText,
+        createdAt: new Date().toISOString()
+      }
+    ]);
+    setInput('');
+
     setLoading(true);
-    const result = await api.sendMessage(conversationId, input);
-    
-    if (result.data) {
-      const { userMessage, assistantMessage } = result.data as {
-        userMessage: ChatMessage;
-        assistantMessage: ChatMessage;
-      };
-      setMessages((prev) => [...prev, userMessage, assistantMessage]);
-      setInput('');
-    } else if (result.error) {
-      setMessage(`전송 실패: ${result.error.message}`);
+
+    try {
+      const result = await api.sendMessage(conversationId, pendingText);
+
+      if (result.error) {
+        setMessages((prev) => prev.filter((msg) => msg.id !== tempUserMessageId));
+        setMessage(`전송 실패: ${result.error.message}`);
+        return;
+      }
+
+      const payload = result.data as
+        | { userMessage?: ChatMessage; assistantMessage?: ChatMessage }
+        | null;
+      const assistantMessage = payload?.assistantMessage;
+
+      if (!assistantMessage) {
+        await loadMessages(conversationId);
+        return;
+      }
+
+      setMessages((prev) => {
+        const withoutTempUser = prev.filter((msg) => msg.id !== tempUserMessageId);
+        const next = [...withoutTempUser];
+        if (payload.userMessage) {
+          next.push(payload.userMessage);
+        }
+        next.push(assistantMessage);
+        return next;
+      });
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   const handleInputKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
