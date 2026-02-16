@@ -233,12 +233,31 @@ export default function EducationPage() {
 
     if (summaryResult.data) {
       const netWorth = summaryResult.data.netWorth;
+      const monthlyFixedExpense = Number(summaryResult.data.monthlyFixedExpense ?? 0);
+      const annualCompensation =
+        Number(profileResult.data?.baseSalaryAnnual ?? 0) +
+        Number(profileResult.data?.annualFixedExtra ?? 0) +
+        Number(profileResult.data?.annualBonus ?? 0) +
+        Number(profileResult.data?.annualRsu ?? 0);
+      const estimatedMonthlyIncome = annualCompensation > 0 ? annualCompensation / 12 : 0;
+      const estimatedMonthlySurplus = Math.max(0, estimatedMonthlyIncome - monthlyFixedExpense);
+      const suggestedMonthlySaving = Math.round(estimatedMonthlySurplus * 0.5);
+      const suggestedMonthlyInvestment = Math.max(0, estimatedMonthlySurplus - suggestedMonthlySaving);
+
       setScenarioForm((prev) => ({
         ...prev,
         startingNetWorth:
           prev.startingNetWorth === defaultScenarioForm.startingNetWorth
             ? netWorth
-            : prev.startingNetWorth
+            : prev.startingNetWorth,
+        monthlySaving:
+          prev.monthlySaving === defaultScenarioForm.monthlySaving && estimatedMonthlySurplus > 0
+            ? suggestedMonthlySaving
+            : prev.monthlySaving,
+        monthlyInvestment:
+          prev.monthlyInvestment === defaultScenarioForm.monthlyInvestment && estimatedMonthlySurplus > 0
+            ? suggestedMonthlyInvestment
+            : prev.monthlyInvestment
       }));
     }
 

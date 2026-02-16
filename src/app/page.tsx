@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import { api, Asset, Expense, Income } from '@/lib/api';
+import { api, Asset, Expense, Income, Profile } from '@/lib/api';
 
 type Summary = {
   totalAssets: number;
@@ -37,15 +37,23 @@ export default function Home() {
   const [assets, setAssets] = useState<Asset[]>([]);
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [incomes, setIncomes] = useState<Income[]>([]);
+  const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    Promise.all([api.getDashboardSummary(), api.getAssets(), api.getExpenses(), api.getIncomes()]).then(
-      ([summaryResult, assetsResult, expensesResult, incomesResult]) => {
+    Promise.all([
+      api.getDashboardSummary(),
+      api.getAssets(),
+      api.getExpenses(),
+      api.getIncomes(),
+      api.getProfile()
+    ]).then(
+      ([summaryResult, assetsResult, expensesResult, incomesResult, profileResult]) => {
         if (summaryResult.data) setSummary(summaryResult.data);
         if (assetsResult.data) setAssets(assetsResult.data);
         if (expensesResult.data) setExpenses(expensesResult.data);
         if (incomesResult.data) setIncomes(incomesResult.data);
+        if (profileResult.data) setProfile(profileResult.data);
         setLoading(false);
       }
     );
@@ -87,12 +95,24 @@ export default function Home() {
   }, [expenses]);
 
   const monthlyIncome = useMemo(() => {
-    return incomes.reduce((sum, item) => {
+    const monthlyIncomeFromEntries = incomes.reduce((sum, item) => {
       if (item.cycle === 'yearly') return sum + item.amount / 12;
       if (item.cycle === 'one_time') return sum;
       return sum + item.amount;
     }, 0);
-  }, [incomes]);
+
+    if (monthlyIncomeFromEntries > 0) {
+      return monthlyIncomeFromEntries;
+    }
+
+    const annualCompensation =
+      Number(profile?.baseSalaryAnnual ?? 0) +
+      Number(profile?.annualFixedExtra ?? 0) +
+      Number(profile?.annualBonus ?? 0) +
+      Number(profile?.annualRsu ?? 0);
+
+    return annualCompensation > 0 ? annualCompensation / 12 : 0;
+  }, [incomes, profile]);
 
   const monthlySurplus = monthlyIncome - monthlyExpense;
 

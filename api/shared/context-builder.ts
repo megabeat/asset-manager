@@ -15,9 +15,10 @@ export async function buildUserContext(
   assetsContainer: Container,
   liabilitiesContainer: Container,
   expensesContainer: Container,
-  incomesContainer: Container
+  incomesContainer: Container,
+  usersContainer?: Container
 ): Promise<UserContext> {
-  const [assetsResult, liabilitiesResult, expensesResult, incomesResult, assetsByCategory] =
+  const [assetsResult, liabilitiesResult, expensesResult, incomesResult, assetsByCategory, profileResult] =
     await Promise.all([
       assetsContainer.items
         .query({
@@ -51,13 +52,32 @@ export async function buildUserContext(
             "SELECT c.category, SUM(c.currentValue) as totalValue FROM c WHERE c.userId = @userId AND c.type = 'Asset' GROUP BY c.category",
           parameters: [{ name: "@userId", value: userId }]
         })
-        .fetchAll()
+        .fetchAll(),
+      usersContainer ? usersContainer.item(userId, userId).read() : Promise.resolve({ resource: null })
     ]);
 
   const totalAssets = assetsResult.resources[0] ?? 0;
   const totalLiabilities = liabilitiesResult.resources[0] ?? 0;
   const monthlyExpenses = expensesResult.resources[0] ?? 0;
-  const monthlyIncome = incomesResult.resources[0] ?? 0;
+  const monthlyIncomeFromRecords = incomesResult.resources[0] ?? 0;
+  const profile = profileResult.resource as
+    | {
+        baseSalaryAnnual?: number;
+        annualFixedExtra?: number;
+        annualBonus?: number;
+        annualRsu?: number;
+      }
+    | null;
+  const estimatedMonthlyIncomeFromProfile = profile
+    ?
+        ((Number(profile.baseSalaryAnnual ?? 0) +
+          Number(profile.annualFixedExtra ?? 0) +
+          Number(profile.annualBonus ?? 0) +
+          Number(profile.annualRsu ?? 0)) /
+          12)
+    : 0;
+  const monthlyIncome =
+    monthlyIncomeFromRecords > 0 ? monthlyIncomeFromRecords : estimatedMonthlyIncomeFromProfile;
 
   const assetBreakdown = (assetsByCategory.resources as Array<{ category: string; totalValue: number }>).map(
     (item) => ({

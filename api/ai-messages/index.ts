@@ -330,6 +330,7 @@ export async function aiMessagesHandler(context: InvocationContext, req: HttpReq
           const liabilitiesContainer = getContainer("liabilities");
           const expensesContainer = getContainer("expenses");
           const incomesContainer = getContainer("incomes");
+          const usersContainer = getContainer("users");
 
           userContext = await withTimeout(
             buildUserContext(
@@ -337,7 +338,8 @@ export async function aiMessagesHandler(context: InvocationContext, req: HttpReq
               assetsContainer,
               liabilitiesContainer,
               expensesContainer,
-              incomesContainer
+              incomesContainer,
+              usersContainer
             ),
             5000,
             "User context timeout"
