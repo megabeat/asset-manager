@@ -97,6 +97,49 @@ function normalizeHistory(
   return bounded.reverse();
 }
 
+function buildFallbackAdvice(
+  question: string,
+  userContext: UserContext,
+  profileContextText: string
+): string {
+  const monthlySurplus = userContext.monthlyIncome - userContext.monthlyExpenses;
+  const topAssetCategory =
+    userContext.assetBreakdown.sort((a, b) => b.value - a.value)[0]?.category ?? "미확인";
+  const netWorth = userContext.netWorth;
+
+  const lines = [
+    "현재 AI 모델 응답이 지연되어, 보유 데이터 기준으로 먼저 핵심 가이드를 드립니다.",
+    "",
+    "1) 현재 상태 요약",
+    `- 순자산: ${netWorth.toLocaleString()}원`,
+    `- 월 수입/지출: ${userContext.monthlyIncome.toLocaleString()}원 / ${userContext.monthlyExpenses.toLocaleString()}원`,
+    `- 월 잉여자금: ${monthlySurplus.toLocaleString()}원`,
+    `- 최대 자산 비중 카테고리: ${topAssetCategory}`,
+    "",
+    "2) 바로 실행할 액션",
+    "- 잉여자금의 최소 20~30%는 비상금(입출금 가능 자산)으로 먼저 확보",
+    "- 고정/구독 지출 결제일을 점검해 월초/월말 현금흐름 변동을 완화",
+    "- 자산 비중이 한 카테고리에 쏠려 있다면 분산 비중(현금/채권/주식)을 재조정",
+    "",
+    "3) 다음 질문 추천",
+    `- 방금 질문("${clampText(question, 80)}")을 기준으로, 목표 기간(예: 3년/10년)과 위험 성향(보수/중립/공격)을 알려주시면 구체 시나리오로 이어서 제안드릴게요.`,
+    "",
+    "(참고) 일시적인 AI 응답 지연 상황에서도 상담이 끊기지 않도록 기본 가이드로 우선 응답했습니다."
+  ];
+
+  if (profileContextText && profileContextText !== "프로필 정보 없음") {
+    lines.splice(
+      8,
+      0,
+      "",
+      "프로필 반영 메모",
+      "- 설정한 가족/은퇴/소득 정보는 다음 상세 시나리오 계산에 계속 반영됩니다."
+    );
+  }
+
+  return lines.join("\n");
+}
+
 async function withTimeout<T>(promise: Promise<T>, ms: number, timeoutMessage: string): Promise<T> {
   let timeoutId: NodeJS.Timeout | null = null;
 
@@ -396,14 +439,14 @@ ${webSearchContext}
               maxTokens: 900,
               temperature: 0.7
             }),
-            25000,
+            45000,
             "OpenAI completion timeout"
           );
 
           assistantContent = completion.choices[0]?.message?.content ?? assistantContent;
         } catch (aiError: unknown) {
           context.log("OpenAI error:", aiError);
-          assistantContent = "AI 응답 생성 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.";
+          assistantContent = buildFallbackAdvice(content, userContext, profileContextText);
         }
 
         const assistantMessage = {
