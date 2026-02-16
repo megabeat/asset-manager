@@ -87,7 +87,7 @@ export default function ExpensesPage() {
   const [settling, setSettling] = useState(false);
   const [settlementMonth, setSettlementMonth] = useState(getCurrentMonthKey());
   const [editingExpenseId, setEditingExpenseId] = useState<string | null>(null);
-  const [entryMode, setEntryMode] = useState<'card' | 'general'>('card');
+  const [entryMode, setEntryMode] = useState<'card' | 'general' | 'investment'>('card');
   const [form, setForm] = useState<ExpenseForm>(defaultForm);
   const [cardQuickForm, setCardQuickForm] = useState<CardQuickForm>(defaultCardQuickForm);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -236,14 +236,14 @@ export default function ExpensesPage() {
       nextErrors.amount = '금액은 0 이상이어야 합니다.';
     }
 
-    if (form.type === 'subscription' || form.type === 'fixed') {
+    if (entryMode === 'investment' || form.type === 'subscription' || form.type === 'fixed') {
       const dayValue = Number(form.billingDay || 0);
       if (!Number.isFinite(dayValue) || dayValue < 1 || dayValue > 31) {
         nextErrors.billingDay = '결제일은 1~31 사이여야 합니다.';
       }
     }
 
-    if (form.isInvestmentTransfer && !form.investmentTargetCategory) {
+    if ((entryMode === 'investment' || form.isInvestmentTransfer) && !form.investmentTargetCategory) {
       nextErrors.investmentTargetCategory = '투자 대상 자산을 선택해주세요.';
     }
 
@@ -254,8 +254,13 @@ export default function ExpensesPage() {
       return;
     }
 
+    const normalizedType = entryMode === 'investment' ? 'fixed' : form.type;
+    const normalizedCycle = entryMode === 'investment' ? 'monthly' : form.cycle;
+    const normalizedIsInvestmentTransfer = entryMode === 'investment' ? true : form.isInvestmentTransfer;
+    const normalizedReflectToLiquidAsset = entryMode === 'investment' ? true : form.reflectToLiquidAsset;
+
     const resolvedOccurredAt =
-      form.type === 'subscription' || form.type === 'fixed'
+      entryMode === 'investment' || form.type === 'subscription' || form.type === 'fixed'
         ? getOccurredAtByBillingDay(Number(form.billingDay || 1))
         : form.occurredAt;
 
@@ -263,17 +268,22 @@ export default function ExpensesPage() {
     const payload = {
       name: form.name.trim(),
       amount: amountValue,
-      type: form.type,
-      cycle: form.cycle,
+      type: normalizedType,
+      cycle: normalizedCycle,
       billingDay:
-        form.type === 'subscription' || form.type === 'fixed'
+        entryMode === 'investment' || form.type === 'subscription' || form.type === 'fixed'
           ? Number(form.billingDay || 1)
           : null,
       occurredAt: resolvedOccurredAt,
-      reflectToLiquidAsset: form.reflectToLiquidAsset,
-      isInvestmentTransfer: form.isInvestmentTransfer,
-      investmentTargetCategory: form.isInvestmentTransfer ? form.investmentTargetCategory : '',
-      isCardIncluded: form.type === 'subscription' || form.type === 'fixed' ? form.isCardIncluded : false,
+      reflectToLiquidAsset: normalizedReflectToLiquidAsset,
+      isInvestmentTransfer: normalizedIsInvestmentTransfer,
+      investmentTargetCategory: normalizedIsInvestmentTransfer ? form.investmentTargetCategory : '',
+      isCardIncluded:
+        entryMode === 'investment'
+          ? false
+          : form.type === 'subscription' || form.type === 'fixed'
+            ? form.isCardIncluded
+            : false,
       category: form.category.trim()
     };
 
@@ -363,7 +373,7 @@ export default function ExpensesPage() {
   }
 
   function onEdit(expense: Expense) {
-    setEntryMode('general');
+    setEntryMode(expense.isInvestmentTransfer ? 'investment' : 'general');
     setEditingExpenseId(expense.id);
     setErrors({});
     clearMessage();
@@ -421,7 +431,7 @@ export default function ExpensesPage() {
           </button>
           <FormField label="안내" fullWidth>
             <input
-              value="비카드 고정/구독 지출만 결제일 기준으로 자동 생성/현금 차감됩니다."
+              value="비카드 정기지출과 투자이체 템플릿이 결제일 기준으로 월마감 자동 반영됩니다."
               readOnly
             />
           </FormField>
@@ -470,9 +480,27 @@ export default function ExpensesPage() {
           >
             일반 지출 입력
           </button>
+          <button
+            type="button"
+            className={entryMode === 'investment' ? 'btn-primary' : 'btn-danger-outline'}
+            onClick={() => {
+              setEntryMode('investment');
+              setForm((prev) => ({
+                ...prev,
+                type: 'fixed',
+                cycle: 'monthly',
+                reflectToLiquidAsset: true,
+                isInvestmentTransfer: true,
+                isCardIncluded: false,
+                category: prev.category || '투자이체'
+              }));
+            }}
+          >
+            투자·저축 이체
+          </button>
         </div>
 
-        {entryMode === 'general' ? (
+        {entryMode === 'general' || entryMode === 'investment' ? (
           <form onSubmit={onSubmit} className="form-grid">
           <FormField label="항목명" error={errors.name}>
             <input
@@ -497,39 +525,53 @@ export default function ExpensesPage() {
             />
           </FormField>
 
-          <FormField label="유형">
-            <select
-              value={form.type}
-              onChange={(event) => {
-                const nextType = event.target.value as 'fixed' | 'subscription' | 'one_time';
-                setForm((prev) => ({
-                  ...prev,
-                  type: nextType,
-                  cycle: nextType === 'one_time' ? 'one_time' : 'monthly',
-                  reflectToLiquidAsset: nextType === 'one_time' ? true : prev.reflectToLiquidAsset,
-                  isCardIncluded: nextType === 'one_time' ? false : prev.isCardIncluded,
-                }));
-              }}
-            >
-              <option value="fixed">고정지출</option>
-              <option value="subscription">구독지출</option>
-              <option value="one_time">일회성</option>
-            </select>
-          </FormField>
+          {entryMode === 'general' ? (
+            <>
+              <FormField label="유형">
+                <select
+                  value={form.type}
+                  onChange={(event) => {
+                    const nextType = event.target.value as 'fixed' | 'subscription' | 'one_time';
+                    setForm((prev) => ({
+                      ...prev,
+                      type: nextType,
+                      cycle: nextType === 'one_time' ? 'one_time' : 'monthly',
+                      reflectToLiquidAsset: nextType === 'one_time' ? true : prev.reflectToLiquidAsset,
+                      isCardIncluded: nextType === 'one_time' ? false : prev.isCardIncluded,
+                      isInvestmentTransfer: false,
+                    }));
+                  }}
+                >
+                  <option value="fixed">고정지출</option>
+                  <option value="subscription">구독지출</option>
+                  <option value="one_time">일회성</option>
+                </select>
+              </FormField>
 
-          <FormField label="주기">
-            <select
-              value={form.cycle}
-              onChange={(event) => setForm((prev) => ({ ...prev, cycle: event.target.value as 'monthly' | 'yearly' | 'one_time' }))}
-              disabled={form.type === 'subscription' || form.type === 'fixed'}
-            >
-              <option value="monthly">월간</option>
-              <option value="yearly">연간</option>
-              <option value="one_time">일회성</option>
-            </select>
-          </FormField>
+              <FormField label="주기">
+                <select
+                  value={form.cycle}
+                  onChange={(event) => setForm((prev) => ({ ...prev, cycle: event.target.value as 'monthly' | 'yearly' | 'one_time' }))}
+                  disabled={form.type === 'subscription' || form.type === 'fixed'}
+                >
+                  <option value="monthly">월간</option>
+                  <option value="yearly">연간</option>
+                  <option value="one_time">일회성</option>
+                </select>
+              </FormField>
+            </>
+          ) : (
+            <>
+              <FormField label="유형">
+                <input value="투자/저축 이체" readOnly />
+              </FormField>
+              <FormField label="주기">
+                <input value="월간 고정" readOnly />
+              </FormField>
+            </>
+          )}
 
-          {form.type === 'subscription' || form.type === 'fixed' ? (
+          {entryMode === 'investment' || form.type === 'subscription' || form.type === 'fixed' ? (
             <FormField label="매월 결제일" error={errors.billingDay}>
               <input
                 type="number"
@@ -560,6 +602,7 @@ export default function ExpensesPage() {
               <input
                 type="checkbox"
                 checked={form.reflectToLiquidAsset}
+                disabled={entryMode === 'investment'}
                 onChange={(event) =>
                   setForm((prev) => ({ ...prev, reflectToLiquidAsset: event.target.checked }))
                 }
@@ -568,20 +611,26 @@ export default function ExpensesPage() {
             </label>
           </FormField>
 
-          <FormField label="투자이체 여부" fullWidth>
-            <label className="flex items-center gap-2">
-              <input
-                type="checkbox"
-                checked={form.isInvestmentTransfer}
-                onChange={(event) =>
-                  setForm((prev) => ({ ...prev, isInvestmentTransfer: event.target.checked }))
-                }
-              />
-              <span>소비지출이 아닌 투자/저축 이체로 분류 (소비 합계에서 제외)</span>
-            </label>
-          </FormField>
+          {entryMode === 'general' ? (
+            <FormField label="투자이체 여부" fullWidth>
+              <label className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={form.isInvestmentTransfer}
+                  onChange={(event) =>
+                    setForm((prev) => ({ ...prev, isInvestmentTransfer: event.target.checked }))
+                  }
+                />
+                <span>소비지출이 아닌 투자/저축 이체로 분류 (소비 합계에서 제외)</span>
+              </label>
+            </FormField>
+          ) : (
+            <FormField label="투자이체" fullWidth>
+              <input value="투자/저축 이체로 저장되며 월마감 자동반영 대상입니다." readOnly />
+            </FormField>
+          )}
 
-          {form.isInvestmentTransfer ? (
+          {(entryMode === 'investment' || form.isInvestmentTransfer) ? (
             <FormField label="투자 대상 자산" error={errors.investmentTargetCategory}>
               <select
                 value={form.investmentTargetCategory}
@@ -597,7 +646,7 @@ export default function ExpensesPage() {
             </FormField>
           ) : null}
 
-          {(form.type === 'subscription' || form.type === 'fixed') ? (
+          {(entryMode === 'general' && (form.type === 'subscription' || form.type === 'fixed')) ? (
             <FormField label="카드 포함 여부" fullWidth>
               <label className="flex items-center gap-2">
                 <input

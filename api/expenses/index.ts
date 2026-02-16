@@ -354,7 +354,7 @@ export async function expensesHandler(context: InvocationContext, req: HttpReque
 
           const recurringQuery = {
             query:
-              "SELECT * FROM c WHERE c.userId = @userId AND c.type = 'Expense' AND c.cycle = 'monthly' AND (c.expenseType = 'fixed' OR c.expenseType = 'subscription') AND (NOT IS_DEFINED(c.isCardIncluded) OR c.isCardIncluded = false) AND (NOT IS_DEFINED(c.isInvestmentTransfer) OR c.isInvestmentTransfer = false)",
+              "SELECT * FROM c WHERE c.userId = @userId AND c.type = 'Expense' AND c.cycle = 'monthly' AND (c.expenseType = 'fixed' OR c.expenseType = 'subscription') AND (NOT IS_DEFINED(c.isCardIncluded) OR c.isCardIncluded = false)",
             parameters: [{ name: "@userId", value: userId }]
           };
 
@@ -369,6 +369,13 @@ export async function expensesHandler(context: InvocationContext, req: HttpReque
           for (const template of recurringTemplates) {
             const billingDay = Number(template.billingDay ?? 0);
             if (!Number.isFinite(billingDay) || billingDay < 1 || billingDay > 31) {
+              skippedCount += 1;
+              continue;
+            }
+
+            const isInvestmentTransfer = Boolean(template.isInvestmentTransfer ?? false);
+            const investmentTargetCategory = String(template.investmentTargetCategory ?? "");
+            if (isInvestmentTransfer && !investmentTargetCategory) {
               skippedCount += 1;
               continue;
             }
@@ -403,11 +410,14 @@ export async function expensesHandler(context: InvocationContext, req: HttpReque
               billingDay,
               occurredAt,
               reflectToLiquidAsset: true,
+              isInvestmentTransfer,
+              investmentTargetCategory,
+              investmentTargetAssetId: "",
+              transferredAmount: 0,
               reflectedAmount: 0,
               reflectedAssetId: "",
               reflectedAt: "",
               category: ensureOptionalString(template.category ?? "", "category") ?? "",
-              isInvestmentTransfer: false,
               isCardIncluded: false,
               entrySource: "auto_settlement",
               sourceExpenseId: template.id,
@@ -427,12 +437,26 @@ export async function expensesHandler(context: InvocationContext, req: HttpReque
 
             if (shouldReflectNow(true, occurredAt)) {
               const reflected = await applyLiquidAssetDelta(assetsContainer, userId, -amount);
+              let targetAssetId = "";
+              let transferredAmount = 0;
+              if (isInvestmentTransfer && investmentTargetCategory) {
+                const transferred = await applyInvestmentAssetDelta(
+                  assetsContainer,
+                  userId,
+                  amount,
+                  investmentTargetCategory
+                );
+                targetAssetId = transferred?.assetId ?? "";
+                transferredAmount = transferred?.appliedDelta ?? 0;
+              }
               if (reflected) {
                 reflectedCount += 1;
                 const updatedExpense = {
                   ...created,
                   reflectedAmount: amount,
                   reflectedAssetId: reflected.assetId,
+                  investmentTargetAssetId: targetAssetId,
+                  transferredAmount,
                   reflectedAt: new Date().toISOString(),
                   updatedAt: new Date().toISOString()
                 };
