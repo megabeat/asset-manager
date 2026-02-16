@@ -300,8 +300,9 @@ export default function AssetsPage() {
 
       group.total += currentValue;
       group.count += 1;
+      const isStock = category === 'stock_kr' || category === 'stock_us';
       group.items.push({
-        name: asset.name || '이름 없음',
+        name: (isStock && asset.symbol) ? asset.symbol : (asset.name || '이름 없음'),
         size: currentValue
       });
     });
@@ -356,7 +357,7 @@ export default function AssetsPage() {
       return items
         .sort((a, b) => (b.currentValue ?? 0) - (a.currentValue ?? 0))
         .map((a) => ({
-          name: a.name || '이름 없음',
+          name: a.symbol || a.name || '이름 없음',
           size: a.currentValue ?? 0,
           category: label,
           fill
