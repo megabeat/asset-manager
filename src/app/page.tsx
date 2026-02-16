@@ -119,7 +119,7 @@ export default function Home() {
           </p>
         </div>
         <div className="kpi-card">
-          <h3 className="kpi-label">현금성 자산(입출금/현금)</h3>
+          <h3 className="kpi-label">보유현금(자유 입/출금)</h3>
           <p className="kpi-value">
             {liquidAssetsTotal.toLocaleString()}원
           </p>
