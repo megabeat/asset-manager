@@ -171,10 +171,22 @@ export default function Home() {
   return (
     <div className="pb-8 pt-4">
       <section className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-5 shadow-[0_8px_24px_rgba(15,23,42,0.05)]">
-        <h1 className="mb-2 mt-0">개인 자산관리 홈</h1>
-        <p className="m-0 text-[var(--muted)]">
-          자산/수입/지출/부채를 입력하고 순자산과 현금흐름을 바로 확인하세요.
-        </p>
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h1 className="mb-2 mt-0">개인 자산관리 홈</h1>
+            <p className="m-0 text-[var(--muted)]">
+              자산/수입/지출/부채를 입력하고 순자산과 현금흐름을 바로 확인하세요.
+            </p>
+          </div>
+          <div className="shrink-0 text-right">
+            <p className="m-0 text-[2rem] font-extrabold leading-none tracking-tight text-[var(--foreground)]">
+              {new Date().getDate()}
+            </p>
+            <p className="m-0 mt-1 text-[0.8rem] font-medium uppercase tracking-widest text-[var(--muted)]">
+              {new Date().toLocaleDateString('ko-KR', { year: 'numeric', month: 'long' })}
+            </p>
+          </div>
+        </div>
       </section>
 
       <section className="mt-4 grid gap-3 [grid-template-columns:repeat(auto-fit,minmax(200px,1fr))]">
