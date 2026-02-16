@@ -15,7 +15,7 @@ export function getOpenAIClient(): OpenAIClient {
       throw new Error(`Missing Azure OpenAI configuration: ${missingVars.join(", ")}`);
     }
     
-    client = new OpenAIClient(endpoint, new AzureKeyCredential(apiKey));
+    client = new OpenAIClient(endpoint!, new AzureKeyCredential(apiKey!));
   }
   
   return client;
