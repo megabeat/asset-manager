@@ -204,9 +204,9 @@ export default function AIAdvisorPage() {
                       className={`grid ${isUser ? 'justify-items-end' : 'justify-items-start'}`}
                     >
                       <div
-                        className={`max-w-[82%] rounded-xl border border-slate-200 px-3 py-2.5 ${isUser ? 'bg-blue-50' : 'bg-slate-50'}`}
+                        className={`ai-chat-bubble ${isUser ? 'ai-chat-bubble-user' : 'ai-chat-bubble-assistant'}`}
                       >
-                        <div className="mb-1.5 text-[0.8rem] text-slate-600">
+                        <div className="ai-chat-meta">
                           {isUser ? '나' : 'Mr. Money'}
                         </div>
                         <div className="whitespace-pre-wrap leading-[1.45]">{msg.content}</div>
@@ -217,12 +217,12 @@ export default function AIAdvisorPage() {
                 {loading ? (
                   <div className="grid justify-items-start">
                     <div
-                      className="max-w-[82%] rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5"
+                      className="ai-chat-bubble ai-chat-bubble-assistant"
                     >
-                      <div className="mb-1.5 text-[0.8rem] text-slate-600">
+                      <div className="ai-chat-meta">
                         Mr. Money
                       </div>
-                      <div className="text-slate-600">답변 작성 중...</div>
+                      <div className="helper-text">답변 작성 중...</div>
                     </div>
                   </div>
                 ) : null}
