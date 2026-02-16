@@ -3,10 +3,16 @@
   "entryPoint": "monthlySnapshot",
   "bindings": [
     {
-      "name": "timer",
-      "type": "timerTrigger",
+      "name": "req",
+      "type": "httpTrigger",
       "direction": "in",
-      "schedule": "0 0 3 28-31 * *"
+      "methods": ["post"],
+      "route": "monthly-snapshot"
+    },
+    {
+      "name": "res",
+      "type": "http",
+      "direction": "out"
     }
   ]
 }

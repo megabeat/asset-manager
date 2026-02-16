@@ -184,6 +184,7 @@ async function assetsHandler(context, req) {
                     pensionMonthlyContribution: (0, validators_1.ensureOptionalNumber)(body.pensionMonthlyContribution, "pensionMonthlyContribution") ?? null,
                     pensionReceiveStart: (0, validators_1.ensureOptionalString)(body.pensionReceiveStart, "pensionReceiveStart") ?? "",
                     pensionReceiveAge: (0, validators_1.ensureOptionalNumber)(body.pensionReceiveAge, "pensionReceiveAge") ?? null,
+                    carYear: (0, validators_1.ensureOptionalNumber)(body.carYear, "carYear") ?? null,
                     exchange: (0, validators_1.ensureOptionalString)(body.exchange, "exchange") ?? "",
                     priceSource: (0, validators_1.ensureOptionalString)(body.priceSource, "priceSource") ?? "",
                     autoUpdate: (0, validators_1.ensureOptionalBoolean)(body.autoUpdate, "autoUpdate") ?? false,
@@ -242,6 +243,7 @@ async function assetsHandler(context, req) {
                     pensionReceiveStart: (0, validators_1.ensureOptionalString)(body.pensionReceiveStart, "pensionReceiveStart") ??
                         resource.pensionReceiveStart,
                     pensionReceiveAge: (0, validators_1.ensureOptionalNumber)(body.pensionReceiveAge, "pensionReceiveAge") ?? resource.pensionReceiveAge,
+                    carYear: (0, validators_1.ensureOptionalNumber)(body.carYear, "carYear") ?? resource.carYear,
                     exchange: (0, validators_1.ensureOptionalString)(body.exchange, "exchange") ?? resource.exchange,
                     priceSource: (0, validators_1.ensureOptionalString)(body.priceSource, "priceSource") ?? resource.priceSource,
                     autoUpdate: (0, validators_1.ensureOptionalBoolean)(body.autoUpdate, "autoUpdate") ?? resource.autoUpdate,

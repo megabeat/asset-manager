@@ -1,8 +1,8 @@
-import { InvocationContext, Timer } from "@azure/functions";
+import { HttpRequest, HttpResponseInit, InvocationContext } from "@azure/functions";
 import { getContainer } from "../shared/cosmosClient";
 
 /**
- * Monthly asset snapshot — runs on the last day of each month at 12:00 KST (03:00 UTC).
+ * Monthly asset snapshot — called via GitHub Actions cron on the last day of each month.
  *
  * For every user who has assets, aggregate currentValue of ALL assets and write
  * a single AssetHistory record with isWindowRecord = true so the dashboard
@@ -14,19 +14,15 @@ type AssetRow = {
   currentValue?: number;
 };
 
-export async function monthlySnapshot(timer: Timer, context: InvocationContext): Promise<void> {
-  if (timer.isPastDue) {
-    context.log("Monthly snapshot is running late.");
-  }
+export async function monthlySnapshot(req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
+  const force = req.query.get("force") === "1";
 
-  // Timer fires on 28-31 at 03:00 UTC (12:00 KST).
-  // Only proceed if today is actually the last day of the month.
+  // Only proceed if today is actually the last day of the month (unless forced).
   const now = new Date();
   const tomorrow = new Date(now);
   tomorrow.setDate(tomorrow.getDate() + 1);
-  if (tomorrow.getMonth() === now.getMonth()) {
-    context.log(`Not last day of month (${now.toISOString()}), skipping.`);
-    return;
+  if (!force && tomorrow.getMonth() === now.getMonth()) {
+    return { status: 200, jsonBody: { message: `Not last day of month (${now.toISOString()}), skipping.` } };
   }
 
   const assetsContainer = getContainer("assets");
@@ -112,4 +108,5 @@ export async function monthlySnapshot(timer: Timer, context: InvocationContext):
   }
 
   context.log(`Monthly snapshot complete: ${snapshotCount} users processed for ${windowMonth}`);
+  return { status: 200, jsonBody: { message: `Snapshot complete: ${snapshotCount} users for ${windowMonth}` } };
 }

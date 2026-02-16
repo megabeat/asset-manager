@@ -2,18 +2,14 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.monthlySnapshot = monthlySnapshot;
 const cosmosClient_1 = require("../shared/cosmosClient");
-async function monthlySnapshot(timer, context) {
-    if (timer.isPastDue) {
-        context.log("Monthly snapshot is running late.");
-    }
-    // Timer fires on 28-31 at 03:00 UTC (12:00 KST).
-    // Only proceed if today is actually the last day of the month.
+async function monthlySnapshot(req, context) {
+    const force = req.query.get("force") === "1";
+    // Only proceed if today is actually the last day of the month (unless forced).
     const now = new Date();
     const tomorrow = new Date(now);
     tomorrow.setDate(tomorrow.getDate() + 1);
-    if (tomorrow.getMonth() === now.getMonth()) {
-        context.log(`Not last day of month (${now.toISOString()}), skipping.`);
-        return;
+    if (!force && tomorrow.getMonth() === now.getMonth()) {
+        return { status: 200, jsonBody: { message: `Not last day of month (${now.toISOString()}), skipping.` } };
     }
     const assetsContainer = (0, cosmosClient_1.getContainer)("assets");
     const historyContainer = (0, cosmosClient_1.getContainer)("assetHistory");
@@ -88,4 +84,5 @@ async function monthlySnapshot(timer, context) {
         }
     }
     context.log(`Monthly snapshot complete: ${snapshotCount} users processed for ${windowMonth}`);
+    return { status: 200, jsonBody: { message: `Snapshot complete: ${snapshotCount} users for ${windowMonth}` } };
 }

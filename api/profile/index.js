@@ -69,6 +69,7 @@ async function profileHandler(context, req) {
                     employerName: (0, validators_1.ensureOptionalString)(body.employerName, "employerName"),
                     jobTitle: (0, validators_1.ensureOptionalString)(body.jobTitle, "jobTitle"),
                     baseSalaryAnnual: (0, validators_1.ensureOptionalNumber)(body.baseSalaryAnnual, "baseSalaryAnnual"),
+                    annualFixedExtra: (0, validators_1.ensureOptionalNumber)(body.annualFixedExtra, "annualFixedExtra"),
                     annualBonus: (0, validators_1.ensureOptionalNumber)(body.annualBonus, "annualBonus"),
                     annualRsu: (0, validators_1.ensureOptionalNumber)(body.annualRsu, "annualRsu"),
                     rsuShares: (0, validators_1.ensureOptionalNumber)(body.rsuShares, "rsuShares"),
@@ -82,8 +83,10 @@ async function profileHandler(context, req) {
                     annualRaiseRatePct: (0, validators_1.ensureOptionalNumberInRange)(body.annualRaiseRatePct, "annualRaiseRatePct", -20, 100),
                     child1Name: (0, validators_1.ensureOptionalString)(body.child1Name, "child1Name"),
                     child1BirthDate: (0, validators_1.ensureOptionalString)(body.child1BirthDate, "child1BirthDate"),
+                    child1TargetUniversityYear: (0, validators_1.ensureOptionalNumberInRange)(body.child1TargetUniversityYear, "child1TargetUniversityYear", 2000, 2200),
                     child2Name: (0, validators_1.ensureOptionalString)(body.child2Name, "child2Name"),
                     child2BirthDate: (0, validators_1.ensureOptionalString)(body.child2BirthDate, "child2BirthDate"),
+                    child2TargetUniversityYear: (0, validators_1.ensureOptionalNumberInRange)(body.child2TargetUniversityYear, "child2TargetUniversityYear", 2000, 2200),
                     retirementTargetAge: (0, validators_1.ensureOptionalNumberInRange)(body.retirementTargetAge, "retirementTargetAge", 45, 90),
                     householdSize: (0, validators_1.ensureNumber)(body.householdSize, "householdSize"),
                     currency: (0, validators_1.ensureString)(body.currency, "currency"),
@@ -125,6 +128,8 @@ async function profileHandler(context, req) {
                     employerName: (0, validators_1.ensureOptionalString)(body.employerName, "employerName") ?? resource.employerName,
                     jobTitle: (0, validators_1.ensureOptionalString)(body.jobTitle, "jobTitle") ?? resource.jobTitle,
                     baseSalaryAnnual: (0, validators_1.ensureOptionalNumber)(body.baseSalaryAnnual, "baseSalaryAnnual") ?? resource.baseSalaryAnnual,
+                    annualFixedExtra: (0, validators_1.ensureOptionalNumber)(body.annualFixedExtra, "annualFixedExtra") ??
+                        resource.annualFixedExtra,
                     annualBonus: (0, validators_1.ensureOptionalNumber)(body.annualBonus, "annualBonus") ?? resource.annualBonus,
                     annualRsu: (0, validators_1.ensureOptionalNumber)(body.annualRsu, "annualRsu") ?? resource.annualRsu,
                     rsuShares: (0, validators_1.ensureOptionalNumber)(body.rsuShares, "rsuShares") ?? resource.rsuShares,
@@ -140,8 +145,12 @@ async function profileHandler(context, req) {
                         resource.annualRaiseRatePct,
                     child1Name: (0, validators_1.ensureOptionalString)(body.child1Name, "child1Name") ?? resource.child1Name,
                     child1BirthDate: (0, validators_1.ensureOptionalString)(body.child1BirthDate, "child1BirthDate") ?? resource.child1BirthDate,
+                    child1TargetUniversityYear: (0, validators_1.ensureOptionalNumberInRange)(body.child1TargetUniversityYear, "child1TargetUniversityYear", 2000, 2200) ??
+                        resource.child1TargetUniversityYear,
                     child2Name: (0, validators_1.ensureOptionalString)(body.child2Name, "child2Name") ?? resource.child2Name,
                     child2BirthDate: (0, validators_1.ensureOptionalString)(body.child2BirthDate, "child2BirthDate") ?? resource.child2BirthDate,
+                    child2TargetUniversityYear: (0, validators_1.ensureOptionalNumberInRange)(body.child2TargetUniversityYear, "child2TargetUniversityYear", 2000, 2200) ??
+                        resource.child2TargetUniversityYear,
                     retirementTargetAge: (0, validators_1.ensureOptionalNumberInRange)(body.retirementTargetAge, "retirementTargetAge", 45, 90) ??
                         resource.retirementTargetAge,
                     householdSize: (0, validators_1.ensureOptionalNumber)(body.householdSize, "householdSize") ?? resource.householdSize,
