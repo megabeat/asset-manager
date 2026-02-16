@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
+import { AppLogo } from "@/components/ui/AppLogo";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -32,7 +33,7 @@ export default function RootLayout({
         <header className="app-header">
           <div className="app-header-inner">
             <Link href="/" className="brand-link">
-              자산관리 앱
+              <AppLogo />
             </Link>
             <nav className="nav-links">
               {navItems.map((item) => (
