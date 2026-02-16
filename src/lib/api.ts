@@ -53,8 +53,8 @@ export type Expense = {
   id: string;
   name: string;
   amount: number;
-  expenseType: 'fixed' | 'subscription' | 'one_time';
-  cycle: 'monthly' | 'yearly' | 'one_time';
+  expenseType: '고정' | '구독' | '일회성' | 'fixed' | 'subscription' | 'one_time';
+  cycle: '매월' | '매년' | '일회성' | 'monthly' | 'yearly' | 'one_time';
   occurredAt?: string;
   reflectToLiquidAsset?: boolean;
   isInvestmentTransfer?: boolean;

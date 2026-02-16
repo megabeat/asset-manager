@@ -15,18 +15,63 @@ import {
 } from "../shared/validators";
 import { parseJsonBody } from "../shared/request-body";
 
+type ExpenseTypeValue = "고정" | "구독" | "일회성";
+type BillingCycleValue = "매월" | "매년" | "일회성";
 
-const expenseTypes = ["fixed", "subscription", "one_time"];
-const billingCycles = ["monthly", "yearly", "one_time"];
+const expenseTypes = ["고정", "구독", "일회성", "fixed", "subscription", "one_time"];
+const billingCycles = ["매월", "매년", "일회성", "monthly", "yearly", "one_time"];
+
+function normalizeExpenseType(value: string): ExpenseTypeValue {
+  switch (value) {
+    case "고정":
+    case "fixed":
+      return "고정";
+    case "구독":
+    case "subscription":
+      return "구독";
+    case "일회성":
+    case "one_time":
+      return "일회성";
+    default:
+      return "고정";
+  }
+}
+
+function normalizeBillingCycle(value: string): BillingCycleValue {
+  switch (value) {
+    case "매월":
+    case "monthly":
+      return "매월";
+    case "매년":
+    case "yearly":
+      return "매년";
+    case "일회성":
+    case "one_time":
+      return "일회성";
+    default:
+      return "매월";
+  }
+}
+
+function toLegacyExpenseType(value: ExpenseTypeValue): "fixed" | "subscription" | "one_time" {
+  switch (value) {
+    case "고정":
+      return "fixed";
+    case "구독":
+      return "subscription";
+    case "일회성":
+      return "one_time";
+  }
+}
 
 type ExpenseRecord = {
   id: string;
   userId: string;
   type?: string;
-  expenseType?: "fixed" | "subscription" | "one_time";
+  expenseType?: ExpenseTypeValue | "fixed" | "subscription" | "one_time";
   name?: string;
   amount: number;
-  cycle?: "monthly" | "yearly" | "one_time";
+  cycle?: BillingCycleValue | "monthly" | "yearly" | "one_time";
   billingDay?: number | null;
   category?: string;
   isInvestmentTransfer?: boolean;
@@ -319,13 +364,16 @@ export async function expensesHandler(context: InvocationContext, req: HttpReque
 
       try {
         const type = getQueryValue(req, "type");
+        const normalizedExpenseType = type ? normalizeExpenseType(type) : null;
+        const legacyExpenseType = normalizedExpenseType ? toLegacyExpenseType(normalizedExpenseType) : null;
         const query = type
           ? {
               query:
-                "SELECT * FROM c WHERE c.userId = @userId AND c.type = 'Expense' AND c.expenseType = @expenseType",
+                "SELECT * FROM c WHERE c.userId = @userId AND c.type = 'Expense' AND (c.expenseType = @expenseType OR c.expenseType = @legacyExpenseType)",
               parameters: [
                 { name: "@userId", value: userId },
-                { name: "@expenseType", value: type }
+                { name: "@expenseType", value: normalizedExpenseType },
+                { name: "@legacyExpenseType", value: legacyExpenseType }
               ]
             }
           : {
@@ -354,7 +402,7 @@ export async function expensesHandler(context: InvocationContext, req: HttpReque
 
           const recurringQuery = {
             query:
-              "SELECT * FROM c WHERE c.userId = @userId AND c.type = 'Expense' AND c.cycle = 'monthly' AND (c.expenseType = 'fixed' OR c.expenseType = 'subscription') AND (NOT IS_DEFINED(c.isCardIncluded) OR c.isCardIncluded = false)",
+              "SELECT * FROM c WHERE c.userId = @userId AND c.type = 'Expense' AND (c.cycle = '매월' OR c.cycle = 'monthly') AND (c.expenseType = '고정' OR c.expenseType = '구독' OR c.expenseType = 'fixed' OR c.expenseType = 'subscription') AND (NOT IS_DEFINED(c.isCardIncluded) OR c.isCardIncluded = false)",
             parameters: [{ name: "@userId", value: userId }]
           };
 
@@ -403,10 +451,10 @@ export async function expensesHandler(context: InvocationContext, req: HttpReque
               id: randomUUID(),
               userId,
               type: "Expense",
-              expenseType: "one_time",
+              expenseType: "일회성",
               name: ensureString(template.name ?? "정기지출", "name"),
               amount,
-              cycle: "one_time",
+              cycle: "일회성",
               billingDay,
               occurredAt,
               reflectToLiquidAsset: true,
@@ -488,15 +536,15 @@ export async function expensesHandler(context: InvocationContext, req: HttpReque
         const amount = ensureNumberInRange(body.amount, "amount", 0, Number.MAX_SAFE_INTEGER);
         const reflectToLiquidAsset = ensureOptionalBoolean(body.reflectToLiquidAsset, "reflectToLiquidAsset") ?? false;
         const occurredAt = resolveOccurredAt(body.occurredAt);
-        const cycle = ensureEnum(body.cycle, "cycle", billingCycles);
-        const expenseType = ensureEnum(body.type, "type", expenseTypes);
+        const cycle = normalizeBillingCycle(ensureEnum(body.cycle, "cycle", billingCycles));
+        const expenseType = normalizeExpenseType(ensureEnum(body.type, "type", expenseTypes));
         const billingDay = ensureOptionalNumberInRange(body.billingDay, "billingDay", 1, 31) ?? null;
         const isInvestmentTransfer =
           ensureOptionalBoolean(body.isInvestmentTransfer, "isInvestmentTransfer") ?? false;
         const investmentTargetCategory =
           ensureOptionalString(body.investmentTargetCategory, "investmentTargetCategory") ?? "";
 
-        if ((expenseType === "subscription" || expenseType === "fixed") && billingDay === null) {
+        if ((expenseType === "구독" || expenseType === "고정") && billingDay === null) {
           return fail("VALIDATION_ERROR", "billingDay is required for recurring expenses", 400);
         }
 
@@ -608,14 +656,26 @@ export async function expensesHandler(context: InvocationContext, req: HttpReque
           ensureOptionalString(body.investmentTargetCategory, "investmentTargetCategory") ??
           String(existing.investmentTargetCategory ?? "");
         const nextExpenseType =
-          ensureOptionalEnum(body.type, "type", expenseTypes) ??
-          String(existing.expenseType ?? "fixed");
+          normalizeExpenseType(
+            String(
+              ensureOptionalEnum(body.type, "type", expenseTypes) ??
+              existing.expenseType ??
+              "고정"
+            )
+          );
+        const nextCycle = normalizeBillingCycle(
+          String(
+            ensureOptionalEnum(body.cycle, "cycle", billingCycles) ??
+            existing.cycle ??
+            "매월"
+          )
+        );
         const existingBillingDay = Number(existing.billingDay ?? 0);
         const nextBillingDay =
           ensureOptionalNumberInRange(body.billingDay, "billingDay", 1, 31) ??
           (existingBillingDay >= 1 && existingBillingDay <= 31 ? existingBillingDay : null);
 
-        if ((nextExpenseType === "subscription" || nextExpenseType === "fixed") && nextBillingDay === null) {
+        if ((nextExpenseType === "구독" || nextExpenseType === "고정") && nextBillingDay === null) {
           return fail("VALIDATION_ERROR", "billingDay is required for recurring expenses", 400);
         }
 
@@ -682,7 +742,7 @@ export async function expensesHandler(context: InvocationContext, req: HttpReque
           expenseType: nextExpenseType,
           name: ensureOptionalString(body.name, "name") ?? existing.name,
           amount: nextAmount,
-          cycle: ensureOptionalEnum(body.cycle, "cycle", billingCycles) ?? existing.cycle,
+          cycle: nextCycle,
           billingDay: nextBillingDay,
           occurredAt: nextOccurredAt,
           reflectToLiquidAsset: nextReflectSetting,

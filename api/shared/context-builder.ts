@@ -35,7 +35,7 @@ export async function buildUserContext(
       expensesContainer.items
         .query({
           query:
-            "SELECT VALUE SUM(c.amount) FROM c WHERE c.userId = @userId AND c.type = 'Expense' AND c.cycle = 'monthly' AND (NOT IS_DEFINED(c.isInvestmentTransfer) OR c.isInvestmentTransfer = false)",
+            "SELECT VALUE SUM(c.amount) FROM c WHERE c.userId = @userId AND c.type = 'Expense' AND (c.cycle = '매월' OR c.cycle = 'monthly') AND (NOT IS_DEFINED(c.isInvestmentTransfer) OR c.isInvestmentTransfer = false)",
           parameters: [{ name: "@userId", value: userId }]
         })
         .fetchAll(),

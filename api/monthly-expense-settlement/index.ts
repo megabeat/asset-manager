@@ -138,7 +138,7 @@ export async function monthlyExpenseSettlement(req: HttpRequest, context: Invoca
 
   const usersQuery = {
     query:
-      "SELECT DISTINCT VALUE c.userId FROM c WHERE c.type = 'Expense' AND c.cycle = 'monthly' AND (c.expenseType = 'fixed' OR c.expenseType = 'subscription') AND c.amount > 0",
+      "SELECT DISTINCT VALUE c.userId FROM c WHERE c.type = 'Expense' AND (c.cycle = '매월' OR c.cycle = 'monthly') AND (c.expenseType = '고정' OR c.expenseType = '구독' OR c.expenseType = 'fixed' OR c.expenseType = 'subscription') AND c.amount > 0",
     parameters: []
   };
 
@@ -161,7 +161,7 @@ export async function monthlyExpenseSettlement(req: HttpRequest, context: Invoca
 
     const recurringQuery = {
       query:
-        "SELECT c.id, c.userId, c.amount FROM c WHERE c.userId = @userId AND c.type = 'Expense' AND c.cycle = 'monthly' AND (c.expenseType = 'fixed' OR c.expenseType = 'subscription')",
+        "SELECT c.id, c.userId, c.amount FROM c WHERE c.userId = @userId AND c.type = 'Expense' AND (c.cycle = '매월' OR c.cycle = 'monthly') AND (c.expenseType = '고정' OR c.expenseType = '구독' OR c.expenseType = 'fixed' OR c.expenseType = 'subscription')",
       parameters: [{ name: "@userId", value: userId }]
     };
 

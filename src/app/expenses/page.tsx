@@ -13,8 +13,8 @@ type NumericInput = number | '';
 type ExpenseForm = {
   name: string;
   amount: NumericInput;
-  type: 'fixed' | 'subscription' | 'one_time';
-  cycle: 'monthly' | 'yearly' | 'one_time';
+  type: '고정' | '구독' | '일회성';
+  cycle: '매월' | '매년' | '일회성';
   billingDay: NumericInput;
   occurredAt: string;
   reflectToLiquidAsset: boolean;
@@ -27,8 +27,8 @@ type ExpenseForm = {
 const defaultForm: ExpenseForm = {
   name: '',
   amount: '',
-  type: 'fixed',
-  cycle: 'monthly',
+  type: '고정',
+  cycle: '매월',
   billingDay: new Date().getDate(),
   occurredAt: new Date().toISOString().slice(0, 10),
   reflectToLiquidAsset: false,
@@ -80,6 +80,40 @@ type CardIssuer = (typeof CARD_ISSUERS)[number];
     occurredAt: new Date().toISOString().slice(0, 10),
   };
 
+  function normalizeExpenseTypeValue(
+    value: Expense['expenseType'] | undefined
+  ): ExpenseForm['type'] {
+    if (value === '구독' || value === 'subscription') {
+      return '구독';
+    }
+    if (value === '일회성' || value === 'one_time') {
+      return '일회성';
+    }
+    return '고정';
+  }
+
+  function normalizeExpenseCycleValue(
+    value: Expense['cycle'] | undefined
+  ): ExpenseForm['cycle'] {
+    if (value === '매년' || value === 'yearly') {
+      return '매년';
+    }
+    if (value === '일회성' || value === 'one_time') {
+      return '일회성';
+    }
+    return '매월';
+  }
+
+  function getExpenseTypeLabel(value: Expense['expenseType'] | undefined): string {
+    if (value === '구독' || value === 'subscription') {
+      return '구독';
+    }
+    if (value === '일회성' || value === 'one_time') {
+      return '일회성';
+    }
+    return '고정';
+  }
+
 export default function ExpensesPage() {
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [loading, setLoading] = useState(true);
@@ -114,10 +148,10 @@ export default function ExpensesPage() {
       if (item.isInvestmentTransfer) {
         return sum;
       }
-      if (item.cycle === 'yearly') {
+      if (item.cycle === '매년' || item.cycle === 'yearly') {
         return sum + item.amount / 12;
       }
-      if (item.cycle === 'one_time') {
+      if (item.cycle === '일회성' || item.cycle === 'one_time') {
         return sum;
       }
       return sum + item.amount;
@@ -181,7 +215,12 @@ export default function ExpensesPage() {
       .filter(
         (expense) =>
           expense.isInvestmentTransfer &&
-          (expense.cycle === 'one_time' || expense.expenseType === 'one_time')
+          (
+            expense.cycle === '일회성' ||
+            expense.cycle === 'one_time' ||
+            expense.expenseType === '일회성' ||
+            expense.expenseType === 'one_time'
+          )
       )
       .reduce((sum, expense) => {
         const occurredAt = expense.occurredAt ? new Date(expense.occurredAt) : null;
@@ -239,11 +278,23 @@ export default function ExpensesPage() {
   }, [expenses]);
 
   const recurringExpenses = useMemo(() => {
-    return expenses.filter((expense) => expense.cycle !== 'one_time' && expense.expenseType !== 'one_time');
+    return expenses.filter(
+      (expense) =>
+        expense.cycle !== '일회성' &&
+        expense.cycle !== 'one_time' &&
+        expense.expenseType !== '일회성' &&
+        expense.expenseType !== 'one_time'
+    );
   }, [expenses]);
 
   const oneTimeExpenses = useMemo(() => {
-    return expenses.filter((expense) => expense.cycle === 'one_time' || expense.expenseType === 'one_time');
+    return expenses.filter(
+      (expense) =>
+        expense.cycle === '일회성' ||
+        expense.cycle === 'one_time' ||
+        expense.expenseType === '일회성' ||
+        expense.expenseType === 'one_time'
+    );
   }, [expenses]);
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
@@ -257,7 +308,7 @@ export default function ExpensesPage() {
       nextErrors.amount = '금액은 0 이상이어야 합니다.';
     }
 
-    if (entryMode === 'investment' || form.type === 'subscription' || form.type === 'fixed') {
+    if (entryMode === 'investment' || form.type === '구독' || form.type === '고정') {
       const dayValue = Number(form.billingDay || 0);
       if (!Number.isFinite(dayValue) || dayValue < 1 || dayValue > 31) {
         nextErrors.billingDay = '결제일은 1~31 사이여야 합니다.';
@@ -275,13 +326,13 @@ export default function ExpensesPage() {
       return;
     }
 
-    const normalizedType = entryMode === 'investment' ? 'fixed' : form.type;
-    const normalizedCycle = entryMode === 'investment' ? 'monthly' : form.cycle;
+    const normalizedType = entryMode === 'investment' ? '고정' : form.type;
+    const normalizedCycle = entryMode === 'investment' ? '매월' : form.cycle;
     const normalizedIsInvestmentTransfer = entryMode === 'investment' ? true : form.isInvestmentTransfer;
     const normalizedReflectToLiquidAsset = entryMode === 'investment' ? true : form.reflectToLiquidAsset;
 
     const resolvedOccurredAt =
-      entryMode === 'investment' || form.type === 'subscription' || form.type === 'fixed'
+      entryMode === 'investment' || form.type === '구독' || form.type === '고정'
         ? getOccurredAtByBillingDay(Number(form.billingDay || 1))
         : form.occurredAt;
 
@@ -292,7 +343,7 @@ export default function ExpensesPage() {
       type: normalizedType,
       cycle: normalizedCycle,
       billingDay:
-        entryMode === 'investment' || form.type === 'subscription' || form.type === 'fixed'
+        entryMode === 'investment' || form.type === '구독' || form.type === '고정'
           ? Number(form.billingDay || 1)
           : null,
       occurredAt: resolvedOccurredAt,
@@ -302,7 +353,7 @@ export default function ExpensesPage() {
       isCardIncluded:
         entryMode === 'investment'
           ? false
-          : form.type === 'subscription' || form.type === 'fixed'
+          : form.type === '구독' || form.type === '고정'
             ? form.isCardIncluded
             : false,
       category: form.category.trim()
@@ -340,8 +391,8 @@ export default function ExpensesPage() {
     const result = await api.createExpense({
       name: `${cardQuickForm.cardName.trim()} 카드대금`,
       amount: cardAmountValue,
-      type: 'one_time',
-      cycle: 'one_time',
+      type: '일회성',
+      cycle: '일회성',
       billingDay: null,
       occurredAt: cardQuickForm.occurredAt,
       reflectToLiquidAsset: true,
@@ -401,8 +452,8 @@ export default function ExpensesPage() {
     setForm({
       name: expense.name ?? '',
       amount: Number(expense.amount ?? 0),
-      type: (expense.expenseType as 'fixed' | 'subscription' | 'one_time') ?? 'fixed',
-      cycle: (expense.cycle as 'monthly' | 'yearly' | 'one_time') ?? 'monthly',
+      type: normalizeExpenseTypeValue(expense.expenseType),
+      cycle: normalizeExpenseCycleValue(expense.cycle),
       billingDay:
         expense.billingDay && expense.billingDay >= 1 && expense.billingDay <= 31
           ? expense.billingDay
@@ -508,8 +559,8 @@ export default function ExpensesPage() {
               setEntryMode('investment');
               setForm((prev) => ({
                 ...prev,
-                type: 'fixed',
-                cycle: 'monthly',
+                type: '고정',
+                cycle: '매월',
                 reflectToLiquidAsset: true,
                 isInvestmentTransfer: true,
                 isCardIncluded: false,
@@ -557,32 +608,32 @@ export default function ExpensesPage() {
                 <select
                   value={form.type}
                   onChange={(event) => {
-                    const nextType = event.target.value as 'fixed' | 'subscription' | 'one_time';
+                    const nextType = event.target.value as '고정' | '구독' | '일회성';
                     setForm((prev) => ({
                       ...prev,
                       type: nextType,
-                      cycle: nextType === 'one_time' ? 'one_time' : 'monthly',
-                      reflectToLiquidAsset: nextType === 'one_time' ? true : prev.reflectToLiquidAsset,
-                      isCardIncluded: nextType === 'one_time' ? false : prev.isCardIncluded,
+                      cycle: nextType === '일회성' ? '일회성' : '매월',
+                      reflectToLiquidAsset: nextType === '일회성' ? true : prev.reflectToLiquidAsset,
+                      isCardIncluded: nextType === '일회성' ? false : prev.isCardIncluded,
                       isInvestmentTransfer: false,
                     }));
                   }}
                 >
-                  <option value="fixed">고정지출</option>
-                  <option value="subscription">구독지출</option>
-                  <option value="one_time">일회성</option>
+                  <option value="고정">고정지출</option>
+                  <option value="구독">구독지출</option>
+                  <option value="일회성">일회성</option>
                 </select>
               </FormField>
 
               <FormField label="주기">
                 <select
                   value={form.cycle}
-                  onChange={(event) => setForm((prev) => ({ ...prev, cycle: event.target.value as 'monthly' | 'yearly' | 'one_time' }))}
-                  disabled={form.type === 'subscription' || form.type === 'fixed'}
+                  onChange={(event) => setForm((prev) => ({ ...prev, cycle: event.target.value as '매월' | '매년' | '일회성' }))}
+                  disabled={form.type === '구독' || form.type === '고정'}
                 >
-                  <option value="monthly">월간</option>
-                  <option value="yearly">연간</option>
-                  <option value="one_time">일회성</option>
+                  <option value="매월">월간</option>
+                  <option value="매년">연간</option>
+                  <option value="일회성">일회성</option>
                 </select>
               </FormField>
             </>
@@ -597,7 +648,7 @@ export default function ExpensesPage() {
             </>
           )}
 
-          {entryMode === 'investment' || form.type === 'subscription' || form.type === 'fixed' ? (
+          {entryMode === 'investment' || form.type === '구독' || form.type === '고정' ? (
             <FormField label="매월 결제일" error={errors.billingDay}>
               <input
                 type="number"
@@ -672,7 +723,7 @@ export default function ExpensesPage() {
             </FormField>
           ) : null}
 
-          {(entryMode === 'general' && (form.type === 'subscription' || form.type === 'fixed')) ? (
+          {(entryMode === 'general' && (form.type === '구독' || form.type === '고정')) ? (
             <FormField label="카드 포함 여부" fullWidth>
               <label className="flex items-center gap-2">
                 <input
@@ -806,7 +857,7 @@ export default function ExpensesPage() {
           emptyMessage="등록된 정기 지출이 없습니다."
           columns={[
             { key: 'name', header: '항목명', render: (expense) => expense.name },
-            { key: 'type', header: '유형', render: (expense) => expense.expenseType },
+            { key: 'type', header: '유형', render: (expense) => getExpenseTypeLabel(expense.expenseType) },
             {
               key: 'flowType',
               header: '흐름',
@@ -834,7 +885,7 @@ export default function ExpensesPage() {
               header: '결제일',
               align: 'center',
               render: (expense) =>
-                expense.expenseType !== 'one_time' && expense.billingDay
+                expense.expenseType !== '일회성' && expense.expenseType !== 'one_time' && expense.billingDay
                   ? `매월 ${expense.billingDay}일`
                   : '-',
             },
@@ -880,7 +931,7 @@ export default function ExpensesPage() {
           emptyMessage="등록된 한시성 지출이 없습니다."
           columns={[
             { key: 'name', header: '항목명', render: (expense) => expense.name },
-            { key: 'type', header: '유형', render: (expense) => expense.expenseType },
+            { key: 'type', header: '유형', render: (expense) => getExpenseTypeLabel(expense.expenseType) },
             {
               key: 'flowType',
               header: '흐름',
