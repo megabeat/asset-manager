@@ -349,9 +349,107 @@ export async function expensesHandler(context: InvocationContext, req: HttpReque
         return fail("INVALID_JSON", "Invalid JSON body", 400);
       }
 
+      if (expenseId === "rollback-month") {
+        try {
+          const targetMonth = resolveTargetMonth(body.targetMonth);
+
+          const autoQuery = {
+            query:
+              "SELECT * FROM c WHERE c.userId = @userId AND c.type = 'Expense' AND c.entrySource = 'auto_settlement' AND c.settledMonth = @settledMonth",
+            parameters: [
+              { name: "@userId", value: userId },
+              { name: "@settledMonth", value: targetMonth }
+            ]
+          };
+
+          const { resources } = await container.items.query(autoQuery).fetchAll();
+          const autoExpenses = resources as (ExpenseRecord & Record<string, unknown>)[];
+
+          if (autoExpenses.length === 0) {
+            return fail("NOT_FOUND", `${targetMonth} 정산 내역이 없습니다.`, 404);
+          }
+
+          let deletedCount = 0;
+          let reversedAmount = 0;
+
+          for (const expense of autoExpenses) {
+            const reflectedAmount = Number(expense.reflectedAmount ?? 0);
+            if (reflectedAmount > 0) {
+              await applyLiquidAssetDelta(
+                assetsContainer,
+                userId,
+                reflectedAmount,
+                (expense.reflectedAssetId as string) || undefined
+              );
+            }
+
+            const transferredAmount = Number(expense.transferredAmount ?? 0);
+            const targetCategory = String(expense.investmentTargetCategory ?? "");
+            if (transferredAmount > 0 && targetCategory) {
+              await applyInvestmentAssetDelta(
+                assetsContainer,
+                userId,
+                -transferredAmount,
+                targetCategory,
+                (expense.investmentTargetAssetId as string) || undefined
+              );
+            }
+
+            await container.item(String(expense.id), userId).delete();
+            deletedCount += 1;
+            reversedAmount += Number(expense.amount ?? 0);
+          }
+
+          return ok({ targetMonth, deletedCount, reversedAmount });
+        } catch (error: unknown) {
+          if (error instanceof Error && error.message.startsWith("Invalid")) {
+            return fail("VALIDATION_ERROR", error.message, 400);
+          }
+          context.log(error);
+          return fail("SERVER_ERROR", "Failed to rollback expense settlement", 500);
+        }
+      }
+
+      if (expenseId === "check-settled") {
+        try {
+          const targetMonth = resolveTargetMonth(body.targetMonth);
+
+          const checkQuery = {
+            query:
+              "SELECT TOP 1 c.id FROM c WHERE c.userId = @userId AND c.type = 'Expense' AND c.entrySource = 'auto_settlement' AND c.settledMonth = @settledMonth",
+            parameters: [
+              { name: "@userId", value: userId },
+              { name: "@settledMonth", value: targetMonth }
+            ]
+          };
+
+          const { resources } = await container.items.query(checkQuery).fetchAll();
+          return ok({ targetMonth, settled: resources.length > 0 });
+        } catch (error: unknown) {
+          if (error instanceof Error && error.message.startsWith("Invalid")) {
+            return fail("VALIDATION_ERROR", error.message, 400);
+          }
+          context.log(error);
+          return fail("SERVER_ERROR", "Failed to check settlement status", 500);
+        }
+      }
+
       if (expenseId === "settle-month") {
         try {
           const targetMonth = resolveTargetMonth(body.targetMonth);
+
+          const alreadySettledQuery = {
+            query:
+              "SELECT TOP 1 c.id FROM c WHERE c.userId = @userId AND c.type = 'Expense' AND c.entrySource = 'auto_settlement' AND c.settledMonth = @settledMonth",
+            parameters: [
+              { name: "@userId", value: userId },
+              { name: "@settledMonth", value: targetMonth }
+            ]
+          };
+          const alreadySettled = await container.items.query(alreadySettledQuery).fetchAll();
+          if ((alreadySettled.resources ?? []).length > 0) {
+            return fail("ALREADY_SETTLED", `${targetMonth}은(는) 이미 정산이 완료된 월입니다. 재정산하려면 먼저 정산 취소를 해주세요.`, 409);
+          }
 
           const recurringQuery = {
             query:
@@ -377,22 +475,6 @@ export async function expensesHandler(context: InvocationContext, req: HttpReque
             const isInvestmentTransfer = Boolean(template.isInvestmentTransfer ?? false);
             const investmentTargetCategory = String(template.investmentTargetCategory ?? "");
             if (isInvestmentTransfer && !investmentTargetCategory) {
-              skippedCount += 1;
-              continue;
-            }
-
-            const duplicateQuery = {
-              query:
-                "SELECT TOP 1 c.id FROM c WHERE c.userId = @userId AND c.type = 'Expense' AND c.entrySource = 'auto_settlement' AND c.sourceExpenseId = @sourceExpenseId AND c.settledMonth = @settledMonth",
-              parameters: [
-                { name: "@userId", value: userId },
-                { name: "@sourceExpenseId", value: template.id },
-                { name: "@settledMonth", value: targetMonth }
-              ]
-            };
-
-            const duplicate = await container.items.query(duplicateQuery).fetchAll();
-            if ((duplicate.resources ?? []).length > 0) {
               skippedCount += 1;
               continue;
             }

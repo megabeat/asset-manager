@@ -43,6 +43,8 @@ export default function IncomesPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [settling, setSettling] = useState(false);
+  const [rollingBack, setRollingBack] = useState(false);
+  const [isMonthSettled, setIsMonthSettled] = useState(false);
   const [settlementMonth, setSettlementMonth] = useState(getCurrentMonthKey());
   const [form, setForm] = useState<IncomeForm>(defaultForm);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -58,9 +60,20 @@ export default function IncomesPage() {
     }
   }
 
+  async function checkSettledStatus(month: string) {
+    const result = await api.checkIncomeSettled(month);
+    setIsMonthSettled(result.data?.settled ?? false);
+  }
+
   useEffect(() => {
     loadIncomes().finally(() => setLoading(false));
   }, []);
+
+  useEffect(() => {
+    if (/^\d{4}-\d{2}$/.test(settlementMonth)) {
+      checkSettledStatus(settlementMonth);
+    }
+  }, [settlementMonth, incomes]);
 
   const monthlyIncome = useMemo(() => {
     return incomes.reduce((sum, income) => {
@@ -152,6 +165,11 @@ export default function IncomesPage() {
       return;
     }
 
+    if (isMonthSettled) {
+      setMessageText('이미 정산이 완료된 월입니다. 재정산하려면 먼저 정산 취소를 해주세요.');
+      return;
+    }
+
     setSettling(true);
     const result = await api.settleIncomeMonth(settlementMonth);
 
@@ -167,6 +185,34 @@ export default function IncomesPage() {
     );
     await loadIncomes();
     setSettling(false);
+  }
+
+  async function onRollbackMonth() {
+    clearMessage();
+    if (!/^\d{4}-\d{2}$/.test(settlementMonth)) {
+      setMessageText('정산월 형식이 올바르지 않습니다. (YYYY-MM)');
+      return;
+    }
+
+    if (!confirm(`${settlementMonth} 정산을 취소하시겠습니까?\n자동 생성된 수입 내역이 삭제되고 자산이 복원됩니다.`)) {
+      return;
+    }
+
+    setRollingBack(true);
+    const result = await api.rollbackIncomeMonth(settlementMonth);
+
+    if (result.error) {
+      setErrorMessage('정산 취소 실패', result.error);
+      setRollingBack(false);
+      return;
+    }
+
+    const summary = result.data;
+    setSuccessMessage(
+      `${summary?.targetMonth ?? settlementMonth} 정산 취소 완료: 삭제 ${summary?.deletedCount ?? 0}건, 복원금액 ${Math.round(summary?.reversedAmount ?? 0).toLocaleString()}원`
+    );
+    await loadIncomes();
+    setRollingBack(false);
   }
 
   if (loading) {
@@ -187,17 +233,31 @@ export default function IncomesPage() {
               onChange={(event) => setSettlementMonth(event.target.value)}
             />
           </FormField>
-          <button
-            type="button"
-            className="btn-primary w-[180px] self-end"
-            onClick={onSettleMonth}
-            disabled={settling}
-          >
-            {settling ? '월마감 반영 중...' : '월마감 실행'}
-          </button>
+          <div className="flex items-end gap-2">
+            <button
+              type="button"
+              className="btn-primary w-[180px]"
+              onClick={onSettleMonth}
+              disabled={settling || isMonthSettled}
+            >
+              {settling ? '월마감 반영 중...' : isMonthSettled ? '정산 완료됨' : '월마감 실행'}
+            </button>
+            {isMonthSettled && (
+              <button
+                type="button"
+                className="btn-danger-outline w-[180px]"
+                onClick={onRollbackMonth}
+                disabled={rollingBack}
+              >
+                {rollingBack ? '취소 중...' : '정산 취소'}
+              </button>
+            )}
+          </div>
           <FormField label="안내" fullWidth>
             <input
-              value="고정 월수입 템플릿만 입금일 기준으로 자동 생성/현금 반영됩니다."
+              value={isMonthSettled
+                ? `${settlementMonth} 정산이 이미 완료되었습니다. 재정산하려면 정산 취소 후 다시 실행하세요.`
+                : "고정 월수입 템플릿만 입금일 기준으로 자동 생성/현금 반영됩니다."}
               readOnly
             />
           </FormField>

@@ -233,6 +233,20 @@ export const api = {
       method: 'POST',
       body: JSON.stringify({ targetMonth })
     }),
+  rollbackExpenseMonth: (targetMonth: string) =>
+    fetchApi<{
+      targetMonth: string;
+      deletedCount: number;
+      reversedAmount: number;
+    }>(`/expenses/rollback-month`, {
+      method: 'POST',
+      body: JSON.stringify({ targetMonth })
+    }),
+  checkExpenseSettled: (targetMonth: string) =>
+    fetchApi<{ targetMonth: string; settled: boolean }>(`/expenses/check-settled`, {
+      method: 'POST',
+      body: JSON.stringify({ targetMonth })
+    }),
 
   // Incomes
   getIncomes: () => fetchApi<Income[]>('/incomes'),
@@ -248,6 +262,20 @@ export const api = {
       reflectedCount: number;
       totalSettledAmount: number;
     }>(`/incomes/settle-month`, {
+      method: 'POST',
+      body: JSON.stringify({ targetMonth })
+    }),
+  rollbackIncomeMonth: (targetMonth: string) =>
+    fetchApi<{
+      targetMonth: string;
+      deletedCount: number;
+      reversedAmount: number;
+    }>(`/incomes/rollback-month`, {
+      method: 'POST',
+      body: JSON.stringify({ targetMonth })
+    }),
+  checkIncomeSettled: (targetMonth: string) =>
+    fetchApi<{ targetMonth: string; settled: boolean }>(`/incomes/check-settled`, {
       method: 'POST',
       body: JSON.stringify({ targetMonth })
     }),
