@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { api, MonthlyAssetChange, MonthlySnapshot } from '@/lib/api';
+import { api, MonthlySnapshot } from '@/lib/api';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { formatCompact } from '@/lib/formatCompact';
 import {
@@ -55,15 +55,14 @@ const COLORS = ['#0b63ce', '#2e7d32', '#f57c00', '#7b1fa2', '#c2185b', '#00796b'
 export default function DashboardPage() {
   const [summary, setSummary] = useState<Summary | null>(null);
   const [trend, setTrend] = useState<TrendPoint[]>([]);
-  const [monthlyChanges, setMonthlyChanges] = useState<MonthlyAssetChange[]>([]);
   const [snapshots, setSnapshots] = useState<MonthlySnapshot[]>([]);
   const [assets, setAssets] = useState<AssetItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    Promise.all([api.getDashboardSummary(), api.getAssetTrend('30d'), api.getAssets(), api.getMonthlyAssetChanges(), api.getSnapshots()]).then(
-      ([summaryResult, trendResult, assetsResult, monthlyResult, snapshotsResult]) => {
+    Promise.all([api.getDashboardSummary(), api.getAssetTrend('30d'), api.getAssets(), api.getSnapshots()]).then(
+      ([summaryResult, trendResult, assetsResult, snapshotsResult]) => {
         if (summaryResult.data) {
           setSummary(summaryResult.data);
         }
@@ -76,15 +75,11 @@ export default function DashboardPage() {
           setAssets(assetsResult.data as AssetItem[]);
         }
 
-        if (monthlyResult.data) {
-          setMonthlyChanges(monthlyResult.data);
-        }
-
         if (snapshotsResult.data) {
           setSnapshots(snapshotsResult.data);
         }
 
-        const firstError = summaryResult.error ?? trendResult.error ?? assetsResult.error ?? monthlyResult.error;
+        const firstError = summaryResult.error ?? trendResult.error ?? assetsResult.error;
         if (firstError) {
           setError(firstError.message);
         }
@@ -285,39 +280,6 @@ export default function DashboardPage() {
                 </PieChart>
               </ResponsiveContainer>
             </div>
-          )}
-        </SectionCard>
-      </div>
-
-      <div className="mt-4">
-        <SectionCard>
-          <h3 className="mt-0">월별 자산 변화(월말 3일 기준)</h3>
-          {monthlyChanges.length === 0 ? (
-            <p>아직 월말 스냅샷 데이터가 없습니다.</p>
-          ) : (
-            <table className="ui-table">
-              <thead>
-                <tr className="ui-table-head-row">
-                  <th className="ui-table-th text-left">월</th>
-                  <th className="ui-table-th text-right">월말 자산</th>
-                  <th className="ui-table-th text-right">전월 대비</th>
-                </tr>
-              </thead>
-              <tbody>
-                {monthlyChanges.map((item) => (
-                  <tr key={item.month} className="ui-table-row-even">
-                    <td className="ui-table-td text-left">{item.month}</td>
-                    <td className="ui-table-td text-right">
-                      {item.totalValue.toLocaleString()}원
-                    </td>
-                    <td className={`ui-table-td text-right ${item.delta >= 0 ? 'ui-delta-positive' : 'ui-delta-negative'}`}>
-                      {item.delta >= 0 ? '+' : ''}
-                      {item.delta.toLocaleString()}원
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
           )}
         </SectionCard>
       </div>
