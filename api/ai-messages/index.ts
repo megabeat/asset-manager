@@ -140,6 +140,29 @@ function buildFallbackAdvice(
   return lines.join("\n");
 }
 
+function extractErrorInfo(error: unknown): { statusCode?: number; message: string } {
+  if (!error) {
+    return { message: "Unknown error" };
+  }
+
+  const statusCode = Number(
+    (error as { statusCode?: number; code?: number })?.statusCode ??
+      (error as { code?: number })?.code
+  );
+
+  if (error instanceof Error) {
+    return {
+      statusCode: Number.isFinite(statusCode) ? statusCode : undefined,
+      message: error.message
+    };
+  }
+
+  return {
+    statusCode: Number.isFinite(statusCode) ? statusCode : undefined,
+    message: String(error)
+  };
+}
+
 async function withTimeout<T>(promise: Promise<T>, ms: number, timeoutMessage: string): Promise<T> {
   let timeoutId: NodeJS.Timeout | null = null;
 
@@ -445,8 +468,40 @@ ${webSearchContext}
 
           assistantContent = completion.choices[0]?.message?.content ?? assistantContent;
         } catch (aiError: unknown) {
-          context.log("OpenAI error:", aiError);
-          assistantContent = buildFallbackAdvice(content, userContext, profileContextText);
+          const primaryError = extractErrorInfo(aiError);
+          context.log("OpenAI primary error:", primaryError.statusCode, primaryError.message);
+
+          try {
+            const client = getOpenAIClient();
+            const deploymentName = getDeploymentName();
+            const compactMessages = [
+              {
+                role: "system" as const,
+                content:
+                  "당신은 한국어 금융 상담 도우미입니다. 답변은 간결하고 실행 가능한 항목 중심으로 작성하세요."
+              },
+              { role: "user" as const, content: clampText(content, 1200) }
+            ];
+
+            const retryCompletion = await withTimeout(
+              client.getChatCompletions(deploymentName, compactMessages, {
+                maxTokens: 600,
+                temperature: 0.7
+              }),
+              20000,
+              "OpenAI compact retry timeout"
+            );
+
+            assistantContent =
+              retryCompletion.choices[0]?.message?.content ??
+              buildFallbackAdvice(content, userContext, profileContextText);
+
+            context.log("OpenAI compact retry succeeded after primary failure");
+          } catch (retryError: unknown) {
+            const retryErrorInfo = extractErrorInfo(retryError);
+            context.log("OpenAI compact retry error:", retryErrorInfo.statusCode, retryErrorInfo.message);
+            assistantContent = buildFallbackAdvice(content, userContext, profileContextText);
+          }
         }
 
         const assistantMessage = {
