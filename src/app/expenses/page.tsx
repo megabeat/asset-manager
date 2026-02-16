@@ -173,6 +173,27 @@ export default function ExpensesPage() {
     return cardRows[0]?.amount ?? 0;
   }, [expenses, cardQuickForm.cardName]);
 
+  const recentThreeMonthTransferAverage = useMemo(() => {
+    const now = new Date();
+    const from = new Date(now.getFullYear(), now.getMonth() - 2, 1);
+
+    const totalAmount = expenses
+      .filter(
+        (expense) =>
+          expense.isInvestmentTransfer &&
+          (expense.cycle === 'one_time' || expense.expenseType === 'one_time')
+      )
+      .reduce((sum, expense) => {
+        const occurredAt = expense.occurredAt ? new Date(expense.occurredAt) : null;
+        if (!occurredAt || Number.isNaN(occurredAt.getTime()) || occurredAt < from) {
+          return sum;
+        }
+        return sum + Number(expense.amount ?? 0);
+      }, 0);
+
+    return totalAmount / 3;
+  }, [expenses]);
+
   const cardIssuerMonthlyStats = useMemo(() => {
     const cardExpenses = expenses.filter((item) => {
       const category = item.category ?? '';
@@ -523,6 +544,11 @@ export default function ExpensesPage() {
               }
               className={errors.amount ? 'border-red-700' : ''}
             />
+            {entryMode === 'investment' ? (
+              <p className="helper-text m-0 mt-1">
+                최근 3개월 평균 이체액: {Math.round(recentThreeMonthTransferAverage).toLocaleString()}원
+              </p>
+            ) : null}
           </FormField>
 
           {entryMode === 'general' ? (
