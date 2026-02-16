@@ -175,7 +175,7 @@ export default function ExpensesPage() {
       nextErrors.amount = '금액은 0 이상이어야 합니다.';
     }
 
-    if (form.type === 'subscription') {
+    if (form.type === 'subscription' || form.type === 'fixed') {
       const dayValue = Number(form.billingDay || 0);
       if (!Number.isFinite(dayValue) || dayValue < 1 || dayValue > 31) {
         nextErrors.billingDay = '결제일은 1~31 사이여야 합니다.';
@@ -190,7 +190,7 @@ export default function ExpensesPage() {
     }
 
     const resolvedOccurredAt =
-      form.type === 'subscription'
+      form.type === 'subscription' || form.type === 'fixed'
         ? getOccurredAtByBillingDay(Number(form.billingDay || 1))
         : form.occurredAt;
 
@@ -200,7 +200,10 @@ export default function ExpensesPage() {
       amount: amountValue,
       type: form.type,
       cycle: form.cycle,
-      billingDay: form.type === 'subscription' ? Number(form.billingDay || 1) : null,
+      billingDay:
+        form.type === 'subscription' || form.type === 'fixed'
+          ? Number(form.billingDay || 1)
+          : null,
       occurredAt: resolvedOccurredAt,
       reflectToLiquidAsset: form.reflectToLiquidAsset,
       category: form.category.trim()
@@ -352,7 +355,7 @@ export default function ExpensesPage() {
                 setForm((prev) => ({
                   ...prev,
                   type: nextType,
-                  cycle: nextType === 'one_time' ? 'one_time' : nextType === 'subscription' ? 'monthly' : prev.cycle,
+                  cycle: nextType === 'one_time' ? 'one_time' : 'monthly',
                   reflectToLiquidAsset: nextType === 'one_time' ? true : prev.reflectToLiquidAsset,
                 }));
               }}
@@ -367,7 +370,7 @@ export default function ExpensesPage() {
             <select
               value={form.cycle}
               onChange={(event) => setForm((prev) => ({ ...prev, cycle: event.target.value as 'monthly' | 'yearly' | 'one_time' }))}
-              disabled={form.type === 'subscription'}
+              disabled={form.type === 'subscription' || form.type === 'fixed'}
             >
               <option value="monthly">월간</option>
               <option value="yearly">연간</option>
@@ -375,7 +378,7 @@ export default function ExpensesPage() {
             </select>
           </FormField>
 
-          {form.type === 'subscription' ? (
+          {form.type === 'subscription' || form.type === 'fixed' ? (
             <FormField label="매월 결제일" error={errors.billingDay}>
               <input
                 type="number"
@@ -540,7 +543,7 @@ export default function ExpensesPage() {
               header: '결제일',
               align: 'center',
               render: (expense) =>
-                expense.expenseType === 'subscription' && expense.billingDay
+                expense.expenseType !== 'one_time' && expense.billingDay
                   ? `매월 ${expense.billingDay}일`
                   : '-',
             },

@@ -220,8 +220,8 @@ export async function expensesHandler(context: InvocationContext, req: HttpReque
         const expenseType = ensureEnum(body.type, "type", expenseTypes);
         const billingDay = ensureOptionalNumberInRange(body.billingDay, "billingDay", 1, 31) ?? null;
 
-        if (expenseType === "subscription" && billingDay === null) {
-          return fail("VALIDATION_ERROR", "billingDay is required for subscription", 400);
+        if ((expenseType === "subscription" || expenseType === "fixed") && billingDay === null) {
+          return fail("VALIDATION_ERROR", "billingDay is required for recurring expenses", 400);
         }
 
         const expense = {
@@ -307,8 +307,8 @@ export async function expensesHandler(context: InvocationContext, req: HttpReque
           ensureOptionalNumberInRange(body.billingDay, "billingDay", 1, 31) ??
           (existingBillingDay >= 1 && existingBillingDay <= 31 ? existingBillingDay : null);
 
-        if (nextExpenseType === "subscription" && nextBillingDay === null) {
-          return fail("VALIDATION_ERROR", "billingDay is required for subscription", 400);
+        if ((nextExpenseType === "subscription" || nextExpenseType === "fixed") && nextBillingDay === null) {
+          return fail("VALIDATION_ERROR", "billingDay is required for recurring expenses", 400);
         }
 
         const prevReflectedAmount = Number(existing.reflectedAmount ?? 0);
