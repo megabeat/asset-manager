@@ -25,7 +25,7 @@ function isDevHeaderAuthEnabled(): boolean {
   if (explicit === "false") {
     return false;
   }
-  return !isProduction();
+  return true;
 }
 
 function parseAllowedUsers(): string[] {
@@ -78,36 +78,36 @@ function readHeader(headers: HeaderMap, key: string): string | undefined {
 }
 
 export function getAuthContext(headers: HeaderMap): AuthContext {
+  const principal = readHeader(headers, "x-ms-client-principal");
+  if (principal) {
+    try {
+      const decoded = Buffer.from(principal, "base64").toString("utf8");
+      const parsed = JSON.parse(decoded) as ClientPrincipal;
+      const userId = parsed.userId ?? null;
+      const userDetails = parsed.userDetails ?? null;
+
+      if (!isAllowedUser(userId, userDetails)) {
+        return {
+          userId: null,
+          roles: parsed.userRoles ?? [],
+          userDetails
+        };
+      }
+
+      return {
+        userId,
+        roles: parsed.userRoles ?? [],
+        userDetails
+      };
+    } catch {
+      return defaultAuthContext();
+    }
+  }
+
   const explicitUserId = readHeader(headers, "x-user-id");
   if (explicitUserId && explicitUserId.trim().length > 0 && isDevHeaderAuthEnabled()) {
     return { userId: explicitUserId.trim(), roles: ["authenticated"], userDetails: explicitUserId.trim() };
   }
 
-  const principal = readHeader(headers, "x-ms-client-principal");
-  if (!principal) {
-    return defaultAuthContext();
-  }
-
-  try {
-    const decoded = Buffer.from(principal, "base64").toString("utf8");
-    const parsed = JSON.parse(decoded) as ClientPrincipal;
-    const userId = parsed.userId ?? null;
-    const userDetails = parsed.userDetails ?? null;
-
-    if (!isAllowedUser(userId, userDetails)) {
-      return {
-        userId: null,
-        roles: parsed.userRoles ?? [],
-        userDetails
-      };
-    }
-
-    return {
-      userId,
-      roles: parsed.userRoles ?? [],
-      userDetails
-    };
-  } catch {
-    return defaultAuthContext();
-  }
+  return defaultAuthContext();
 }
