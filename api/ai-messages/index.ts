@@ -62,6 +62,41 @@ function toErrorDetails(error: unknown): string {
   return String(error);
 }
 
+function clampText(text: string, maxChars: number): string {
+  if (!text) return "";
+  if (text.length <= maxChars) return text;
+  return `${text.slice(0, Math.max(0, maxChars - 3))}...`;
+}
+
+function normalizeHistory(
+  rows: Array<{ role: string; content: string }>,
+  maxItems: number,
+  maxCharsPerItem: number,
+  maxTotalChars: number
+): Array<{ role: "user" | "assistant"; content: string }> {
+  const trimmed = rows
+    .filter((row) => row.role === "user" || row.role === "assistant")
+    .slice(-maxItems)
+    .map((row) => ({
+      role: row.role as "user" | "assistant",
+      content: clampText(String(row.content ?? ""), maxCharsPerItem)
+    }));
+
+  let total = 0;
+  const bounded: Array<{ role: "user" | "assistant"; content: string }> = [];
+  for (let index = trimmed.length - 1; index >= 0; index -= 1) {
+    const item = trimmed[index];
+    const nextTotal = total + item.content.length;
+    if (nextTotal > maxTotalChars) {
+      break;
+    }
+    bounded.push(item);
+    total = nextTotal;
+  }
+
+  return bounded.reverse();
+}
+
 async function withTimeout<T>(promise: Promise<T>, ms: number, timeoutMessage: string): Promise<T> {
   let timeoutId: NodeJS.Timeout | null = null;
 
@@ -238,6 +273,8 @@ export async function aiMessagesHandler(context: InvocationContext, req: HttpReq
           context.log("Profile context read error:", profileError);
         }
 
+        profileContextText = clampText(profileContextText, 2200);
+
         let webSearchContext = "웹 검색 결과 없음";
         try {
           const webResults = await withTimeout(
@@ -256,6 +293,8 @@ export async function aiMessagesHandler(context: InvocationContext, req: HttpReq
         } catch (searchError: unknown) {
           context.log("Web search error:", searchError);
         }
+
+        webSearchContext = clampText(webSearchContext, 2000);
 
         // Build system prompt with context
         const systemPrompt = `당신의 이름은 Mr. Money 입니다.
@@ -318,7 +357,7 @@ ${webSearchContext}
               .query(
                 {
                   query:
-                    "SELECT TOP 10 c.role, c.content FROM c WHERE c.userId = @userId AND c.conversationId = @conversationId AND c.type = 'AiMessage' ORDER BY c.createdAt DESC",
+                    "SELECT TOP 6 c.role, c.content FROM c WHERE c.userId = @userId AND c.conversationId = @conversationId AND c.type = 'AiMessage' ORDER BY c.createdAt DESC",
                   parameters: [
                     { name: "@userId", value: userId },
                     { name: "@conversationId", value: conversationId }
@@ -345,13 +384,18 @@ ${webSearchContext}
           const client = getOpenAIClient();
           const deploymentName = getDeploymentName();
 
+          const boundedHistory = normalizeHistory(history, 6, 1200, 5000);
+
           const messages = [
             { role: "system" as const, content: systemPrompt },
-            ...history.map((h) => ({ role: h.role as "user" | "assistant", content: h.content }))
+            ...boundedHistory
           ];
 
           const completion = await withTimeout(
-            client.getChatCompletions(deploymentName, messages),
+            client.getChatCompletions(deploymentName, messages, {
+              maxTokens: 900,
+              temperature: 0.7
+            }),
             25000,
             "OpenAI completion timeout"
           );
