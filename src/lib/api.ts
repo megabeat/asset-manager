@@ -57,6 +57,7 @@ export type Expense = {
   cycle: 'monthly' | 'yearly' | 'one_time';
   occurredAt?: string;
   reflectToLiquidAsset?: boolean;
+  isInvestmentTransfer?: boolean;
   isCardIncluded?: boolean;
   entrySource?: 'manual' | 'auto_settlement';
   sourceExpenseId?: string;

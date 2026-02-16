@@ -17,6 +17,7 @@ type ExpenseForm = {
   billingDay: NumericInput;
   occurredAt: string;
   reflectToLiquidAsset: boolean;
+  isInvestmentTransfer: boolean;
   isCardIncluded: boolean;
   category: string;
 };
@@ -29,6 +30,7 @@ const defaultForm: ExpenseForm = {
   billingDay: new Date().getDate(),
   occurredAt: new Date().toISOString().slice(0, 10),
   reflectToLiquidAsset: false,
+  isInvestmentTransfer: false,
   isCardIncluded: false,
   category: ''
 };
@@ -96,6 +98,9 @@ export default function ExpensesPage() {
 
   const totalMonthly = useMemo(() => {
     return expenses.reduce((sum, item) => {
+      if (item.isInvestmentTransfer) {
+        return sum;
+      }
       if (item.cycle === 'yearly') {
         return sum + item.amount / 12;
       }
@@ -111,24 +116,31 @@ export default function ExpensesPage() {
     const monthlyRows = expenses.filter(inMonth);
 
     const cardAmount = monthlyRows
-      .filter((expense) => (expense.category ?? '').includes('카드대금'))
+      .filter((expense) => (expense.category ?? '').includes('카드대금') && !expense.isInvestmentTransfer)
       .reduce((sum, expense) => sum + Number(expense.amount ?? 0), 0);
 
     const autoRecurringAmount = monthlyRows
-      .filter((expense) => expense.entrySource === 'auto_settlement')
+      .filter((expense) => expense.entrySource === 'auto_settlement' && !expense.isInvestmentTransfer)
       .reduce((sum, expense) => sum + Number(expense.amount ?? 0), 0);
 
     const manualAmount = monthlyRows
       .filter(
         (expense) =>
-          expense.entrySource !== 'auto_settlement' && !(expense.category ?? '').includes('카드대금')
+          expense.entrySource !== 'auto_settlement' &&
+          !(expense.category ?? '').includes('카드대금') &&
+          !expense.isInvestmentTransfer
       )
+      .reduce((sum, expense) => sum + Number(expense.amount ?? 0), 0);
+
+    const investmentTransferAmount = monthlyRows
+      .filter((expense) => expense.isInvestmentTransfer)
       .reduce((sum, expense) => sum + Number(expense.amount ?? 0), 0);
 
     return {
       cardAmount,
       autoRecurringAmount,
       manualAmount,
+      investmentTransferAmount,
       totalAmount: cardAmount + autoRecurringAmount + manualAmount
     };
   }, [expenses, settlementMonth]);
@@ -242,6 +254,7 @@ export default function ExpensesPage() {
           : null,
       occurredAt: resolvedOccurredAt,
       reflectToLiquidAsset: form.reflectToLiquidAsset,
+      isInvestmentTransfer: form.isInvestmentTransfer,
       isCardIncluded: form.type === 'subscription' || form.type === 'fixed' ? form.isCardIncluded : false,
       category: form.category.trim()
     };
@@ -283,6 +296,7 @@ export default function ExpensesPage() {
       billingDay: null,
       occurredAt: cardQuickForm.occurredAt,
       reflectToLiquidAsset: true,
+      isInvestmentTransfer: false,
       isCardIncluded: false,
       category: '카드대금'
     });
@@ -348,6 +362,7 @@ export default function ExpensesPage() {
             : new Date().getDate(),
       occurredAt: expense.occurredAt?.slice(0, 10) ?? new Date().toISOString().slice(0, 10),
       reflectToLiquidAsset: Boolean(expense.reflectToLiquidAsset),
+      isInvestmentTransfer: Boolean(expense.isInvestmentTransfer),
       isCardIncluded: Boolean(expense.isCardIncluded),
       category: expense.category ?? ''
     });
@@ -412,6 +427,10 @@ export default function ExpensesPage() {
           <div className="rounded-xl border border-[var(--line)] p-3">
             <p className="helper-text m-0">월 총소비</p>
             <p className="m-0 mt-1 text-[1.1rem] font-bold">{Math.round(monthlySpendSummary.totalAmount).toLocaleString()}원</p>
+          </div>
+          <div className="rounded-xl border border-[var(--line)] p-3">
+            <p className="helper-text m-0">투자이체</p>
+            <p className="m-0 mt-1 text-[1.1rem] font-bold">{Math.round(monthlySpendSummary.investmentTransferAmount).toLocaleString()}원</p>
           </div>
         </div>
       </SectionCard>
@@ -527,6 +546,19 @@ export default function ExpensesPage() {
                 }
               />
               <span>입력 시 입출금 통장/현금 자산에서 금액 차감</span>
+            </label>
+          </FormField>
+
+          <FormField label="투자이체 여부" fullWidth>
+            <label className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                checked={form.isInvestmentTransfer}
+                onChange={(event) =>
+                  setForm((prev) => ({ ...prev, isInvestmentTransfer: event.target.checked }))
+                }
+              />
+              <span>소비지출이 아닌 투자/저축 이체로 분류 (소비 합계에서 제외)</span>
             </label>
           </FormField>
 
@@ -651,7 +683,7 @@ export default function ExpensesPage() {
       </SectionCard>
 
       <p className="mt-3 font-semibold">
-        월 환산 지출 합계: {Math.round(totalMonthly).toLocaleString()}원
+        월 환산 생활지출 합계: {Math.round(totalMonthly).toLocaleString()}원
       </p>
 
       {message && <p>{message}</p>}
@@ -665,6 +697,12 @@ export default function ExpensesPage() {
           columns={[
             { key: 'name', header: '항목명', render: (expense) => expense.name },
             { key: 'type', header: '유형', render: (expense) => expense.expenseType },
+            {
+              key: 'flowType',
+              header: '흐름',
+              align: 'center',
+              render: (expense) => (expense.isInvestmentTransfer ? '투자이체' : '소비'),
+            },
             { key: 'cycle', header: '주기', render: (expense) => expense.cycle },
             {
               key: 'cardIncluded',
@@ -724,6 +762,12 @@ export default function ExpensesPage() {
           columns={[
             { key: 'name', header: '항목명', render: (expense) => expense.name },
             { key: 'type', header: '유형', render: (expense) => expense.expenseType },
+            {
+              key: 'flowType',
+              header: '흐름',
+              align: 'center',
+              render: (expense) => (expense.isInvestmentTransfer ? '투자이체' : '소비'),
+            },
             {
               key: 'entrySource',
               header: '생성방식',

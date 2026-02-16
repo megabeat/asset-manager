@@ -142,7 +142,7 @@ export async function dashboardHandler(context: InvocationContext, req: HttpRequ
 
         const expensesQuery = {
           query:
-            "SELECT VALUE SUM(c.amount) FROM c WHERE c.userId = @userId AND c.type = 'Expense' AND c.expenseType = 'fixed' AND c.cycle = 'monthly'",
+            "SELECT VALUE SUM(c.amount) FROM c WHERE c.userId = @userId AND c.type = 'Expense' AND c.expenseType = 'fixed' AND c.cycle = 'monthly' AND (NOT IS_DEFINED(c.isInvestmentTransfer) OR c.isInvestmentTransfer = false)",
           parameters: [{ name: "@userId", value: userId }]
         };
 

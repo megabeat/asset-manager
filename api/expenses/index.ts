@@ -29,6 +29,7 @@ type ExpenseRecord = {
   cycle?: "monthly" | "yearly" | "one_time";
   billingDay?: number | null;
   category?: string;
+  isInvestmentTransfer?: boolean;
   isCardIncluded?: boolean;
   entrySource?: "manual" | "auto_settlement";
   sourceExpenseId?: string;
@@ -251,7 +252,7 @@ export async function expensesHandler(context: InvocationContext, req: HttpReque
 
           const recurringQuery = {
             query:
-              "SELECT * FROM c WHERE c.userId = @userId AND c.type = 'Expense' AND c.cycle = 'monthly' AND (c.expenseType = 'fixed' OR c.expenseType = 'subscription') AND (NOT IS_DEFINED(c.isCardIncluded) OR c.isCardIncluded = false)",
+              "SELECT * FROM c WHERE c.userId = @userId AND c.type = 'Expense' AND c.cycle = 'monthly' AND (c.expenseType = 'fixed' OR c.expenseType = 'subscription') AND (NOT IS_DEFINED(c.isCardIncluded) OR c.isCardIncluded = false) AND (NOT IS_DEFINED(c.isInvestmentTransfer) OR c.isInvestmentTransfer = false)",
             parameters: [{ name: "@userId", value: userId }]
           };
 
@@ -304,6 +305,7 @@ export async function expensesHandler(context: InvocationContext, req: HttpReque
               reflectedAssetId: "",
               reflectedAt: "",
               category: ensureOptionalString(template.category ?? "", "category") ?? "",
+              isInvestmentTransfer: false,
               isCardIncluded: false,
               entrySource: "auto_settlement",
               sourceExpenseId: template.id,
@@ -379,6 +381,8 @@ export async function expensesHandler(context: InvocationContext, req: HttpReque
           billingDay,
           occurredAt,
           reflectToLiquidAsset,
+          isInvestmentTransfer:
+            ensureOptionalBoolean(body.isInvestmentTransfer, "isInvestmentTransfer") ?? false,
           isCardIncluded: ensureOptionalBoolean(body.isCardIncluded, "isCardIncluded") ?? false,
           reflectedAmount: 0,
           reflectedAssetId: "",
@@ -489,6 +493,9 @@ export async function expensesHandler(context: InvocationContext, req: HttpReque
           billingDay: nextBillingDay,
           occurredAt: nextOccurredAt,
           reflectToLiquidAsset: nextReflectSetting,
+          isInvestmentTransfer:
+            ensureOptionalBoolean(body.isInvestmentTransfer, "isInvestmentTransfer") ??
+            Boolean(existing.isInvestmentTransfer ?? false),
           isCardIncluded:
             ensureOptionalBoolean(body.isCardIncluded, "isCardIncluded") ??
             Boolean(existing.isCardIncluded ?? false),
