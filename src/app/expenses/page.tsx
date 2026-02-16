@@ -873,11 +873,11 @@ export default function ExpensesPage() {
       </SectionCard>
 
       <SectionCard className="mt-4 max-w-[980px]">
-        <h3 className="mb-3 mt-0">한시성 지출</h3>
+        <h3 className="mb-3 mt-0">실제 지출 (고정지출 + 한시성 지출)</h3>
         <DataTable
           rows={oneTimeExpenses}
           rowKey={(expense) => expense.id}
-          emptyMessage="등록된 한시성 지출이 없습니다."
+          emptyMessage="등록된 실제 지출이 없습니다."
           columns={[
             { key: 'name', header: '항목명', render: (expense) => expense.name },
             { key: 'type', header: '유형', render: (expense) => expense.expenseTypeLabel ?? expense.expenseType },
