@@ -53,6 +53,12 @@ export default function Home() {
       .reduce((sum, asset) => sum + (asset.currentValue ?? 0), 0);
   }, [assets]);
 
+  const stockAssetsTotal = useMemo(() => {
+    return assets
+      .filter((asset) => asset.category === 'stock_kr' || asset.category === 'stock_us')
+      .reduce((sum, asset) => sum + (asset.currentValue ?? 0), 0);
+  }, [assets]);
+
   const monthlyExpense = useMemo(() => {
     return expenses.reduce((sum, item) => {
       if (item.cycle === 'yearly') return sum + item.amount / 12;
@@ -91,6 +97,12 @@ export default function Home() {
           <h3 className="kpi-label">현금성 자산(입출금/현금)</h3>
           <p className="kpi-value">
             {liquidAssetsTotal.toLocaleString()}원
+          </p>
+        </div>
+        <div className="kpi-card">
+          <h3 className="kpi-label">주식자산(미국/국내, 원화 통합)</h3>
+          <p className="kpi-value">
+            {stockAssetsTotal.toLocaleString()}원
           </p>
         </div>
         <div className="kpi-card">
