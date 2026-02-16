@@ -9,7 +9,7 @@ import { FormField } from '@/components/ui/FormField';
 import { DataTable } from '@/components/ui/DataTable';
 import { getAssetCategoryLabel } from '@/lib/assetCategory';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
-import { ResponsiveContainer, Tooltip, Treemap } from 'recharts';
+import AssetTreemap, { TreemapItem } from '@/components/ui/AssetTreemap';
 
 type AssetCategory = 'cash' | 'deposit' | 'stock_kr' | 'stock_us' | 'car' | 'real_estate' | 'etc';
 type NumericInput = number | '';
@@ -56,13 +56,7 @@ type CategorySummaryRow = {
   color: string;
 };
 
-type TreemapNode = {
-  name: string;
-  size: number;
-  categoryLabel?: string;
-  fill?: string;
-  children?: TreemapNode[];
-};
+
 
 const defaultForm: AssetForm = {
   category: 'cash',
@@ -136,54 +130,7 @@ function formatWon(value: number): string {
   return `${Math.round(value).toLocaleString()}원`;
 }
 
-/* Custom content renderer for Treemap – shows individual asset name inside each cell */
-function TreemapCustomContent(props: Record<string, unknown>) {
-  const { x, y, width, height, name, fill, depth } = props as {
-    x: number; y: number; width: number; height: number;
-    name?: string; fill?: string; depth?: number;
-  };
-  // Only render leaf nodes (depth === 2 in nested data, or 1 for flat)
-  if ((depth ?? 0) < 1) return null;
-  const w = width ?? 0;
-  const h = height ?? 0;
-  const fontSize = w < 60 || h < 28 ? 10 : w < 100 ? 11 : 12;
-  const showLabel = w > 30 && h > 18;
-  return (
-    <g>
-      <rect x={x} y={y} width={w} height={h} fill={fill ?? '#8884d8'} stroke="rgba(255,255,255,0.88)" strokeWidth={2} rx={3} />
-      {showLabel && (
-        <text x={x + w / 2} y={y + h / 2} textAnchor="middle" dominantBaseline="central" fill="#fff" fontSize={fontSize} fontWeight={600} style={{ pointerEvents: 'none' }}>
-          {(name ?? '').length > Math.floor(w / (fontSize * 0.6)) ? (name ?? '').slice(0, Math.floor(w / (fontSize * 0.6))) + '…' : name}
-        </text>
-      )}
-    </g>
-  );
-}
 
-function AssetTreemapTooltip({
-  active,
-  payload
-}: {
-  active?: boolean;
-  payload?: Array<{ payload?: TreemapNode }>;
-}) {
-  if (!active || !payload || payload.length === 0) {
-    return null;
-  }
-
-  const node = payload[0]?.payload;
-  if (!node || typeof node.size !== 'number') {
-    return null;
-  }
-
-  return (
-    <div className="rounded-lg border border-[var(--line)] bg-[var(--surface)] px-3 py-2 shadow-md">
-      <p className="m-0 text-[0.85rem] font-semibold">{node.name}</p>
-      {node.categoryLabel ? <p className="helper-text mt-1">{node.categoryLabel}</p> : null}
-      <p className="m-0 mt-1 text-[0.85rem]">{formatWon(node.size)}</p>
-    </div>
-  );
-}
 
 export default function AssetsPage() {
   const [assets, setAssets] = useState<Asset[]>([]);
@@ -360,30 +307,24 @@ export default function AssetsPage() {
     }));
   }, [categoryGroups, totalAssetValue]);
 
-  const treemapData = useMemo<TreemapNode[]>(() => {
+  const treemapData = useMemo<TreemapItem[]>(() => {
     return categoryGroups
       .filter((group) => group.total > 0)
-      .map((group) => ({
-        name: group.label,
-        size: group.total,
-        categoryLabel: group.label,
-        fill: group.color,
-        children: group.items
+      .flatMap((group) =>
+        group.items
           .filter((item) => item.size > 0)
-          .sort((left, right) => right.size - left.size)
           .map((item) => ({
             name: item.name,
-            size: item.size,
-            categoryLabel: group.label,
+            value: item.size,
+            category: group.label,
             fill: group.color
           }))
-      }));
+      );
   }, [categoryGroups]);
 
-  const stockTreemapData = useMemo<TreemapNode[]>(() => {
+  const stockTreemapData = useMemo<TreemapItem[]>(() => {
     const STOCK_COLORS: Record<string, string> = { stock_us: '#0b63ce', stock_kr: '#2e7d32' };
     const stockCategories = ['stock_us', 'stock_kr'] as const;
-    // Flat list — each stock is a top-level node so individual names render correctly
     return stockCategories.flatMap((cat) => {
       const items = assets.filter((a) => a.category === cat && (a.currentValue ?? 0) > 0);
       const label = cat === 'stock_us' ? '미국주식' : '국내주식';
@@ -392,8 +333,8 @@ export default function AssetsPage() {
         .sort((a, b) => (b.currentValue ?? 0) - (a.currentValue ?? 0))
         .map((a) => ({
           name: a.name || '이름 없음',
-          size: a.currentValue ?? 0,
-          categoryLabel: label,
+          value: a.currentValue ?? 0,
+          category: label,
           fill
         }));
     });
@@ -822,20 +763,8 @@ export default function AssetsPage() {
         {(treemapView === 'all' ? treemapData : stockTreemapData).length === 0 ? (
           <p className="mt-3">{treemapView === 'all' ? '표시할 자산 데이터가 없습니다.' : '주식 자산이 없습니다.'}</p>
         ) : (
-          <div className="mt-3 h-[360px] w-full overflow-hidden rounded-xl border border-[var(--line)] bg-[var(--surface-2)] p-2 sm:h-[420px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <Treemap
-                data={treemapView === 'all' ? treemapData : stockTreemapData}
-                dataKey="size"
-                stroke="rgba(255,255,255,0.88)"
-                aspectRatio={4 / 3}
-                isAnimationActive
-                animationDuration={500}
-                content={<TreemapCustomContent />}
-              >
-                <Tooltip content={<AssetTreemapTooltip />} />
-              </Treemap>
-            </ResponsiveContainer>
+          <div className="mt-3 overflow-hidden rounded-xl border border-[var(--line)] bg-[var(--surface-2)] p-2">
+            <AssetTreemap data={treemapView === 'all' ? treemapData : stockTreemapData} />
           </div>
         )}
       </SectionCard>
