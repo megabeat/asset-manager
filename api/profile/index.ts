@@ -77,6 +77,7 @@ export async function profileHandler(context: InvocationContext, req: HttpReques
           employerName: ensureOptionalString(body.employerName, "employerName"),
           jobTitle: ensureOptionalString(body.jobTitle, "jobTitle"),
           baseSalaryAnnual: ensureOptionalNumber(body.baseSalaryAnnual, "baseSalaryAnnual"),
+          annualFixedExtra: ensureOptionalNumber(body.annualFixedExtra, "annualFixedExtra"),
           annualBonus: ensureOptionalNumber(body.annualBonus, "annualBonus"),
           annualRsu: ensureOptionalNumber(body.annualRsu, "annualRsu"),
           rsuShares: ensureOptionalNumber(body.rsuShares, "rsuShares"),
@@ -157,6 +158,9 @@ export async function profileHandler(context: InvocationContext, req: HttpReques
           jobTitle: ensureOptionalString(body.jobTitle, "jobTitle") ?? resource.jobTitle,
           baseSalaryAnnual:
             ensureOptionalNumber(body.baseSalaryAnnual, "baseSalaryAnnual") ?? resource.baseSalaryAnnual,
+          annualFixedExtra:
+            ensureOptionalNumber(body.annualFixedExtra, "annualFixedExtra") ??
+            resource.annualFixedExtra,
           annualBonus: ensureOptionalNumber(body.annualBonus, "annualBonus") ?? resource.annualBonus,
           annualRsu: ensureOptionalNumber(body.annualRsu, "annualRsu") ?? resource.annualRsu,
           rsuShares: ensureOptionalNumber(body.rsuShares, "rsuShares") ?? resource.rsuShares,

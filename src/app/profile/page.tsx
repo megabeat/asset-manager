@@ -7,6 +7,7 @@ type ProfileForm = Omit<
   Profile,
   | 'retirementTargetAge'
   | 'baseSalaryAnnual'
+  | 'annualFixedExtra'
   | 'annualBonus'
   | 'annualRsu'
   | 'annualRaiseRatePct'
@@ -17,6 +18,7 @@ type ProfileForm = Omit<
 > & {
   retirementTargetAge: number | '';
   baseSalaryAnnual: number | '';
+  annualFixedExtra: number | '';
   annualBonus: number | '';
   annualRsu: number | '';
   annualRaiseRatePct: number | '';
@@ -36,6 +38,7 @@ const defaultForm: ProfileForm = {
   employerName: '',
   jobTitle: '',
   baseSalaryAnnual: '',
+  annualFixedExtra: '',
   annualBonus: '',
   annualRsu: '',
   annualRaiseRatePct: '',
@@ -116,6 +119,7 @@ export default function ProfilePage() {
           employerName: result.data.employerName ?? '',
           jobTitle: result.data.jobTitle ?? '',
           baseSalaryAnnual: result.data.baseSalaryAnnual ?? '',
+          annualFixedExtra: result.data.annualFixedExtra ?? '',
           annualBonus: result.data.annualBonus ?? '',
           annualRsu: result.data.annualRsu ?? '',
           annualRaiseRatePct: result.data.annualRaiseRatePct ?? '',
@@ -152,6 +156,7 @@ export default function ProfilePage() {
       form.fullName.trim().length > 0 &&
       form.birthDate.trim().length > 0 &&
       (form.baseSalaryAnnual === '' || Number(form.baseSalaryAnnual) >= 0) &&
+      (form.annualFixedExtra === '' || Number(form.annualFixedExtra) >= 0) &&
       (form.annualBonus === '' || Number(form.annualBonus) >= 0) &&
       (form.annualRsu === '' || Number(form.annualRsu) >= 0) &&
       (form.rsuShares === '' || Number(form.rsuShares) >= 0) &&
@@ -183,6 +188,9 @@ export default function ProfilePage() {
 
     if (form.baseSalaryAnnual !== '' && Number(form.baseSalaryAnnual) < 0) {
       nextErrors.baseSalaryAnnual = '기본급은 0 이상이어야 합니다.';
+    }
+    if (form.annualFixedExtra !== '' && Number(form.annualFixedExtra) < 0) {
+      nextErrors.annualFixedExtra = '추가지급-고정은 0 이상이어야 합니다.';
     }
     if (form.annualBonus !== '' && Number(form.annualBonus) < 0) {
       nextErrors.annualBonus = '연간 보너스는 0 이상이어야 합니다.';
@@ -268,6 +276,8 @@ export default function ProfilePage() {
       employerName: form.employerName?.trim() || undefined,
       jobTitle: form.jobTitle?.trim() || undefined,
       baseSalaryAnnual: form.baseSalaryAnnual === '' ? undefined : Number(form.baseSalaryAnnual),
+      annualFixedExtra:
+        form.annualFixedExtra === '' ? undefined : Number(form.annualFixedExtra),
       annualBonus: form.annualBonus === '' ? undefined : Number(form.annualBonus),
       annualRsu: form.annualRsu === '' ? undefined : Number(form.annualRsu),
       rsuShares: form.rsuShares === '' ? undefined : Number(form.rsuShares),
@@ -464,6 +474,23 @@ export default function ProfilePage() {
             </label>
 
             <label className="form-field">
+              <span>추가지급-고정(연)</span>
+              <input
+                type="number"
+                min={0}
+                value={form.annualFixedExtra}
+                onChange={(event) =>
+                  setForm((prev) => ({
+                    ...prev,
+                    annualFixedExtra: event.target.value === '' ? '' : Number(event.target.value)
+                  }))
+                }
+                placeholder="예: 5000000"
+              />
+              {errors.annualFixedExtra && <p className="form-error">{errors.annualFixedExtra}</p>}
+            </label>
+
+            <label className="form-field">
               <span>연간 보너스</span>
               <input
                 type="number"
@@ -553,7 +580,7 @@ export default function ProfilePage() {
             </label>
 
             <label className="form-field">
-              <span>연간 연봉 상승률(%)</span>
+              <span>연간 연봉 상승률(기본급 기준, %)</span>
               <input
                 type="number"
                 min={-20}

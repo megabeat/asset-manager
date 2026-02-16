@@ -13,6 +13,7 @@ export type Profile = {
   employerName?: string;
   jobTitle?: string;
   baseSalaryAnnual?: number;
+  annualFixedExtra?: number;
   annualBonus?: number;
   annualRsu?: number;
   annualRaiseRatePct?: number;

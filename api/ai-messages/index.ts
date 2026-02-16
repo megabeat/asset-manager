@@ -15,6 +15,7 @@ type ProfileContext = {
   employerName?: string;
   jobTitle?: string;
   baseSalaryAnnual?: number;
+  annualFixedExtra?: number;
   annualBonus?: number;
   annualRsu?: number;
   rsuShares?: number;
@@ -356,14 +357,19 @@ export async function aiMessagesHandler(context: InvocationContext, req: HttpReq
             const child1Age = getAgeFromBirthDate(profile.child1BirthDate);
             const child2Age = getAgeFromBirthDate(profile.child2BirthDate);
             const annualBase = Number(profile.baseSalaryAnnual ?? 0);
+            const annualFixedExtra = Number(profile.annualFixedExtra ?? 0);
             const annualBonus = Number(profile.annualBonus ?? 0);
             const annualRsu = Number(profile.annualRsu ?? 0);
             const rsuShares = Number(profile.rsuShares ?? 0);
             const rsuVestingPriceUsd = Number(profile.rsuVestingPriceUsd ?? 0);
-            const totalAnnualComp = annualBase + annualBonus + annualRsu;
+            const totalAnnualComp = annualBase + annualFixedExtra + annualBonus + annualRsu;
             const annualRaiseRate = Number(profile.annualRaiseRatePct ?? 0);
+            const projectedBaseNextYear =
+              annualBase > 0 ? Math.round(annualBase * (1 + annualRaiseRate / 100)) : 0;
             const projectedCompNextYear =
-              totalAnnualComp > 0 ? Math.round(totalAnnualComp * (1 + annualRaiseRate / 100)) : 0;
+              projectedBaseNextYear > 0 || annualFixedExtra > 0 || annualBonus > 0 || annualRsu > 0
+                ? projectedBaseNextYear + annualFixedExtra + annualBonus + annualRsu
+                : 0;
             const yearsToRetirement =
               typeof profile.retirementTargetAge === "number" && typeof currentAge === "number"
                 ? profile.retirementTargetAge - currentAge
@@ -375,13 +381,15 @@ export async function aiMessagesHandler(context: InvocationContext, req: HttpReq
               `- 직장: ${profile.employerName ?? "미설정"}`,
               `- 직무/직급: ${profile.jobTitle ?? "미설정"}`,
               `- 연 기본급: ${annualBase > 0 ? `${annualBase.toLocaleString()}원` : "미설정"}`,
+              `- 추가지급-고정(연): ${annualFixedExtra > 0 ? `${annualFixedExtra.toLocaleString()}원` : "미설정"}`,
               `- 연간 보너스: ${annualBonus > 0 ? `${annualBonus.toLocaleString()}원` : "미설정"}`,
               `- 연간 RSU: ${annualRsu > 0 ? `${annualRsu.toLocaleString()}원` : "미설정"}`,
               `- RSU 주식수: ${rsuShares > 0 ? `${rsuShares.toLocaleString()}주` : "미설정"}`,
               `- RSU 베스팅 시가(USD): ${rsuVestingPriceUsd > 0 ? `${rsuVestingPriceUsd.toLocaleString()} USD` : "미설정"}`,
               `- RSU 베스팅 주기: ${profile.rsuVestingCycle ?? "미설정"}`,
-              `- 연봉 상승률(연): ${profile.annualRaiseRatePct !== undefined ? `${annualRaiseRate}%` : "미설정"}`,
-              `- 연 총보상(기본급+보너스+RSU): ${totalAnnualComp > 0 ? `${totalAnnualComp.toLocaleString()}원` : "미설정"}`,
+              `- 연봉 상승률(기본급 기준): ${profile.annualRaiseRatePct !== undefined ? `${annualRaiseRate}%` : "미설정"}`,
+              `- 연 총보상(기본급+고정추가지급+보너스+RSU): ${totalAnnualComp > 0 ? `${totalAnnualComp.toLocaleString()}원` : "미설정"}`,
+              `- 내년 예상 기본급(상승률 반영): ${projectedBaseNextYear > 0 ? `${projectedBaseNextYear.toLocaleString()}원` : "미설정"}`,
               `- 내년 예상 총보상: ${projectedCompNextYear > 0 ? `${projectedCompNextYear.toLocaleString()}원` : "미설정"}`,
               `- 은퇴 목표 연령: ${typeof profile.retirementTargetAge === "number" ? `${profile.retirementTargetAge}세` : "미설정"}`,
               `- 은퇴까지 남은 기간: ${typeof yearsToRetirement === "number" ? `${yearsToRetirement}년` : "미설정"}`,
