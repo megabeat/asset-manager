@@ -22,8 +22,17 @@ const REFLECTABLE_CYCLES = new Set(["yearly", "one_time"]);
 type IncomeRecord = {
   id: string;
   userId: string;
+  type?: string;
+  name?: string;
   cycle: "monthly" | "yearly" | "one_time";
   amount: number;
+  billingDay?: number | null;
+  isFixedIncome?: boolean;
+  entrySource?: "manual" | "auto_settlement";
+  sourceIncomeId?: string;
+  settledMonth?: string;
+  category?: string;
+  note?: string;
   occurredAt?: string;
   reflectToLiquidAsset?: boolean;
   reflectedAmount?: number;
@@ -55,6 +64,30 @@ function resolveOccurredAt(value: unknown): string {
     throw new Error("Invalid occurredAt");
   }
   return date.toISOString().slice(0, 10);
+}
+
+function resolveTargetMonth(raw: unknown): string {
+  const month = ensureString(raw, "targetMonth").trim();
+  if (!/^\d{4}-\d{2}$/.test(month)) {
+    throw new Error("Invalid targetMonth");
+  }
+  const [yearText, monthText] = month.split("-");
+  const year = Number(yearText);
+  const monthNumber = Number(monthText);
+  if (!Number.isFinite(year) || !Number.isFinite(monthNumber) || monthNumber < 1 || monthNumber > 12) {
+    throw new Error("Invalid targetMonth");
+  }
+  return `${yearText}-${monthText}`;
+}
+
+function resolveDateByMonthAndBillingDay(targetMonth: string, billingDay: number): string {
+  const [yearText, monthText] = targetMonth.split("-");
+  const year = Number(yearText);
+  const month = Number(monthText);
+  const safeDay = Math.min(31, Math.max(1, Math.trunc(billingDay)));
+  const lastDay = new Date(year, month, 0).getDate();
+  const day = Math.min(safeDay, lastDay);
+  return new Date(year, month - 1, day).toISOString().slice(0, 10);
 }
 
 function shouldReflectNow(cycle: string, reflectToLiquidAsset: boolean, occurredAt: string): boolean {
@@ -193,10 +226,132 @@ export async function incomesHandler(
         return fail("INVALID_JSON", "Invalid JSON body", 400);
       }
 
+      if (incomeId === "settle-month") {
+        try {
+          const targetMonth = resolveTargetMonth(body.targetMonth);
+
+          const recurringQuery = {
+            query:
+              "SELECT * FROM c WHERE c.userId = @userId AND c.type = 'Income' AND c.cycle = 'monthly' AND c.isFixedIncome = true",
+            parameters: [{ name: "@userId", value: userId }]
+          };
+
+          const { resources } = await container.items.query(recurringQuery).fetchAll();
+          const templates = resources as IncomeRecord[];
+
+          let createdCount = 0;
+          let skippedCount = 0;
+          let reflectedCount = 0;
+          let totalSettledAmount = 0;
+
+          for (const template of templates) {
+            const billingDay = Number(template.billingDay ?? 0);
+            if (!Number.isFinite(billingDay) || billingDay < 1 || billingDay > 31) {
+              skippedCount += 1;
+              continue;
+            }
+
+            const duplicateQuery = {
+              query:
+                "SELECT TOP 1 c.id FROM c WHERE c.userId = @userId AND c.type = 'Income' AND c.entrySource = 'auto_settlement' AND c.sourceIncomeId = @sourceIncomeId AND c.settledMonth = @settledMonth",
+              parameters: [
+                { name: "@userId", value: userId },
+                { name: "@sourceIncomeId", value: template.id },
+                { name: "@settledMonth", value: targetMonth }
+              ]
+            };
+
+            const duplicate = await container.items.query(duplicateQuery).fetchAll();
+            if ((duplicate.resources ?? []).length > 0) {
+              skippedCount += 1;
+              continue;
+            }
+
+            const occurredAt = resolveDateByMonthAndBillingDay(targetMonth, billingDay);
+            const amount = Number(template.amount ?? 0);
+            const nowIso = new Date().toISOString();
+            const autoIncome: IncomeRecord & Record<string, unknown> = {
+              id: randomUUID(),
+              userId,
+              type: "Income",
+              name: ensureString(template.name ?? "고정수입", "name"),
+              amount,
+              cycle: "one_time",
+              billingDay,
+              isFixedIncome: false,
+              entrySource: "auto_settlement",
+              sourceIncomeId: template.id,
+              settledMonth: targetMonth,
+              occurredAt,
+              reflectToLiquidAsset: true,
+              reflectedAmount: 0,
+              reflectedAssetId: "",
+              reflectedAt: "",
+              category: ensureOptionalString(template.category ?? "", "category") ?? "",
+              note: ensureOptionalString(template.note ?? "", "note") ?? "",
+              createdAt: nowIso,
+              updatedAt: nowIso
+            };
+
+            const { resource: created } = await container.items.create(autoIncome);
+            if (!created) {
+              skippedCount += 1;
+              continue;
+            }
+
+            createdCount += 1;
+            totalSettledAmount += amount;
+
+            if (shouldReflectNow("one_time", true, occurredAt)) {
+              const reflected = await applyLiquidAssetDelta(assetsContainer, userId, amount);
+              if (reflected) {
+                reflectedCount += 1;
+                const updatedIncome = {
+                  ...created,
+                  reflectedAmount: reflected.appliedDelta,
+                  reflectedAssetId: reflected.assetId,
+                  reflectedAt: new Date().toISOString(),
+                  updatedAt: new Date().toISOString()
+                };
+                await container.item(String(created.id), userId).replace(updatedIncome);
+              }
+            }
+          }
+
+          return ok(
+            {
+              targetMonth,
+              createdCount,
+              skippedCount,
+              reflectedCount,
+              totalSettledAmount
+            },
+            201
+          );
+        } catch (error: unknown) {
+          if (error instanceof Error && error.message.startsWith("Invalid")) {
+            return fail("VALIDATION_ERROR", error.message, 400);
+          }
+          context.log(error);
+          return fail("SERVER_ERROR", "Failed to settle recurring incomes", 500);
+        }
+      }
+
       try {
         const cycle = ensureEnum(body.cycle, "cycle", incomeCycles) as "monthly" | "yearly" | "one_time";
         const amount = ensureNumberInRange(body.amount, "amount", 0, Number.MAX_SAFE_INTEGER);
         const occurredAt = resolveOccurredAt(body.occurredAt);
+        const isFixedIncome = ensureOptionalBoolean(body.isFixedIncome, "isFixedIncome") ?? false;
+        const billingDay = ensureOptionalNumberInRange(body.billingDay, "billingDay", 1, 31) ?? null;
+
+        if (isFixedIncome && cycle !== "monthly") {
+          return fail("VALIDATION_ERROR", "isFixedIncome is only allowed for monthly cycle", 400);
+        }
+
+        if (isFixedIncome && billingDay === null) {
+          return fail("VALIDATION_ERROR", "billingDay is required for fixed monthly incomes", 400);
+        }
+
         const reflectToLiquidAsset = ensureOptionalBoolean(body.reflectToLiquidAsset, "reflectToLiquidAsset") ?? (cycle !== "monthly");
 
         const income = {
@@ -206,6 +361,11 @@ export async function incomesHandler(
           name: ensureString(body.name, "name"),
           amount,
           cycle,
+          billingDay: isFixedIncome ? billingDay : null,
+          isFixedIncome,
+          entrySource: "manual",
+          sourceIncomeId: "",
+          settledMonth: "",
           occurredAt,
           reflectToLiquidAsset,
           reflectedAmount: 0,
@@ -275,6 +435,22 @@ export async function incomesHandler(
           ensureOptionalNumberInRange(body.amount, "amount", 0, Number.MAX_SAFE_INTEGER) ??
           Number(existing.amount ?? 0);
         const nextOccurredAt = resolveOccurredAt(body.occurredAt ?? existing.occurredAt);
+        const nextIsFixedIncome =
+          ensureOptionalBoolean(body.isFixedIncome, "isFixedIncome") ??
+          Boolean(existing.isFixedIncome ?? false);
+        const existingBillingDay = Number(existing.billingDay ?? 0);
+        const nextBillingDay =
+          ensureOptionalNumberInRange(body.billingDay, "billingDay", 1, 31) ??
+          (existingBillingDay >= 1 && existingBillingDay <= 31 ? existingBillingDay : null);
+
+        if (nextIsFixedIncome && nextCycle !== "monthly") {
+          return fail("VALIDATION_ERROR", "isFixedIncome is only allowed for monthly cycle", 400);
+        }
+
+        if (nextIsFixedIncome && nextBillingDay === null) {
+          return fail("VALIDATION_ERROR", "billingDay is required for fixed monthly incomes", 400);
+        }
+
         const nextReflectSetting =
           ensureOptionalBoolean(body.reflectToLiquidAsset, "reflectToLiquidAsset") ??
           (existing.reflectToLiquidAsset ?? existing.cycle !== "monthly");
@@ -305,6 +481,8 @@ export async function incomesHandler(
           name: ensureOptionalString(body.name, "name") ?? existing.name,
           amount: nextAmount,
           cycle: nextCycle,
+          billingDay: nextIsFixedIncome ? nextBillingDay : null,
+          isFixedIncome: nextIsFixedIncome,
           occurredAt: nextOccurredAt,
           reflectToLiquidAsset: nextReflectSetting,
           reflectedAmount: nextReflectedAmount,

@@ -73,6 +73,11 @@ export type Income = {
   name: string;
   amount: number;
   cycle: 'monthly' | 'yearly' | 'one_time';
+  billingDay?: number | null;
+  isFixedIncome?: boolean;
+  entrySource?: 'manual' | 'auto_settlement';
+  sourceIncomeId?: string;
+  settledMonth?: string;
   occurredAt?: string;
   reflectToLiquidAsset?: boolean;
   reflectedAmount?: number;
@@ -228,6 +233,17 @@ export const api = {
   updateIncome: (id: string, data: unknown) =>
     fetchApi(`/incomes/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
   deleteIncome: (id: string) => fetchApi(`/incomes/${id}`, { method: 'DELETE' }),
+  settleIncomeMonth: (targetMonth: string) =>
+    fetchApi<{
+      targetMonth: string;
+      createdCount: number;
+      skippedCount: number;
+      reflectedCount: number;
+      totalSettledAmount: number;
+    }>(`/incomes/settle-month`, {
+      method: 'POST',
+      body: JSON.stringify({ targetMonth })
+    }),
 
   // Liabilities
   getLiabilities: () => fetchApi<Liability[]>('/liabilities'),
