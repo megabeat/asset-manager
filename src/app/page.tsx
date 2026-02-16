@@ -184,7 +184,7 @@ export default function Home() {
             <p className="m-0 text-[2rem] font-extrabold leading-none tracking-tight text-[var(--foreground)]">
               {new Date().getDate()}
             </p>
-            <p className="m-0 mt-1 text-[0.8rem] font-medium uppercase tracking-widest text-[var(--muted)]">
+            <p className="m-0 mt-1 text-[0.95rem] font-medium uppercase tracking-widest text-[var(--muted)]">
               {new Date().toLocaleDateString('ko-KR', { year: 'numeric', month: 'long' })}
             </p>
           </div>
