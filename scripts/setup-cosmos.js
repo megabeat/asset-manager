@@ -65,6 +65,10 @@ const containers = [
   {
     id: "incomes",
     partitionKey: { paths: ["/userId"] }
+  },
+  {
+    id: "goalFunds",
+    partitionKey: { paths: ["/userId"] }
   }
 ];
 
