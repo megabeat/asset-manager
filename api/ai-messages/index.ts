@@ -30,6 +30,16 @@ type ProfileContext = {
   retirementTargetAge?: number;
 };
 
+type UserContext = {
+  totalAssets: number;
+  totalLiabilities: number;
+  netWorth: number;
+  monthlyExpenses: number;
+  monthlyIncome: number;
+  assetBreakdown: Array<{ category: string; value: number }>;
+  topExpenses: Array<{ name: string; amount: number }>;
+};
+
 function getAgeFromBirthDate(birthDate?: string): number | null {
   if (!birthDate) return null;
   const birth = new Date(birthDate);
@@ -147,18 +157,36 @@ export async function aiMessagesHandler(context: InvocationContext, req: HttpReq
         await messagesContainer.items.create(userMessage);
 
         // Fetch user context
-        const assetsContainer = getContainer("assets");
-        const liabilitiesContainer = getContainer("liabilities");
-        const expensesContainer = getContainer("expenses");
-        const incomesContainer = getContainer("incomes");
+        let userContext: UserContext = {
+          totalAssets: 0,
+          totalLiabilities: 0,
+          netWorth: 0,
+          monthlyExpenses: 0,
+          monthlyIncome: 0,
+          assetBreakdown: [],
+          topExpenses: []
+        };
 
-        const userContext = await buildUserContext(
-          userId,
-          assetsContainer,
-          liabilitiesContainer,
-          expensesContainer,
-          incomesContainer
-        );
+        try {
+          const assetsContainer = getContainer("assets");
+          const liabilitiesContainer = getContainer("liabilities");
+          const expensesContainer = getContainer("expenses");
+          const incomesContainer = getContainer("incomes");
+
+          userContext = await withTimeout(
+            buildUserContext(
+              userId,
+              assetsContainer,
+              liabilitiesContainer,
+              expensesContainer,
+              incomesContainer
+            ),
+            5000,
+            "User context timeout"
+          );
+        } catch (contextError: unknown) {
+          context.log("User context build error:", contextError);
+        }
 
         let profileContextText = "프로필 정보 없음";
         try {
@@ -283,23 +311,32 @@ ${webSearchContext}
 사용자 질문에 대해 구체적이고 실용적인 조언을 제공하세요.`;
 
         // Fetch conversation history
-        const historyQuery = await messagesContainer.items
-          .query(
-            {
-              query:
-                "SELECT TOP 10 c.role, c.content FROM c WHERE c.userId = @userId AND c.conversationId = @conversationId AND c.type = 'AiMessage' ORDER BY c.createdAt DESC",
-              parameters: [
-                { name: "@userId", value: userId },
-                { name: "@conversationId", value: conversationId }
-              ]
-            },
-            { partitionKey }
-          )
-          .fetchAll();
+        let history: Array<{ role: string; content: string }> = [];
+        try {
+          const historyQuery = await withTimeout(
+            messagesContainer.items
+              .query(
+                {
+                  query:
+                    "SELECT TOP 10 c.role, c.content FROM c WHERE c.userId = @userId AND c.conversationId = @conversationId AND c.type = 'AiMessage' ORDER BY c.createdAt DESC",
+                  parameters: [
+                    { name: "@userId", value: userId },
+                    { name: "@conversationId", value: conversationId }
+                  ]
+                },
+                { partitionKey }
+              )
+              .fetchAll(),
+            4000,
+            "History query timeout"
+          );
 
-        const history = (
-          historyQuery.resources as Array<{ role: string; content: string }>
-        ).reverse();
+          history = (
+            historyQuery.resources as Array<{ role: string; content: string }>
+          ).reverse();
+        } catch (historyError: unknown) {
+          context.log("History query error:", historyError);
+        }
 
         // Call Azure OpenAI
         let assistantContent = "죄송합니다. 현재 AI 서비스를 이용할 수 없습니다.";
