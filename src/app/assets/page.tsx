@@ -170,6 +170,7 @@ export default function AssetsPage() {
   const { message, feedback, clearMessage, setMessageText, setSuccessMessage, setErrorMessage } = useFeedbackMessage();
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [fxLoading, setFxLoading] = useState(false);
+  const [fxManualOverride, setFxManualOverride] = useState(false);
 
   function isPensionCategory(category?: string) {
     return (
@@ -587,19 +588,35 @@ export default function AssetsPage() {
 
               {form.category === 'stock_us' ? (
                 <>
-                  <FormField label={`환율(USD/KRW)${fxLoading ? ' - 조회중' : ''}`} error={errors.exchangeRate}>
-                    <input
-                      type="number"
-                      min={0}
-                      step="0.01"
-                      value={form.exchangeRate}
-                      onChange={(event) =>
-                        setForm((prev) => ({
-                          ...prev,
-                          exchangeRate: event.target.value === '' ? '' : Number(event.target.value)
-                        }))
-                      }
-                    />
+                  <FormField label={`환율(USD/KRW)${fxLoading ? ' - 조회중' : fxManualOverride ? '' : ' - 자동'}`} error={errors.exchangeRate}>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="number"
+                        min={0}
+                        step="0.01"
+                        value={form.exchangeRate}
+                        readOnly={!fxManualOverride}
+                        className={!fxManualOverride ? 'opacity-70' : ''}
+                        onChange={(event) =>
+                          setForm((prev) => ({
+                            ...prev,
+                            exchangeRate: event.target.value === '' ? '' : Number(event.target.value)
+                          }))
+                        }
+                      />
+                      <button
+                        type="button"
+                        className="btn-subtle shrink-0 whitespace-nowrap text-xs"
+                        onClick={() => {
+                          if (fxManualOverride) {
+                            loadUsdKrwRate();
+                          }
+                          setFxManualOverride(!fxManualOverride);
+                        }}
+                      >
+                        {fxManualOverride ? '자동' : '수동입력'}
+                      </button>
+                    </div>
                   </FormField>
                   <FormField label="USD 평가액(자동 계산)">
                     <input value={effectiveUsdAmount.toLocaleString()} readOnly />
