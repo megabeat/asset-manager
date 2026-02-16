@@ -383,29 +383,20 @@ export default function AssetsPage() {
   const stockTreemapData = useMemo<TreemapNode[]>(() => {
     const STOCK_COLORS: Record<string, string> = { stock_us: '#0b63ce', stock_kr: '#2e7d32' };
     const stockCategories = ['stock_us', 'stock_kr'] as const;
-    return stockCategories
-      .map((cat) => {
-        const items = assets.filter((a) => a.category === cat && (a.currentValue ?? 0) > 0);
-        if (items.length === 0) return null;
-        const total = items.reduce((s, a) => s + (a.currentValue ?? 0), 0);
-        const label = cat === 'stock_us' ? '미국주식' : '국내주식';
-        const fill = STOCK_COLORS[cat];
-        return {
-          name: label,
-          size: total,
+    // Flat list — each stock is a top-level node so individual names render correctly
+    return stockCategories.flatMap((cat) => {
+      const items = assets.filter((a) => a.category === cat && (a.currentValue ?? 0) > 0);
+      const label = cat === 'stock_us' ? '미국주식' : '국내주식';
+      const fill = STOCK_COLORS[cat];
+      return items
+        .sort((a, b) => (b.currentValue ?? 0) - (a.currentValue ?? 0))
+        .map((a) => ({
+          name: a.name || '이름 없음',
+          size: a.currentValue ?? 0,
           categoryLabel: label,
-          fill,
-          children: items
-            .sort((a, b) => (b.currentValue ?? 0) - (a.currentValue ?? 0))
-            .map((a) => ({
-              name: a.name || '이름 없음',
-              size: a.currentValue ?? 0,
-              categoryLabel: label,
-              fill
-            }))
-        };
-      })
-      .filter(Boolean) as TreemapNode[];
+          fill
+        }));
+    });
   }, [assets]);
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
