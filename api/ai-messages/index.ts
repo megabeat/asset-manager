@@ -100,7 +100,8 @@ function normalizeHistory(
 function buildFallbackAdvice(
   question: string,
   userContext: UserContext,
-  profileContextText: string
+  profileContextText: string,
+  diagnostic?: string
 ): string {
   const monthlySurplus = userContext.monthlyIncome - userContext.monthlyExpenses;
   const topAssetCategory =
@@ -135,6 +136,10 @@ function buildFallbackAdvice(
       "프로필 반영 메모",
       "- 설정한 가족/은퇴/소득 정보는 다음 상세 시나리오 계산에 계속 반영됩니다."
     );
+  }
+
+  if (diagnostic) {
+    lines.push("", `진단코드: ${clampText(diagnostic, 180)}`);
   }
 
   return lines.join("\n");
@@ -500,7 +505,14 @@ ${webSearchContext}
           } catch (retryError: unknown) {
             const retryErrorInfo = extractErrorInfo(retryError);
             context.log("OpenAI compact retry error:", retryErrorInfo.statusCode, retryErrorInfo.message);
-            assistantContent = buildFallbackAdvice(content, userContext, profileContextText);
+            const primaryCode = primaryError.statusCode ?? "NA";
+            const retryCode = retryErrorInfo.statusCode ?? "NA";
+            assistantContent = buildFallbackAdvice(
+              content,
+              userContext,
+              profileContextText,
+              `OPENAI_FAIL primary=${primaryCode} retry=${retryCode}`
+            );
           }
         }
 
