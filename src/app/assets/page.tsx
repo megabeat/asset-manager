@@ -9,7 +9,7 @@ import { FormField } from '@/components/ui/FormField';
 import { DataTable } from '@/components/ui/DataTable';
 import { getAssetCategoryLabel } from '@/lib/assetCategory';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
-import AssetTreemap, { TreemapItem } from '@/components/ui/AssetTreemap';
+import { ResponsiveContainer, Tooltip, Treemap } from 'recharts';
 
 type AssetCategory = 'cash' | 'deposit' | 'stock_kr' | 'stock_us' | 'car' | 'real_estate' | 'etc';
 type NumericInput = number | '';
@@ -56,7 +56,12 @@ type CategorySummaryRow = {
   color: string;
 };
 
-
+type TreemapItem = {
+  name: string;
+  size: number;
+  category?: string;
+  fill: string;
+};
 
 const defaultForm: AssetForm = {
   category: 'cash',
@@ -128,6 +133,25 @@ const TREEMAP_COLORS = ['#0b63ce', '#2e7d32', '#f57c00', '#7b1fa2', '#c2185b', '
 
 function formatWon(value: number): string {
   return `${Math.round(value).toLocaleString()}원`;
+}
+
+function AssetTreemapTooltip({
+  active,
+  payload
+}: {
+  active?: boolean;
+  payload?: Array<{ payload?: TreemapItem }>;
+}) {
+  if (!active || !payload || payload.length === 0) return null;
+  const node = payload[0]?.payload;
+  if (!node) return null;
+  return (
+    <div className="rounded-lg border border-[var(--line)] bg-[var(--surface)] px-3 py-2 shadow-md">
+      <p className="m-0 text-[0.85rem] font-semibold">{node.name}</p>
+      {node.category && <p className="helper-text mt-1">{node.category}</p>}
+      <p className="m-0 mt-1 text-[0.85rem]">{formatWon(node.size)}</p>
+    </div>
+  );
 }
 
 
@@ -315,7 +339,7 @@ export default function AssetsPage() {
           .filter((item) => item.size > 0)
           .map((item) => ({
             name: item.name,
-            value: item.size,
+            size: item.size,
             category: group.label,
             fill: group.color
           }))
@@ -333,7 +357,7 @@ export default function AssetsPage() {
         .sort((a, b) => (b.currentValue ?? 0) - (a.currentValue ?? 0))
         .map((a) => ({
           name: a.name || '이름 없음',
-          value: a.currentValue ?? 0,
+          size: a.currentValue ?? 0,
           category: label,
           fill
         }));
@@ -763,8 +787,19 @@ export default function AssetsPage() {
         {(treemapView === 'all' ? treemapData : stockTreemapData).length === 0 ? (
           <p className="mt-3">{treemapView === 'all' ? '표시할 자산 데이터가 없습니다.' : '주식 자산이 없습니다.'}</p>
         ) : (
-          <div className="mt-3 overflow-hidden rounded-xl border border-[var(--line)] bg-[var(--surface-2)] p-2">
-            <AssetTreemap data={treemapView === 'all' ? treemapData : stockTreemapData} />
+          <div className="mt-3 h-[360px] w-full overflow-hidden rounded-xl border border-[var(--line)] bg-[var(--surface-2)] p-2 sm:h-[420px]">
+            <ResponsiveContainer width="100%" height="100%">
+              <Treemap
+                data={treemapView === 'all' ? treemapData : stockTreemapData}
+                dataKey="size"
+                stroke="rgba(255,255,255,0.88)"
+                aspectRatio={4 / 3}
+                isAnimationActive
+                animationDuration={500}
+              >
+                <Tooltip content={<AssetTreemapTooltip />} />
+              </Treemap>
+            </ResponsiveContainer>
           </div>
         )}
       </SectionCard>
