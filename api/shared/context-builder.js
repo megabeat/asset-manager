@@ -1,8 +1,8 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.buildUserContext = buildUserContext;
-async function buildUserContext(userId, assetsContainer, liabilitiesContainer, expensesContainer, incomesContainer, usersContainer) {
-    const [assetsResult, liabilitiesResult, expensesResult, incomesResult, assetsByCategory, profileResult] = await Promise.all([
+async function buildUserContext(userId, assetsContainer, liabilitiesContainer, expensesContainer, incomesContainer) {
+    const [assetsResult, liabilitiesResult, expensesResult, incomesResult, assetsByCategory] = await Promise.all([
         assetsContainer.items
             .query({
             query: "SELECT VALUE SUM(c.currentValue) FROM c WHERE c.userId = @userId AND c.type = 'Asset'",
@@ -17,7 +17,7 @@ async function buildUserContext(userId, assetsContainer, liabilitiesContainer, e
             .fetchAll(),
         expensesContainer.items
             .query({
-            query: "SELECT VALUE SUM(c.amount) FROM c WHERE c.userId = @userId AND c.type = 'Expense' AND (c.cycle = '매월' OR c.cycle = 'monthly') AND (NOT IS_DEFINED(c.isInvestmentTransfer) OR c.isInvestmentTransfer = false)",
+            query: "SELECT VALUE SUM(c.amount) FROM c WHERE c.userId = @userId AND c.type = 'Expense' AND c.cycle = 'monthly'",
             parameters: [{ name: "@userId", value: userId }]
         })
             .fetchAll(),
@@ -32,23 +32,12 @@ async function buildUserContext(userId, assetsContainer, liabilitiesContainer, e
             query: "SELECT c.category, SUM(c.currentValue) as totalValue FROM c WHERE c.userId = @userId AND c.type = 'Asset' GROUP BY c.category",
             parameters: [{ name: "@userId", value: userId }]
         })
-            .fetchAll(),
-        usersContainer ? usersContainer.item(userId, userId).read() : Promise.resolve({ resource: null })
+            .fetchAll()
     ]);
     const totalAssets = assetsResult.resources[0] ?? 0;
     const totalLiabilities = liabilitiesResult.resources[0] ?? 0;
     const monthlyExpenses = expensesResult.resources[0] ?? 0;
-    const monthlyIncomeFromRecords = incomesResult.resources[0] ?? 0;
-    const profile = profileResult.resource;
-    const estimatedMonthlyIncomeFromProfile = profile
-        ?
-            ((Number(profile.baseSalaryAnnual ?? 0) +
-                Number(profile.annualFixedExtra ?? 0) +
-                Number(profile.annualBonus ?? 0) +
-                Number(profile.annualRsu ?? 0)) /
-                12)
-        : 0;
-    const monthlyIncome = monthlyIncomeFromRecords > 0 ? monthlyIncomeFromRecords : estimatedMonthlyIncomeFromProfile;
+    const monthlyIncome = incomesResult.resources[0] ?? 0;
     const assetBreakdown = assetsByCategory.resources.map((item) => ({
         category: item.category,
         value: item.totalValue

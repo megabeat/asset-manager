@@ -112,8 +112,8 @@ export default function Home() {
   const monthlyExpense = useMemo(() => {
     return expenses.reduce((sum, item) => {
       if (item.isInvestmentTransfer) return sum;
-      if (item.cycle === '매년' || item.cycle === 'yearly') return sum + item.amount / 12;
-      if (item.cycle === '일회성' || item.cycle === 'one_time') return sum;
+      if (item.cycle === 'yearly') return sum + item.amount / 12;
+      if (item.cycle === 'one_time') return sum;
       return sum + item.amount;
     }, 0);
   }, [expenses]);

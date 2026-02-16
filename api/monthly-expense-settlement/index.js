@@ -89,7 +89,7 @@ async function monthlyExpenseSettlement(req, context) {
     const expensesContainer = (0, cosmosClient_1.getContainer)("expenses");
     const assetsContainer = (0, cosmosClient_1.getContainer)("assets");
     const usersQuery = {
-        query: "SELECT DISTINCT VALUE c.userId FROM c WHERE c.type = 'Expense' AND (c.cycle = '매월' OR c.cycle = 'monthly') AND (c.expenseType = '고정' OR c.expenseType = '구독' OR c.expenseType = 'fixed' OR c.expenseType = 'subscription') AND c.amount > 0",
+        query: "SELECT DISTINCT VALUE c.userId FROM c WHERE c.type = 'Expense' AND c.cycle = 'monthly' AND (c.expenseType = 'fixed' OR c.expenseType = 'subscription') AND c.amount > 0",
         parameters: []
     };
     const { resources: userIds } = await expensesContainer.items.query(usersQuery).fetchAll();
@@ -106,7 +106,7 @@ async function monthlyExpenseSettlement(req, context) {
             continue;
         }
         const recurringQuery = {
-            query: "SELECT c.id, c.userId, c.amount FROM c WHERE c.userId = @userId AND c.type = 'Expense' AND (c.cycle = '매월' OR c.cycle = 'monthly') AND (c.expenseType = '고정' OR c.expenseType = '구독' OR c.expenseType = 'fixed' OR c.expenseType = 'subscription')",
+            query: "SELECT c.id, c.userId, c.amount FROM c WHERE c.userId = @userId AND c.type = 'Expense' AND c.cycle = 'monthly' AND (c.expenseType = 'fixed' OR c.expenseType = 'subscription')",
             parameters: [{ name: "@userId", value: userId }]
         };
         const { resources } = await expensesContainer.items.query(recurringQuery).fetchAll();
