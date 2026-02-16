@@ -12,6 +12,7 @@ export type AuthContext = {
 };
 
 type HeaderMap = { get(name: string): string | null } | Record<string, string | undefined> | null | undefined;
+type UserIdStrategy = "header-first" | "principal-first";
 
 function isProduction(): boolean {
   return (process.env.NODE_ENV ?? "").toLowerCase() === "production";
@@ -34,6 +35,14 @@ function parseAllowedUsers(): string[] {
     .split(",")
     .map((item) => item.trim().toLowerCase())
     .filter((item) => item.length > 0);
+}
+
+function getUserIdStrategy(): UserIdStrategy {
+  const configured = (process.env.AUTH_USER_ID_STRATEGY ?? "header-first").trim().toLowerCase();
+  if (configured === "principal-first") {
+    return "principal-first";
+  }
+  return "header-first";
 }
 
 function isAllowedUser(userId: string | null, userDetails: string | null): boolean {
@@ -78,12 +87,15 @@ function readHeader(headers: HeaderMap, key: string): string | undefined {
 }
 
 export function getAuthContext(headers: HeaderMap): AuthContext {
+  const strategy = getUserIdStrategy();
   const explicitUserId = readHeader(headers, "x-user-id");
-  if (explicitUserId && explicitUserId.trim().length > 0) {
+  const normalizedExplicitUserId = explicitUserId?.trim() ?? "";
+
+  if (strategy === "header-first" && normalizedExplicitUserId.length > 0) {
     return {
-      userId: explicitUserId.trim(),
+      userId: normalizedExplicitUserId,
       roles: ["authenticated"],
-      userDetails: explicitUserId.trim()
+      userDetails: normalizedExplicitUserId
     };
   }
 
@@ -111,6 +123,22 @@ export function getAuthContext(headers: HeaderMap): AuthContext {
     } catch {
       return defaultAuthContext();
     }
+  }
+
+  if (strategy === "principal-first" && normalizedExplicitUserId.length > 0 && isDevHeaderAuthEnabled()) {
+    return {
+      userId: normalizedExplicitUserId,
+      roles: ["authenticated"],
+      userDetails: normalizedExplicitUserId
+    };
+  }
+
+  if (strategy === "header-first" && normalizedExplicitUserId.length > 0 && isDevHeaderAuthEnabled()) {
+    return {
+      userId: normalizedExplicitUserId,
+      roles: ["authenticated"],
+      userDetails: normalizedExplicitUserId
+    };
   }
 
   return defaultAuthContext();
