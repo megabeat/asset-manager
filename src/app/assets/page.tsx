@@ -8,7 +8,7 @@ import { DataTable } from '@/components/ui/DataTable';
 import { getAssetCategoryLabel } from '@/lib/assetCategory';
 import { ResponsiveContainer, Tooltip, Treemap } from 'recharts';
 
-type AssetCategory = 'cash' | 'deposit' | 'stock_kr' | 'stock_us' | 'real_estate' | 'etc';
+type AssetCategory = 'cash' | 'deposit' | 'stock_kr' | 'stock_us' | 'car' | 'real_estate' | 'etc';
 type NumericInput = number | '';
 
 type AssetForm = {
@@ -19,6 +19,7 @@ type AssetForm = {
   acquiredValue: NumericInput;
   valuationDate: string;
   note: string;
+  carYear: NumericInput;
   symbol: string;
   usdAmount: NumericInput;
   exchangeRate: NumericInput;
@@ -68,6 +69,7 @@ const defaultForm: AssetForm = {
   acquiredValue: '',
   valuationDate: new Date().toISOString().slice(0, 10),
   note: '',
+  carYear: '',
   symbol: '',
   usdAmount: '',
   exchangeRate: '',
@@ -81,6 +83,7 @@ const categoryLabel: Record<AssetCategory, string> = {
   deposit: '예금',
   stock_kr: '국내주식',
   stock_us: '미국주식',
+  car: '자동차',
   real_estate: '부동산',
   etc: '기타'
 };
@@ -109,6 +112,12 @@ const quickPresets: QuickPreset[] = [
     label: '미국주식',
     category: 'stock_us',
     values: { name: '미국주식', symbol: 'AAPL', quantity: 1 }
+  },
+  {
+    id: 'car-auto',
+    label: '자동차',
+    category: 'car',
+    values: { name: '자동차', carYear: new Date().getFullYear() - 3 }
   },
   {
     id: 'real-estate',
@@ -358,6 +367,15 @@ export default function AssetsPage() {
 
     if (form.category === 'stock_us') {
       if (Number(form.exchangeRate || 0) <= 0) nextErrors.exchangeRate = '환율은 0보다 커야 합니다.';
+    } else if (form.category === 'car') {
+      const thisYear = new Date().getFullYear();
+      const carYear = Number(form.carYear || 0);
+      if (!Number.isFinite(carYear) || carYear < 1980 || carYear > thisYear + 1) {
+        nextErrors.carYear = '년식은 1980년부터 현재+1년 범위로 입력해주세요.';
+      }
+      if (Number(form.currentValue || 0) <= 0) {
+        nextErrors.currentValue = '현재 중고시세는 0보다 커야 합니다.';
+      }
     } else if (Number(form.currentValue || 0) < 0) {
       nextErrors.currentValue = '금액은 0 이상이어야 합니다.';
     }
@@ -380,6 +398,7 @@ export default function AssetsPage() {
       symbol: isStockCategory ? form.symbol.trim() : null,
       usdAmount: form.category === 'stock_us' ? Number(effectiveUsdAmount) : null,
       exchangeRate: form.category === 'stock_us' ? Number(form.exchangeRate) : null,
+      carYear: form.category === 'car' ? Number(form.carYear) : null,
       pensionMonthlyContribution: null,
       pensionReceiveAge: null,
       pensionReceiveStart: null
@@ -442,6 +461,7 @@ export default function AssetsPage() {
               : 0,
       valuationDate: asset.valuationDate?.slice(0, 10) ?? new Date().toISOString().slice(0, 10),
       note: asset.note ?? '',
+      carYear: asset.carYear === null || asset.carYear === undefined ? '' : Number(asset.carYear),
       symbol: asset.symbol ?? '',
       usdAmount: Number(asset.usdAmount ?? 0),
       exchangeRate: Number(asset.exchangeRate ?? form.exchangeRate ?? 0),
@@ -599,19 +619,37 @@ export default function AssetsPage() {
               )}
             </>
           ) : (
-            <FormField label="현재가치(원)" error={errors.currentValue}>
-              <input
-                type="number"
-                min={0}
-                value={form.currentValue}
-                onChange={(event) =>
-                  setForm((prev) => ({
-                    ...prev,
-                    currentValue: event.target.value === '' ? '' : Number(event.target.value)
-                  }))
-                }
-              />
-            </FormField>
+            <>
+              {form.category === 'car' ? (
+                <FormField label="년식" error={errors.carYear}>
+                  <input
+                    type="number"
+                    min={1980}
+                    max={new Date().getFullYear() + 1}
+                    value={form.carYear}
+                    onChange={(event) =>
+                      setForm((prev) => ({
+                        ...prev,
+                        carYear: event.target.value === '' ? '' : Number(event.target.value)
+                      }))
+                    }
+                  />
+                </FormField>
+              ) : null}
+              <FormField label={form.category === 'car' ? '현재 중고시세(원)' : '현재가치(원)'} error={errors.currentValue}>
+                <input
+                  type="number"
+                  min={0}
+                  value={form.currentValue}
+                  onChange={(event) =>
+                    setForm((prev) => ({
+                      ...prev,
+                      currentValue: event.target.value === '' ? '' : Number(event.target.value)
+                    }))
+                  }
+                />
+              </FormField>
+            </>
           )}
 
           <FormField label="평가일" error={errors.valuationDate}>
@@ -733,6 +771,9 @@ export default function AssetsPage() {
               render: (asset) => {
                 if (asset.category === 'stock_us') {
                   return `${asset.symbol || '-'} / ${asset.usdAmount?.toLocaleString() ?? 0} USD`;
+                }
+                if (asset.category === 'car') {
+                  return asset.carYear ? `${asset.carYear}년식` : '-';
                 }
                 return asset.symbol || '-';
               },

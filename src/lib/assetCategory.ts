@@ -4,6 +4,7 @@ export const ASSET_CATEGORY_LABELS: Record<string, string> = {
   stock: '주식',
   stock_kr: '국내주식',
   stock_us: '미국주식',
+  car: '자동차',
   real_estate: '부동산',
   realestate: '부동산',
   realestate_kr: '국내부동산',

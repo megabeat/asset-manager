@@ -224,6 +224,7 @@ export async function assetsHandler(context: InvocationContext, req: HttpRequest
             ensureOptionalNumber(body.pensionMonthlyContribution, "pensionMonthlyContribution") ?? null,
           pensionReceiveStart: ensureOptionalString(body.pensionReceiveStart, "pensionReceiveStart") ?? "",
           pensionReceiveAge: ensureOptionalNumber(body.pensionReceiveAge, "pensionReceiveAge") ?? null,
+          carYear: ensureOptionalNumber(body.carYear, "carYear") ?? null,
           exchange: ensureOptionalString(body.exchange, "exchange") ?? "",
           priceSource: ensureOptionalString(body.priceSource, "priceSource") ?? "",
           autoUpdate: ensureOptionalBoolean(body.autoUpdate, "autoUpdate") ?? false,
@@ -288,6 +289,7 @@ export async function assetsHandler(context: InvocationContext, req: HttpRequest
             resource.pensionReceiveStart,
           pensionReceiveAge:
             ensureOptionalNumber(body.pensionReceiveAge, "pensionReceiveAge") ?? resource.pensionReceiveAge,
+          carYear: ensureOptionalNumber(body.carYear, "carYear") ?? resource.carYear,
           exchange: ensureOptionalString(body.exchange, "exchange") ?? resource.exchange,
           priceSource: ensureOptionalString(body.priceSource, "priceSource") ?? resource.priceSource,
           autoUpdate: ensureOptionalBoolean(body.autoUpdate, "autoUpdate") ?? resource.autoUpdate,

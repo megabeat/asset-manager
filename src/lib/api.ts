@@ -44,6 +44,7 @@ export type Asset = {
   pensionMonthlyContribution?: number;
   pensionReceiveStart?: string;
   pensionReceiveAge?: number;
+  carYear?: number;
   note?: string;
 };
 
