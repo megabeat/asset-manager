@@ -168,6 +168,15 @@ function extractErrorInfo(error: unknown): { statusCode?: number; message: strin
   };
 }
 
+function compactDiagnosticMessage(message: string): string {
+  if (!message) return "unknown";
+  const sanitized = message
+    .replace(/\s+/g, " ")
+    .replace(/https?:\/\/\S+/gi, "[url]")
+    .trim();
+  return clampText(sanitized, 80);
+}
+
 async function withTimeout<T>(promise: Promise<T>, ms: number, timeoutMessage: string): Promise<T> {
   let timeoutId: NodeJS.Timeout | null = null;
 
@@ -507,11 +516,19 @@ ${webSearchContext}
             context.log("OpenAI compact retry error:", retryErrorInfo.statusCode, retryErrorInfo.message);
             const primaryCode = primaryError.statusCode ?? "NA";
             const retryCode = retryErrorInfo.statusCode ?? "NA";
+            const primaryDiag =
+              primaryError.statusCode === undefined
+                ? ` msg=${compactDiagnosticMessage(primaryError.message)}`
+                : "";
+            const retryDiag =
+              retryErrorInfo.statusCode === undefined
+                ? ` msg=${compactDiagnosticMessage(retryErrorInfo.message)}`
+                : "";
             assistantContent = buildFallbackAdvice(
               content,
               userContext,
               profileContextText,
-              `OPENAI_FAIL primary=${primaryCode} retry=${retryCode}`
+              `OPENAI_FAIL primary=${primaryCode}${primaryDiag} retry=${retryCode}${retryDiag}`
             );
           }
         }

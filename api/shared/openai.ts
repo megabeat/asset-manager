@@ -7,8 +7,12 @@ export function getOpenAIClient(): OpenAIClient {
     const endpoint = process.env.AZURE_OPENAI_ENDPOINT;
     const apiKey = process.env.AZURE_OPENAI_API_KEY;
     
-    if (!endpoint || !apiKey) {
-      throw new Error("Missing Azure OpenAI configuration");
+    const missingVars: string[] = [];
+    if (!endpoint) missingVars.push("AZURE_OPENAI_ENDPOINT");
+    if (!apiKey) missingVars.push("AZURE_OPENAI_API_KEY");
+
+    if (missingVars.length > 0) {
+      throw new Error(`Missing Azure OpenAI configuration: ${missingVars.join(", ")}`);
     }
     
     client = new OpenAIClient(endpoint, new AzureKeyCredential(apiKey));
@@ -20,7 +24,7 @@ export function getOpenAIClient(): OpenAIClient {
 export function getDeploymentName(): string {
   const deploymentName = process.env.AZURE_OPENAI_DEPLOYMENT_NAME;
   if (!deploymentName) {
-    throw new Error("Missing Azure OpenAI deployment name");
+    throw new Error("Missing Azure OpenAI deployment name: AZURE_OPENAI_DEPLOYMENT_NAME");
   }
   return deploymentName;
 }
