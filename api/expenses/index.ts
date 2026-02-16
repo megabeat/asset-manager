@@ -217,16 +217,22 @@ export async function expensesHandler(context: InvocationContext, req: HttpReque
         const reflectToLiquidAsset = ensureOptionalBoolean(body.reflectToLiquidAsset, "reflectToLiquidAsset") ?? false;
         const occurredAt = resolveOccurredAt(body.occurredAt);
         const cycle = ensureEnum(body.cycle, "cycle", billingCycles);
+        const expenseType = ensureEnum(body.type, "type", expenseTypes);
+        const billingDay = ensureOptionalNumberInRange(body.billingDay, "billingDay", 1, 31) ?? null;
+
+        if (expenseType === "subscription" && billingDay === null) {
+          return fail("VALIDATION_ERROR", "billingDay is required for subscription", 400);
+        }
 
         const expense = {
           id: randomUUID(),
           userId,
           type: "Expense",
-          expenseType: ensureEnum(body.type, "type", expenseTypes),
+          expenseType,
           name: ensureString(body.name, "name"),
           amount,
           cycle,
-          billingDay: null,
+          billingDay,
           occurredAt,
           reflectToLiquidAsset,
           reflectedAmount: 0,
@@ -293,6 +299,17 @@ export async function expensesHandler(context: InvocationContext, req: HttpReque
         const nextReflectSetting =
           ensureOptionalBoolean(body.reflectToLiquidAsset, "reflectToLiquidAsset") ??
           (existing.reflectToLiquidAsset ?? false);
+        const nextExpenseType =
+          ensureOptionalEnum(body.type, "type", expenseTypes) ??
+          String(existing.expenseType ?? "fixed");
+        const existingBillingDay = Number(existing.billingDay ?? 0);
+        const nextBillingDay =
+          ensureOptionalNumberInRange(body.billingDay, "billingDay", 1, 31) ??
+          (existingBillingDay >= 1 && existingBillingDay <= 31 ? existingBillingDay : null);
+
+        if (nextExpenseType === "subscription" && nextBillingDay === null) {
+          return fail("VALIDATION_ERROR", "billingDay is required for subscription", 400);
+        }
 
         const prevReflectedAmount = Number(existing.reflectedAmount ?? 0);
         const nextReflectedAmount = shouldReflectNow(nextReflectSetting, nextOccurredAt) ? nextAmount : 0;
@@ -317,11 +334,11 @@ export async function expensesHandler(context: InvocationContext, req: HttpReque
 
         const updated = {
           ...existing,
-          expenseType: ensureOptionalEnum(body.type, "type", expenseTypes) ?? existing.expenseType,
+          expenseType: nextExpenseType,
           name: ensureOptionalString(body.name, "name") ?? existing.name,
           amount: nextAmount,
           cycle: ensureOptionalEnum(body.cycle, "cycle", billingCycles) ?? existing.cycle,
-          billingDay: null,
+          billingDay: nextBillingDay,
           occurredAt: nextOccurredAt,
           reflectToLiquidAsset: nextReflectSetting,
           reflectedAmount: nextReflectedAmount,
