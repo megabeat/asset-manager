@@ -20,6 +20,12 @@
   --nav-hover-bg: #eff6ff;
   --nav-hover-border: #dbeafe;
   --table-stripe: #fcfdff;
+  --table-head-text: #334155;
+  --table-cell-text: #0f172a;
+  --table-border: #e2e8f0;
+  --table-head-border: #dbe3ef;
+  --table-row-even: #ffffff;
+  --table-row-odd: #f8fbff;
   --danger-soft: #fff5f5;
   --chat-user-bg: #e8f1ff;
   --chat-user-border: #bfdbfe;
@@ -46,6 +52,12 @@
   --nav-hover-bg: rgba(59, 130, 246, 0.15);
   --nav-hover-border: rgba(59, 130, 246, 0.35);
   --table-stripe: #101a2c;
+  --table-head-text: #d8e4f6;
+  --table-cell-text: #e5edf8;
+  --table-border: #314257;
+  --table-head-border: #3a4e66;
+  --table-row-even: #131f32;
+  --table-row-odd: #0f1a2c;
   --danger-soft: rgba(239, 68, 68, 0.12);
   --chat-user-bg: rgba(37, 99, 235, 0.22);
   --chat-user-border: rgba(96, 165, 250, 0.5);
@@ -263,7 +275,7 @@ table {
 @layer components {
   .ui-table {
     @apply w-full border-separate border-spacing-0 overflow-hidden rounded-xl border text-sm;
-    border-color: var(--line);
+    border-color: var(--table-border);
     background: var(--surface);
   }
 
@@ -273,13 +285,14 @@ table {
 
   .ui-table-th {
     @apply px-3 py-2.5 text-xs font-bold;
-    color: #334155;
-    border-bottom: 1px solid #edf2f7;
+    color: var(--table-head-text);
+    border-bottom: 1px solid var(--table-head-border);
   }
 
   .ui-table-td {
     @apply px-3 py-2.5;
-    border-bottom: 1px solid #edf2f7;
+    color: var(--table-cell-text);
+    border-bottom: 1px solid var(--table-border);
   }
 
   .ui-table-empty {
@@ -288,11 +301,11 @@ table {
   }
 
   .ui-table-row-even {
-    background: var(--surface);
+    background: var(--table-row-even);
   }
 
   .ui-table-row-odd {
-    background: var(--table-stripe);
+    background: var(--table-row-odd);
   }
 
   .ai-chat-bubble {

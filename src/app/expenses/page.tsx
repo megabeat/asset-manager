@@ -636,8 +636,8 @@ export default function ExpensesPage() {
             </tr>
           </thead>
           <tbody>
-            {cardIssuerMonthlyStats.rows.map((row) => (
-              <tr key={row.issuer} className="ui-table-row-even">
+            {cardIssuerMonthlyStats.rows.map((row, rowIndex) => (
+              <tr key={row.issuer} className={rowIndex % 2 === 0 ? 'ui-table-row-even' : 'ui-table-row-odd'}>
                 <td className="ui-table-td text-left">{row.issuer}</td>
                 <td className="ui-table-td text-right">{Math.round(row.currentAmount).toLocaleString()}원</td>
                 <td className="ui-table-td text-right">{Math.round(row.previousAmount).toLocaleString()}원</td>
