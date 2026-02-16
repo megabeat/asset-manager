@@ -57,6 +57,7 @@ export default function ProfilePage() {
   const [form, setForm] = useState<ProfileForm>(defaultForm);
   const [activeTab, setActiveTab] = useState<ProfileTab>('basic');
   const [loading, setLoading] = useState(true);
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
   const [saving, setSaving] = useState(false);
   const [exists, setExists] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
@@ -65,8 +66,37 @@ export default function ProfilePage() {
   useEffect(() => {
     let mounted = true;
 
-    api.getProfile().then((result) => {
+    (async () => {
+      let authenticated = true;
+
+      try {
+        const authResponse = await fetch('/.auth/me', { cache: 'no-store' });
+        if (authResponse.ok) {
+          const authData = (await authResponse.json()) as Array<{
+            clientPrincipal?: { userId?: string };
+          }>;
+          authenticated = Boolean(authData?.[0]?.clientPrincipal?.userId);
+        }
+      } catch {
+        authenticated = true;
+      }
+
       if (!mounted) return;
+      setIsAuthenticated(authenticated);
+
+      if (!authenticated) {
+        setLoading(false);
+        return;
+      }
+
+      const result = await api.getProfile();
+      if (!mounted) return;
+
+      if (result.error?.code === 'UNAUTHORIZED') {
+        setIsAuthenticated(false);
+        setLoading(false);
+        return;
+      }
 
       if (result.data) {
         setForm({
@@ -99,7 +129,7 @@ export default function ProfilePage() {
       }
 
       setLoading(false);
-    });
+    })();
 
     return () => {
       mounted = false;
@@ -275,16 +305,27 @@ export default function ProfilePage() {
       </p>
 
       <div className="mt-3 flex flex-wrap gap-2">
-        <a href="/.auth/login/aad" className="btn-primary no-underline">
-          Microsoft 로그인
-        </a>
-        <a href="/.auth/login/github" className="btn-danger-outline no-underline">
-          GitHub 로그인
-        </a>
-        <a href="/.auth/logout" className="btn-danger-outline no-underline">
-          로그아웃
-        </a>
+        {!isAuthenticated ? (
+          <>
+            <a href="/.auth/login/aad" className="btn-primary no-underline">
+              Microsoft 로그인
+            </a>
+            <a href="/.auth/login/github" className="btn-danger-outline no-underline">
+              GitHub 로그인
+            </a>
+          </>
+        ) : (
+          <a href="/.auth/logout" className="btn-danger-outline no-underline">
+            로그아웃
+          </a>
+        )}
       </div>
+
+      {!isAuthenticated ? (
+        <p className="helper-text mt-4">로그인 후 개인 프로파일 입력 폼이 표시됩니다.</p>
+      ) : null}
+
+      {!isAuthenticated ? null : (
 
       <form onSubmit={onSubmit} className="mt-6 grid max-w-[520px] gap-4">
         <div className="flex flex-wrap gap-2">
@@ -611,6 +652,7 @@ export default function ProfilePage() {
           {saving ? '저장 중...' : exists ? '프로파일 업데이트' : '프로파일 저장'}
         </button>
       </form>
+      )}
 
       {message && <p className="mt-4">{message}</p>}
     </div>

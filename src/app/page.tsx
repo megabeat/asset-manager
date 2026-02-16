@@ -100,7 +100,7 @@ export default function Home() {
           </p>
         </div>
         <div className="kpi-card">
-          <h3 className="kpi-label">주식자산(미국/국내, 원화 통합)</h3>
+          <h3 className="kpi-label">주식자산(미장/국장)</h3>
           <p className="kpi-value">
             {stockAssetsTotal.toLocaleString()}원
           </p>
