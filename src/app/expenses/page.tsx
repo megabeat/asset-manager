@@ -80,6 +80,26 @@ type CardIssuer = (typeof CARD_ISSUERS)[number];
     occurredAt: new Date().toISOString().slice(0, 10),
   };
 
+  function getExpenseTypeLabel(value: Expense['expenseType'] | undefined): string {
+    if (value === 'subscription') {
+      return '구독';
+    }
+    if (value === 'one_time') {
+      return '일회성';
+    }
+    return '고정';
+  }
+
+  function getExpenseCycleLabel(value: Expense['cycle'] | undefined): string {
+    if (value === 'yearly') {
+      return '매년';
+    }
+    if (value === 'one_time') {
+      return '일회성';
+    }
+    return '매월';
+  }
+
 export default function ExpensesPage() {
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [loading, setLoading] = useState(true);
@@ -806,7 +826,7 @@ export default function ExpensesPage() {
           emptyMessage="등록된 정기 지출이 없습니다."
           columns={[
             { key: 'name', header: '항목명', render: (expense) => expense.name },
-            { key: 'type', header: '유형', render: (expense) => expense.expenseType },
+            { key: 'type', header: '유형', render: (expense) => getExpenseTypeLabel(expense.expenseType) },
             {
               key: 'flowType',
               header: '흐름',
@@ -822,7 +842,7 @@ export default function ExpensesPage() {
                   ? getAssetCategoryLabel(expense.investmentTargetCategory)
                   : '-',
             },
-            { key: 'cycle', header: '주기', render: (expense) => expense.cycle },
+            { key: 'cycle', header: '주기', render: (expense) => getExpenseCycleLabel(expense.cycle) },
             {
               key: 'cardIncluded',
               header: '카드포함',
@@ -880,7 +900,7 @@ export default function ExpensesPage() {
           emptyMessage="등록된 한시성 지출이 없습니다."
           columns={[
             { key: 'name', header: '항목명', render: (expense) => expense.name },
-            { key: 'type', header: '유형', render: (expense) => expense.expenseType },
+            { key: 'type', header: '유형', render: (expense) => getExpenseTypeLabel(expense.expenseType) },
             {
               key: 'flowType',
               header: '흐름',
@@ -902,7 +922,7 @@ export default function ExpensesPage() {
               align: 'center',
               render: (expense) => (expense.entrySource === 'auto_settlement' ? '자동' : '수동'),
             },
-            { key: 'cycle', header: '주기', render: (expense) => expense.cycle },
+            { key: 'cycle', header: '주기', render: (expense) => getExpenseCycleLabel(expense.cycle) },
             {
               key: 'amount',
               header: '금액',
