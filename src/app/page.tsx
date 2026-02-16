@@ -45,6 +45,25 @@ export default function Home() {
   });
 
   useEffect(() => {
+    if (typeof window === 'undefined') {
+      return;
+    }
+
+    const savedMonth = window.localStorage.getItem('home.settlementMonthKey');
+    if (savedMonth && /^\d{4}-\d{2}$/.test(savedMonth)) {
+      setSettlementMonthKey(savedMonth);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return;
+    }
+
+    window.localStorage.setItem('home.settlementMonthKey', settlementMonthKey);
+  }, [settlementMonthKey]);
+
+  useEffect(() => {
     Promise.all([
       api.getDashboardSummary(),
       api.getAssets(),
