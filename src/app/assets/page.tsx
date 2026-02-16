@@ -348,19 +348,23 @@ export default function AssetsPage() {
   }, [categoryGroups]);
 
   const stockTreemapData = useMemo<TreemapItem[]>(() => {
-    const STOCK_COLORS: Record<string, string> = { stock_us: '#0b63ce', stock_kr: '#2e7d32' };
+    const STOCK_PALETTE = [
+      '#0b63ce', '#2e7d32', '#f57c00', '#7b1fa2', '#c2185b',
+      '#00796b', '#4f46e5', '#d32f2f', '#0097a7', '#689f38',
+      '#5c6bc0', '#e64a19', '#00838f', '#8e24aa', '#f9a825',
+    ];
     const stockCategories = ['stock_us', 'stock_kr'] as const;
+    let colorIdx = 0;
     return stockCategories.flatMap((cat) => {
       const items = assets.filter((a) => a.category === cat && (a.currentValue ?? 0) > 0);
       const label = cat === 'stock_us' ? '미국주식' : '국내주식';
-      const fill = STOCK_COLORS[cat];
       return items
         .sort((a, b) => (b.currentValue ?? 0) - (a.currentValue ?? 0))
         .map((a) => ({
           name: a.symbol || a.name || '이름 없음',
           size: a.currentValue ?? 0,
           category: label,
-          fill
+          fill: STOCK_PALETTE[colorIdx++ % STOCK_PALETTE.length]
         }));
     });
   }, [assets]);
