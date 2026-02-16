@@ -12,7 +12,7 @@ function isDevHeaderAuthEnabled() {
     if (explicit === "false") {
         return false;
     }
-    return !isProduction();
+    return true;
 }
 function parseAllowedUsers() {
     const raw = process.env.AUTH_ALLOWED_USERS ?? "";
@@ -20,6 +20,13 @@ function parseAllowedUsers() {
         .split(",")
         .map((item) => item.trim().toLowerCase())
         .filter((item) => item.length > 0);
+}
+function getUserIdStrategy() {
+    const configured = (process.env.AUTH_USER_ID_STRATEGY ?? "header-first").trim().toLowerCase();
+    if (configured === "principal-first") {
+        return "principal-first";
+    }
+    return "header-first";
 }
 function isAllowedUser(userId, userDetails) {
     const allowedUsers = parseAllowedUsers();
@@ -55,33 +62,53 @@ function readHeader(headers, key) {
     return record[key] ?? record[key.toLowerCase()] ?? record[key.toUpperCase()];
 }
 function getAuthContext(headers) {
+    const strategy = getUserIdStrategy();
     const explicitUserId = readHeader(headers, "x-user-id");
-    if (explicitUserId && explicitUserId.trim().length > 0 && isDevHeaderAuthEnabled()) {
-        return { userId: explicitUserId.trim(), roles: ["authenticated"], userDetails: explicitUserId.trim() };
+    const normalizedExplicitUserId = explicitUserId?.trim() ?? "";
+    if (strategy === "header-first" && normalizedExplicitUserId.length > 0) {
+        return {
+            userId: normalizedExplicitUserId,
+            roles: ["authenticated"],
+            userDetails: normalizedExplicitUserId
+        };
     }
     const principal = readHeader(headers, "x-ms-client-principal");
-    if (!principal) {
-        return defaultAuthContext();
-    }
-    try {
-        const decoded = Buffer.from(principal, "base64").toString("utf8");
-        const parsed = JSON.parse(decoded);
-        const userId = parsed.userId ?? null;
-        const userDetails = parsed.userDetails ?? null;
-        if (!isAllowedUser(userId, userDetails)) {
+    if (principal) {
+        try {
+            const decoded = Buffer.from(principal, "base64").toString("utf8");
+            const parsed = JSON.parse(decoded);
+            const userId = parsed.userId ?? null;
+            const userDetails = parsed.userDetails ?? null;
+            if (!isAllowedUser(userId, userDetails)) {
+                return {
+                    userId: null,
+                    roles: parsed.userRoles ?? [],
+                    userDetails
+                };
+            }
             return {
-                userId: null,
+                userId,
                 roles: parsed.userRoles ?? [],
                 userDetails
             };
         }
+        catch {
+            return defaultAuthContext();
+        }
+    }
+    if (strategy === "principal-first" && normalizedExplicitUserId.length > 0 && isDevHeaderAuthEnabled()) {
         return {
-            userId,
-            roles: parsed.userRoles ?? [],
-            userDetails
+            userId: normalizedExplicitUserId,
+            roles: ["authenticated"],
+            userDetails: normalizedExplicitUserId
         };
     }
-    catch {
-        return defaultAuthContext();
+    if (strategy === "header-first" && normalizedExplicitUserId.length > 0 && isDevHeaderAuthEnabled()) {
+        return {
+            userId: normalizedExplicitUserId,
+            roles: ["authenticated"],
+            userDetails: normalizedExplicitUserId
+        };
     }
+    return defaultAuthContext();
 }

@@ -285,9 +285,41 @@ export async function dashboardHandler(context: InvocationContext, req: HttpRequ
         return fail("SERVER_ERROR", "Failed to build monthly changes", 500);
       }
     }
+    case "snapshots": {
+      try {
+        let container;
+        try {
+          container = getContainer("assetHistory");
+        } catch (error: unknown) {
+          context.log(error);
+          return fail("SERVER_ERROR", "Cosmos DB configuration error", 500);
+        }
+
+        const query = {
+          query:
+            "SELECT c.windowMonth, c.value, c.monthlyDelta, c.recordedAt FROM c WHERE c.userId = @userId AND c.type = 'AssetHistory' AND c.isMonthlySnapshot = true ORDER BY c.windowMonth ASC",
+          parameters: [
+            { name: "@userId", value: userId }
+          ]
+        };
+
+        const rows = await queryAssetHistoryRows(container, userId, query);
+
+        const snapshots = rows.map((row) => ({
+          month: row.windowMonth ?? "",
+          totalValue: Number(row.value ?? 0),
+          delta: Number(row.monthlyDelta ?? 0),
+          recordedAt: String(row.recordedAt ?? "")
+        }));
+
+        return ok(snapshots);
+      } catch (error: unknown) {
+        context.log(error);
+        return fail("SERVER_ERROR", "Failed to fetch snapshots", 500);
+      }
+    }
     default:
       context.log(`Unsupported dashboard action: ${action}`);
       return fail("NOT_FOUND", "Unknown dashboard action", 404);
   }
 }
-

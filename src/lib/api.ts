@@ -144,6 +144,13 @@ export type MonthlyAssetChange = {
   delta: number;
 };
 
+export type MonthlySnapshot = {
+  month: string;
+  totalValue: number;
+  delta: number;
+  recordedAt: string;
+};
+
 async function fetchApi<T>(
   endpoint: string,
   options?: RequestInit
@@ -211,6 +218,8 @@ export const api = {
     fetchApi<Array<{ time: string; value: number }>>(`/dashboard/asset-trend?range=${range}`),
   getMonthlyAssetChanges: () =>
     fetchApi<MonthlyAssetChange[]>('/dashboard/monthly-change'),
+  getSnapshots: () =>
+    fetchApi<MonthlySnapshot[]>('/dashboard/snapshots'),
 
   // Children
   getChildren: () => fetchApi<Child[]>('/children'),

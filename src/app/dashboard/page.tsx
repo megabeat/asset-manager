@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { api, MonthlyAssetChange } from '@/lib/api';
+import { api, MonthlyAssetChange, MonthlySnapshot } from '@/lib/api';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { formatCompact } from '@/lib/formatCompact';
 import {
@@ -56,13 +56,14 @@ export default function DashboardPage() {
   const [summary, setSummary] = useState<Summary | null>(null);
   const [trend, setTrend] = useState<TrendPoint[]>([]);
   const [monthlyChanges, setMonthlyChanges] = useState<MonthlyAssetChange[]>([]);
+  const [snapshots, setSnapshots] = useState<MonthlySnapshot[]>([]);
   const [assets, setAssets] = useState<AssetItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    Promise.all([api.getDashboardSummary(), api.getAssetTrend('30d'), api.getAssets(), api.getMonthlyAssetChanges()]).then(
-      ([summaryResult, trendResult, assetsResult, monthlyResult]) => {
+    Promise.all([api.getDashboardSummary(), api.getAssetTrend('30d'), api.getAssets(), api.getMonthlyAssetChanges(), api.getSnapshots()]).then(
+      ([summaryResult, trendResult, assetsResult, monthlyResult, snapshotsResult]) => {
         if (summaryResult.data) {
           setSummary(summaryResult.data);
         }
@@ -77,6 +78,10 @@ export default function DashboardPage() {
 
         if (monthlyResult.data) {
           setMonthlyChanges(monthlyResult.data);
+        }
+
+        if (snapshotsResult.data) {
+          setSnapshots(snapshotsResult.data);
         }
 
         const firstError = summaryResult.error ?? trendResult.error ?? assetsResult.error ?? monthlyResult.error;
@@ -313,6 +318,45 @@ export default function DashboardPage() {
                 ))}
               </tbody>
             </table>
+          )}
+        </SectionCard>
+      </div>
+
+      <div className="mt-4">
+        <SectionCard>
+          <h3 className="mt-0">월말 자산 스냅샷 이력</h3>
+          <p className="helper-text mt-1 mb-3">매월 말일 정오에 자동 집계된 전체 자산 평가액입니다.</p>
+          {snapshots.length === 0 ? (
+            <p>아직 월말 스냅샷 데이터가 없습니다. 매월 말일 자동 생성됩니다.</p>
+          ) : (
+            <div className="ui-table-wrap">
+              <table className="ui-table">
+                <thead>
+                  <tr className="ui-table-head-row">
+                    <th className="ui-table-th text-left">월</th>
+                    <th className="ui-table-th text-left">기록 일시</th>
+                    <th className="ui-table-th text-right">전체 평가액</th>
+                    <th className="ui-table-th text-right">전월 대비</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {snapshots.map((snap, idx) => (
+                    <tr key={snap.month} className={idx % 2 === 0 ? 'ui-table-row-even' : 'ui-table-row-odd'}>
+                      <td className="ui-table-td text-left">{snap.month}</td>
+                      <td className="ui-table-td text-left">
+                        {snap.recordedAt ? new Date(snap.recordedAt).toLocaleString('ko-KR', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }) : '-'}
+                      </td>
+                      <td className="ui-table-td text-right font-semibold">
+                        {formatCompact(snap.totalValue)}
+                      </td>
+                      <td className={`ui-table-td text-right ${snap.delta >= 0 ? 'ui-delta-positive' : 'ui-delta-negative'}`}>
+                        {snap.delta >= 0 ? '+' : ''}{formatCompact(snap.delta)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           )}
         </SectionCard>
       </div>

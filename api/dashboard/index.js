@@ -98,7 +98,7 @@ async function dashboardHandler(context, req) {
                     parameters: [{ name: "@userId", value: userId }]
                 };
                 const expensesQuery = {
-                    query: "SELECT VALUE SUM(c.amount) FROM c WHERE c.userId = @userId AND c.type = 'Expense' AND c.expenseType = 'fixed' AND c.cycle = 'monthly'",
+                    query: "SELECT VALUE SUM(c.amount) FROM c WHERE c.userId = @userId AND c.type = 'Expense' AND c.expenseType = 'fixed' AND c.cycle = 'monthly' AND (NOT IS_DEFINED(c.isInvestmentTransfer) OR c.isInvestmentTransfer = false)",
                     parameters: [{ name: "@userId", value: userId }]
                 };
                 const liabilitiesQuery = {
@@ -220,6 +220,36 @@ async function dashboardHandler(context, req) {
             catch (error) {
                 context.log(error);
                 return (0, responses_1.fail)("SERVER_ERROR", "Failed to build monthly changes", 500);
+            }
+        }
+        case "snapshots": {
+            try {
+                let container;
+                try {
+                    container = (0, cosmosClient_1.getContainer)("assetHistory");
+                }
+                catch (error) {
+                    context.log(error);
+                    return (0, responses_1.fail)("SERVER_ERROR", "Cosmos DB configuration error", 500);
+                }
+                const query = {
+                    query: "SELECT c.windowMonth, c.value, c.monthlyDelta, c.recordedAt FROM c WHERE c.userId = @userId AND c.type = 'AssetHistory' AND c.isMonthlySnapshot = true ORDER BY c.windowMonth ASC",
+                    parameters: [
+                        { name: "@userId", value: userId }
+                    ]
+                };
+                const rows = await queryAssetHistoryRows(container, userId, query);
+                const snapshots = rows.map((row) => ({
+                    month: row.windowMonth ?? "",
+                    totalValue: Number(row.value ?? 0),
+                    delta: Number(row.monthlyDelta ?? 0),
+                    recordedAt: String(row.recordedAt ?? "")
+                }));
+                return (0, responses_1.ok)(snapshots);
+            }
+            catch (error) {
+                context.log(error);
+                return (0, responses_1.fail)("SERVER_ERROR", "Failed to fetch snapshots", 500);
             }
         }
         default:
