@@ -3,7 +3,9 @@
 import { FormEvent, useEffect, useMemo, useState } from 'react';
 import { api, Profile } from '@/lib/api';
 import { FeedbackBanner } from '@/components/ui/FeedbackBanner';
+import { FormField } from '@/components/ui/FormField';
 import { useFeedbackMessage } from '@/hooks/useFeedbackMessage';
+import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 
 type ProfileForm = Omit<
   Profile,
@@ -323,11 +325,11 @@ export default function ProfilePage() {
   }
 
   if (loading) {
-    return <div className="p-5 sm:p-8">로딩 중...</div>;
+    return <LoadingSpinner />;
   }
 
   return (
-    <div className="p-5 sm:p-8">
+    <div className="py-4">
       <div className="mx-auto grid w-full max-w-[860px] gap-5">
         <section className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-5 shadow-[0_10px_24px_rgba(15,23,42,0.045)]">
           <h1>설정</h1>
@@ -364,7 +366,7 @@ export default function ProfilePage() {
         {!isAuthenticated ? null : (
           <form
             onSubmit={onSubmit}
-            className="grid gap-5 rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-5 shadow-[0_10px_24px_rgba(15,23,42,0.045)] md:p-6 [&_.form-field>span]:text-[0.86rem] [&_.form-field>span]:font-semibold [&_.form-field>span]:leading-5 [&_.form-field>span]:text-[var(--muted)]"
+            className="grid gap-5 rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-5 shadow-[0_10px_24px_rgba(15,23,42,0.045)] md:p-6 [&_.helper-text]:text-[0.86rem] [&_.helper-text]:font-semibold [&_.helper-text]:leading-5 [&_.helper-text]:text-[var(--muted)]"
           >
             <div className="flex flex-wrap gap-2 rounded-xl border border-[var(--line)] bg-[var(--surface-2)] p-1">
               <button
@@ -393,28 +395,23 @@ export default function ProfilePage() {
             <div className="grid gap-4">
               {activeTab === 'basic' ? (
                 <>
-            <label className="form-field">
-              <span>이름</span>
+            <FormField label="이름" error={errors.fullName}>
               <input
                 value={form.fullName}
                 onChange={(event) => setForm((prev) => ({ ...prev, fullName: event.target.value }))}
                 placeholder="홍길동"
               />
-              {errors.fullName && <p className="form-error">{errors.fullName}</p>}
-            </label>
+            </FormField>
 
-            <label className="form-field">
-              <span>생년월일</span>
+            <FormField label="생년월일" error={errors.birthDate}>
               <input
                 type="date"
                 value={form.birthDate}
                 onChange={(event) => setForm((prev) => ({ ...prev, birthDate: event.target.value }))}
               />
-              {errors.birthDate && <p className="form-error">{errors.birthDate}</p>}
-            </label>
+            </FormField>
 
-            <label className="form-field">
-              <span>가구원 수</span>
+            <FormField label="가구원 수" error={errors.householdSize}>
               <input
                 type="number"
                 min={1}
@@ -423,43 +420,37 @@ export default function ProfilePage() {
                   setForm((prev) => ({ ...prev, householdSize: Number(event.target.value || 1) }))
                 }
               />
-              {errors.householdSize && <p className="form-error">{errors.householdSize}</p>}
-            </label>
+            </FormField>
 
-            <label className="form-field">
-              <span>통화</span>
+            <FormField label="통화" error={errors.currency}>
               <input
                 value={form.currency}
                 onChange={(event) => setForm((prev) => ({ ...prev, currency: event.target.value }))}
                 placeholder="KRW"
               />
-              {errors.currency && <p className="form-error">{errors.currency}</p>}
-            </label>
+            </FormField>
                 </>
               ) : null}
 
               {activeTab === 'income' ? (
                 <>
-            <label className="form-field">
-              <span>직장명</span>
+            <FormField label="직장명">
               <input
                 value={form.employerName ?? ''}
                 onChange={(event) => setForm((prev) => ({ ...prev, employerName: event.target.value }))}
                 placeholder="예: Microsoft"
               />
-            </label>
+            </FormField>
 
-            <label className="form-field">
-              <span>직무/직급</span>
+            <FormField label="직무/직급">
               <input
                 value={form.jobTitle ?? ''}
                 onChange={(event) => setForm((prev) => ({ ...prev, jobTitle: event.target.value }))}
                 placeholder="예: Senior Software Engineer"
               />
-            </label>
+            </FormField>
 
-            <label className="form-field">
-              <span>직장 기본급(연)</span>
+            <FormField label="직장 기본급(연)" error={errors.baseSalaryAnnual}>
               <input
                 type="number"
                 min={0}
@@ -472,11 +463,9 @@ export default function ProfilePage() {
                 }
                 placeholder="예: 120000000"
               />
-              {errors.baseSalaryAnnual && <p className="form-error">{errors.baseSalaryAnnual}</p>}
-            </label>
+            </FormField>
 
-            <label className="form-field">
-              <span>추가지급-고정(연)</span>
+            <FormField label="추가지급-고정(연)" error={errors.annualFixedExtra}>
               <input
                 type="number"
                 min={0}
@@ -489,11 +478,9 @@ export default function ProfilePage() {
                 }
                 placeholder="예: 5000000"
               />
-              {errors.annualFixedExtra && <p className="form-error">{errors.annualFixedExtra}</p>}
-            </label>
+            </FormField>
 
-            <label className="form-field">
-              <span>연간 보너스</span>
+            <FormField label="연간 보너스" error={errors.annualBonus}>
               <input
                 type="number"
                 min={0}
@@ -506,11 +493,9 @@ export default function ProfilePage() {
                 }
                 placeholder="예: 15000000"
               />
-              {errors.annualBonus && <p className="form-error">{errors.annualBonus}</p>}
-            </label>
+            </FormField>
 
-            <label className="form-field">
-              <span>연간 RSU(원화 환산)</span>
+            <FormField label="연간 RSU(원화 환산)" error={errors.annualRsu}>
               <input
                 type="number"
                 min={0}
@@ -523,11 +508,9 @@ export default function ProfilePage() {
                 }
                 placeholder="예: 20000000"
               />
-              {errors.annualRsu && <p className="form-error">{errors.annualRsu}</p>}
-            </label>
+            </FormField>
 
-            <label className="form-field">
-              <span>RSU 주식수</span>
+            <FormField label="RSU 주식수" error={errors.rsuShares}>
               <input
                 type="number"
                 min={0}
@@ -541,11 +524,9 @@ export default function ProfilePage() {
                 }
                 placeholder="예: 240"
               />
-              {errors.rsuShares && <p className="form-error">{errors.rsuShares}</p>}
-            </label>
+            </FormField>
 
-            <label className="form-field">
-              <span>RSU 베스팅 시가(USD)</span>
+            <FormField label="RSU 베스팅 시가(USD)" error={errors.rsuVestingPriceUsd}>
               <input
                 type="number"
                 min={0}
@@ -560,11 +541,9 @@ export default function ProfilePage() {
                 }
                 placeholder="예: 420"
               />
-              {errors.rsuVestingPriceUsd && <p className="form-error">{errors.rsuVestingPriceUsd}</p>}
-            </label>
+            </FormField>
 
-            <label className="form-field">
-              <span>RSU 베스팅 주기</span>
+            <FormField label="RSU 베스팅 주기">
               <select
                 value={form.rsuVestingCycle ?? 'quarterly'}
                 onChange={(event) =>
@@ -579,10 +558,9 @@ export default function ProfilePage() {
                 <option value="yearly">연별</option>
                 <option value="irregular">비정기</option>
               </select>
-            </label>
+            </FormField>
 
-            <label className="form-field">
-              <span>연간 연봉 상승률(기본급 기준, %)</span>
+            <FormField label="연간 연봉 상승률(기본급 기준, %)" error={errors.annualRaiseRatePct}>
               <input
                 type="number"
                 min={-20}
@@ -597,35 +575,29 @@ export default function ProfilePage() {
                 }
                 placeholder="예: 5"
               />
-              {errors.annualRaiseRatePct && <p className="form-error">{errors.annualRaiseRatePct}</p>}
-            </label>
+            </FormField>
                 </>
               ) : null}
 
               {activeTab === 'family' ? (
                 <>
-            <label className="form-field">
-              <span>자녀1 이름</span>
+            <FormField label="자녀1 이름" error={errors.child1Name}>
               <input
                 value={form.child1Name ?? ''}
                 onChange={(event) => setForm((prev) => ({ ...prev, child1Name: event.target.value }))}
                 placeholder="예: 자녀1"
               />
-              {errors.child1Name && <p className="form-error">{errors.child1Name}</p>}
-            </label>
+            </FormField>
 
-            <label className="form-field">
-              <span>자녀1 생년월일</span>
+            <FormField label="자녀1 생년월일" error={errors.child1BirthDate}>
               <input
                 type="date"
                 value={form.child1BirthDate ?? ''}
                 onChange={(event) => setForm((prev) => ({ ...prev, child1BirthDate: event.target.value }))}
               />
-              {errors.child1BirthDate && <p className="form-error">{errors.child1BirthDate}</p>}
-            </label>
+            </FormField>
 
-            <label className="form-field">
-              <span>자녀1 예상 대학 진학년도</span>
+            <FormField label="자녀1 예상 대학 진학년도" error={errors.child1TargetUniversityYear}>
               <input
                 type="number"
                 min={currentYear}
@@ -639,31 +611,25 @@ export default function ProfilePage() {
                 }
                 placeholder={`예: ${currentYear + 12}`}
               />
-              {errors.child1TargetUniversityYear && <p className="form-error">{errors.child1TargetUniversityYear}</p>}
-            </label>
+            </FormField>
 
-            <label className="form-field">
-              <span>자녀2 이름</span>
+            <FormField label="자녀2 이름" error={errors.child2Name}>
               <input
                 value={form.child2Name ?? ''}
                 onChange={(event) => setForm((prev) => ({ ...prev, child2Name: event.target.value }))}
                 placeholder="예: 자녀2"
               />
-              {errors.child2Name && <p className="form-error">{errors.child2Name}</p>}
-            </label>
+            </FormField>
 
-            <label className="form-field">
-              <span>자녀2 생년월일</span>
+            <FormField label="자녀2 생년월일" error={errors.child2BirthDate}>
               <input
                 type="date"
                 value={form.child2BirthDate ?? ''}
                 onChange={(event) => setForm((prev) => ({ ...prev, child2BirthDate: event.target.value }))}
               />
-              {errors.child2BirthDate && <p className="form-error">{errors.child2BirthDate}</p>}
-            </label>
+            </FormField>
 
-            <label className="form-field">
-              <span>자녀2 예상 대학 진학년도</span>
+            <FormField label="자녀2 예상 대학 진학년도" error={errors.child2TargetUniversityYear}>
               <input
                 type="number"
                 min={currentYear}
@@ -677,11 +643,9 @@ export default function ProfilePage() {
                 }
                 placeholder={`예: ${currentYear + 14}`}
               />
-              {errors.child2TargetUniversityYear && <p className="form-error">{errors.child2TargetUniversityYear}</p>}
-            </label>
+            </FormField>
 
-            <label className="form-field">
-              <span>은퇴 목표 연령</span>
+            <FormField label="은퇴 목표 연령" error={errors.retirementTargetAge}>
               <input
                 type="number"
                 min={45}
@@ -695,8 +659,7 @@ export default function ProfilePage() {
                 }
                 placeholder="예: 60"
               />
-              {errors.retirementTargetAge && <p className="form-error">{errors.retirementTargetAge}</p>}
-            </label>
+            </FormField>
                 </>
               ) : null}
             </div>

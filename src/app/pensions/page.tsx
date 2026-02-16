@@ -7,6 +7,7 @@ import { useFeedbackMessage } from '@/hooks/useFeedbackMessage';
 import { SectionCard } from '@/components/ui/SectionCard';
 import { FormField } from '@/components/ui/FormField';
 import { DataTable } from '@/components/ui/DataTable';
+import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { PieChart, Pie, Cell, Legend, Tooltip, ResponsiveContainer } from 'recharts';
 
 type NumericInput = number | '';
@@ -206,7 +207,7 @@ export default function PensionsPage() {
   }
 
   if (loading) {
-    return <div className="p-6">로딩 중...</div>;
+    return <LoadingSpinner />;
   }
 
   return (

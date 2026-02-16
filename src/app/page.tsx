@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { api, Asset, Expense, Income, Profile } from '@/lib/api';
+import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 
 type Summary = {
   totalAssets: number;
@@ -169,7 +170,7 @@ export default function Home() {
   const monthlyNetCashflow = monthlySettledIncome - monthlySettledExpense;
 
   return (
-    <div className="pb-8 pt-4">
+    <div className="py-4">
       <section className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-5 shadow-[0_8px_24px_rgba(15,23,42,0.05)]">
         <div className="flex items-start justify-between gap-4">
           <div>
@@ -290,7 +291,7 @@ export default function Home() {
         <div className="rounded-xl border border-[var(--line)] bg-[var(--surface)] p-4">
           <h2 className="mb-3 mt-0 text-[1.05rem]">상위 자산</h2>
           {loading ? (
-            <p>로딩 중...</p>
+            <LoadingSpinner text="자산 불러오는 중..." />
           ) : topAssets.length === 0 ? (
             <p>등록된 자산이 없습니다.</p>
           ) : (

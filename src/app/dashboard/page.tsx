@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { api, MonthlyAssetChange } from '@/lib/api';
+import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import {
   LineChart,
   Line,
@@ -88,7 +89,7 @@ export default function DashboardPage() {
   }, []);
 
   if (loading) {
-    return <div className="p-8">로딩 중...</div>;
+    return <LoadingSpinner />;
   }
 
   if (!summary) {

@@ -7,6 +7,7 @@ import { SectionCard } from '@/components/ui/SectionCard';
 import { FormField } from '@/components/ui/FormField';
 import { DataTable } from '@/components/ui/DataTable';
 import { useFeedbackMessage } from '@/hooks/useFeedbackMessage';
+import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 
 type LiabilityForm = {
   name: string;
@@ -117,7 +118,7 @@ export default function LiabilitiesPage() {
   }
 
   if (loading) {
-    return <div className="p-6">로딩 중...</div>;
+    return <LoadingSpinner />;
   }
 
   return (

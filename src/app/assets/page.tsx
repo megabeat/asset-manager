@@ -8,6 +8,7 @@ import { SectionCard } from '@/components/ui/SectionCard';
 import { FormField } from '@/components/ui/FormField';
 import { DataTable } from '@/components/ui/DataTable';
 import { getAssetCategoryLabel } from '@/lib/assetCategory';
+import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { ResponsiveContainer, Tooltip, Treemap } from 'recharts';
 
 type AssetCategory = 'cash' | 'deposit' | 'stock_kr' | 'stock_us' | 'car' | 'real_estate' | 'etc';
@@ -481,7 +482,7 @@ export default function AssetsPage() {
   }
 
   if (loading) {
-    return <div className="p-8">로딩 중...</div>;
+    return <LoadingSpinner />;
   }
 
   return (
