@@ -2,6 +2,7 @@
 
 import { FormEvent, useEffect, useMemo, useState } from 'react';
 import { api, Expense } from '@/lib/api';
+import { getAssetCategoryLabel } from '@/lib/assetCategory';
 import { SectionCard } from '@/components/ui/SectionCard';
 import { FormField } from '@/components/ui/FormField';
 import { DataTable } from '@/components/ui/DataTable';
@@ -741,7 +742,10 @@ export default function ExpensesPage() {
               key: 'target',
               header: '투자대상',
               align: 'center',
-              render: (expense) => (expense.isInvestmentTransfer ? expense.investmentTargetCategory || '-' : '-'),
+              render: (expense) =>
+                expense.isInvestmentTransfer
+                  ? getAssetCategoryLabel(expense.investmentTargetCategory)
+                  : '-',
             },
             { key: 'cycle', header: '주기', render: (expense) => expense.cycle },
             {
@@ -812,7 +816,10 @@ export default function ExpensesPage() {
               key: 'target',
               header: '투자대상',
               align: 'center',
-              render: (expense) => (expense.isInvestmentTransfer ? expense.investmentTargetCategory || '-' : '-'),
+              render: (expense) =>
+                expense.isInvestmentTransfer
+                  ? getAssetCategoryLabel(expense.investmentTargetCategory)
+                  : '-',
             },
             {
               key: 'entrySource',
