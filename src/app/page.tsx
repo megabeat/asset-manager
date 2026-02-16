@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { api, Asset, Expense, Income, Profile } from '@/lib/api';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
+import { formatCompact } from '@/lib/formatCompact';
 
 type Summary = {
   totalAssets: number;
@@ -194,55 +195,55 @@ export default function Home() {
         <div className="kpi-card">
           <h3 className="kpi-label">총 자산(연금 제외)</h3>
           <p className="kpi-value">
-            {summary?.totalAssets?.toLocaleString() ?? '-'}원
+            {formatCompact(summary?.totalAssets)}
           </p>
         </div>
         <div className="kpi-card">
           <h3 className="kpi-label">총 자산(연금 포함)</h3>
           <p className="kpi-value">
-            {totalAssetsWithPension.toLocaleString()}원
+            {formatCompact(totalAssetsWithPension)}
           </p>
         </div>
         <div className="kpi-card">
           <h3 className="kpi-label">보유현금(자유 입/출금)</h3>
           <p className="kpi-value">
-            {liquidAssetsTotal.toLocaleString()}원
+            {formatCompact(liquidAssetsTotal)}
           </p>
         </div>
         <div className="kpi-card">
           <h3 className="kpi-label">주식자산(미장/국장)</h3>
           <p className="kpi-value">
-            {stockAssetsTotal.toLocaleString()}원
+            {formatCompact(stockAssetsTotal)}
           </p>
         </div>
         <div className="kpi-card">
           <h3 className="kpi-label">총 부채</h3>
           <p className="kpi-value kpi-negative">
-            {summary?.totalLiabilities?.toLocaleString() ?? '-'}원
+            {formatCompact(summary?.totalLiabilities)}
           </p>
         </div>
         <div className="kpi-card">
           <h3 className="kpi-label">순자산</h3>
           <p className="kpi-value kpi-positive">
-            {summary?.netWorth?.toLocaleString() ?? '-'}원
+            {formatCompact(summary?.netWorth)}
           </p>
         </div>
         <div className="kpi-card">
           <h3 className="kpi-label">월 지출(환산)</h3>
           <p className="kpi-value">
-            {Math.round(monthlyExpense).toLocaleString()}원
+            {formatCompact(Math.round(monthlyExpense))}
           </p>
         </div>
         <div className="kpi-card">
           <h3 className="kpi-label">월 수입(환산)</h3>
           <p className="kpi-value">
-            {Math.round(monthlyIncome).toLocaleString()}원
+            {formatCompact(Math.round(monthlyIncome))}
           </p>
         </div>
         <div className="kpi-card">
           <h3 className="kpi-label">월 잉여자금</h3>
           <p className={`kpi-value ${monthlySurplus >= 0 ? 'kpi-positive' : 'kpi-negative'}`}>
-            {Math.round(monthlySurplus).toLocaleString()}원
+            {formatCompact(Math.round(monthlySurplus))}
           </p>
         </div>
         <div className="kpi-card">
@@ -259,14 +260,14 @@ export default function Home() {
             </label>
           </div>
           <p className={`kpi-value ${monthlyNetCashflow >= 0 ? 'kpi-positive' : 'kpi-negative'}`}>
-            {Math.round(monthlyNetCashflow).toLocaleString()}원
+            {formatCompact(Math.round(monthlyNetCashflow))}
           </p>
-          <p className="helper-text mt-1">기준월: {settlementMonthKey} (수입 {Math.round(monthlySettledIncome).toLocaleString()}원 - 생활지출 {Math.round(monthlySettledExpense).toLocaleString()}원)</p>
+          <p className="helper-text mt-1">기준월: {settlementMonthKey} (수입 {formatCompact(Math.round(monthlySettledIncome))} - 생활지출 {formatCompact(Math.round(monthlySettledExpense))})</p>
         </div>
         <div className="kpi-card">
           <h3 className="kpi-label">월 투자이체(정산)</h3>
           <p className="kpi-value">
-            {Math.round(monthlySettledInvestmentTransfer).toLocaleString()}원
+            {formatCompact(Math.round(monthlySettledInvestmentTransfer))}
           </p>
         </div>
       </section>
@@ -300,7 +301,7 @@ export default function Home() {
                 <li key={asset.id}>
                   <span>{asset.name}</span>
                   <span className="float-right font-semibold">
-                    {asset.currentValue.toLocaleString()}원
+                    {formatCompact(asset.currentValue)}
                   </span>
                 </li>
               ))}

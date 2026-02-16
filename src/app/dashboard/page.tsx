@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { api, MonthlyAssetChange } from '@/lib/api';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
+import { formatCompact } from '@/lib/formatCompact';
 import {
   LineChart,
   Line,
@@ -161,25 +162,25 @@ export default function DashboardPage() {
         <SectionCard className="p-5">
           <h3 className="kpi-label">총 자산(연금 제외)</h3>
           <p className="kpi-value">
-            {summary.totalAssets.toLocaleString()}원
+            {formatCompact(summary.totalAssets)}
           </p>
         </SectionCard>
         <SectionCard className="p-5">
           <h3 className="kpi-label">총 부채</h3>
           <p className="kpi-value kpi-negative">
-            {summary.totalLiabilities.toLocaleString()}원
+            {formatCompact(summary.totalLiabilities)}
           </p>
         </SectionCard>
         <SectionCard className="p-5">
           <h3 className="kpi-label">순자산</h3>
           <p className="kpi-value kpi-positive">
-            {summary.netWorth.toLocaleString()}원
+            {formatCompact(summary.netWorth)}
           </p>
         </SectionCard>
         <SectionCard className="p-5">
           <h3 className="kpi-label">월 고정지출</h3>
           <p className="kpi-value">
-            {summary.monthlyFixedExpense.toLocaleString()}원
+            {formatCompact(summary.monthlyFixedExpense)}
           </p>
         </SectionCard>
       </div>
@@ -187,7 +188,7 @@ export default function DashboardPage() {
       <div className="mt-4 grid gap-4 [grid-template-columns:repeat(auto-fit,minmax(260px,1fr))]">
         <SectionCard>
           <h3 className="mt-0">연금 자산</h3>
-          <p className="m-0 text-[1.35rem] font-bold">{pensionValue.toLocaleString()}원</p>
+          <p className="m-0 text-[1.35rem] font-bold">{formatCompact(pensionValue)}</p>
           <p className="helper-text mt-2">
             국민연금/개인연금 등 연금 카테고리 합산 기준
           </p>
