@@ -22,8 +22,17 @@ const billingCycles = ["monthly", "yearly", "one_time"];
 type ExpenseRecord = {
   id: string;
   userId: string;
+  type?: string;
+  expenseType?: "fixed" | "subscription" | "one_time";
+  name?: string;
   amount: number;
   cycle?: "monthly" | "yearly" | "one_time";
+  billingDay?: number | null;
+  category?: string;
+  isCardIncluded?: boolean;
+  entrySource?: "manual" | "auto_settlement";
+  sourceExpenseId?: string;
+  settledMonth?: string;
   occurredAt?: string;
   reflectToLiquidAsset?: boolean;
   reflectedAmount?: number;
@@ -142,6 +151,30 @@ function getQueryValue(req: HttpRequest, key: string): string | undefined {
   return undefined;
 }
 
+function resolveTargetMonth(raw: unknown): string {
+  const month = ensureString(raw, "targetMonth").trim();
+  if (!/^\d{4}-\d{2}$/.test(month)) {
+    throw new Error("Invalid targetMonth");
+  }
+  const [yearText, monthText] = month.split("-");
+  const year = Number(yearText);
+  const monthNumber = Number(monthText);
+  if (!Number.isFinite(year) || !Number.isFinite(monthNumber) || monthNumber < 1 || monthNumber > 12) {
+    throw new Error("Invalid targetMonth");
+  }
+  return `${yearText}-${monthText}`;
+}
+
+function resolveDateByMonthAndBillingDay(targetMonth: string, billingDay: number): string {
+  const [yearText, monthText] = targetMonth.split("-");
+  const year = Number(yearText);
+  const month = Number(monthText);
+  const safeDay = Math.min(31, Math.max(1, Math.trunc(billingDay)));
+  const lastDay = new Date(year, month, 0).getDate();
+  const day = Math.min(safeDay, lastDay);
+  return new Date(year, month - 1, day).toISOString().slice(0, 10);
+}
+
 export async function expensesHandler(context: InvocationContext, req: HttpRequest): Promise<HttpResponseInit> {
   const { userId } = getAuthContext(req.headers);
 
@@ -212,6 +245,117 @@ export async function expensesHandler(context: InvocationContext, req: HttpReque
         return fail("INVALID_JSON", "Invalid JSON body", 400);
       }
 
+      if (expenseId === "settle-month") {
+        try {
+          const targetMonth = resolveTargetMonth(body.targetMonth);
+
+          const recurringQuery = {
+            query:
+              "SELECT * FROM c WHERE c.userId = @userId AND c.type = 'Expense' AND c.cycle = 'monthly' AND (c.expenseType = 'fixed' OR c.expenseType = 'subscription') AND (NOT IS_DEFINED(c.isCardIncluded) OR c.isCardIncluded = false)",
+            parameters: [{ name: "@userId", value: userId }]
+          };
+
+          const { resources } = await container.items.query(recurringQuery).fetchAll();
+          const recurringTemplates = resources as ExpenseRecord[];
+
+          let createdCount = 0;
+          let skippedCount = 0;
+          let reflectedCount = 0;
+          let totalSettledAmount = 0;
+
+          for (const template of recurringTemplates) {
+            const billingDay = Number(template.billingDay ?? 0);
+            if (!Number.isFinite(billingDay) || billingDay < 1 || billingDay > 31) {
+              skippedCount += 1;
+              continue;
+            }
+
+            const duplicateQuery = {
+              query:
+                "SELECT TOP 1 c.id FROM c WHERE c.userId = @userId AND c.type = 'Expense' AND c.entrySource = 'auto_settlement' AND c.sourceExpenseId = @sourceExpenseId AND c.settledMonth = @settledMonth",
+              parameters: [
+                { name: "@userId", value: userId },
+                { name: "@sourceExpenseId", value: template.id },
+                { name: "@settledMonth", value: targetMonth }
+              ]
+            };
+
+            const duplicate = await container.items.query(duplicateQuery).fetchAll();
+            if ((duplicate.resources ?? []).length > 0) {
+              skippedCount += 1;
+              continue;
+            }
+
+            const occurredAt = resolveDateByMonthAndBillingDay(targetMonth, billingDay);
+            const amount = Number(template.amount ?? 0);
+            const nowIso = new Date().toISOString();
+            const autoExpense: ExpenseRecord & Record<string, unknown> = {
+              id: randomUUID(),
+              userId,
+              type: "Expense",
+              expenseType: "one_time",
+              name: ensureString(template.name ?? "정기지출", "name"),
+              amount,
+              cycle: "one_time",
+              billingDay,
+              occurredAt,
+              reflectToLiquidAsset: true,
+              reflectedAmount: 0,
+              reflectedAssetId: "",
+              reflectedAt: "",
+              category: ensureOptionalString(template.category ?? "", "category") ?? "",
+              isCardIncluded: false,
+              entrySource: "auto_settlement",
+              sourceExpenseId: template.id,
+              settledMonth: targetMonth,
+              createdAt: nowIso,
+              updatedAt: nowIso
+            };
+
+            const { resource: created } = await container.items.create(autoExpense);
+            if (!created) {
+              skippedCount += 1;
+              continue;
+            }
+
+            createdCount += 1;
+            totalSettledAmount += amount;
+
+            if (shouldReflectNow(true, occurredAt)) {
+              const reflected = await applyLiquidAssetDelta(assetsContainer, userId, -amount);
+              if (reflected) {
+                reflectedCount += 1;
+                const updatedExpense = {
+                  ...created,
+                  reflectedAmount: amount,
+                  reflectedAssetId: reflected.assetId,
+                  reflectedAt: new Date().toISOString(),
+                  updatedAt: new Date().toISOString()
+                };
+                await container.item(String(created.id), userId).replace(updatedExpense);
+              }
+            }
+          }
+
+          return ok(
+            {
+              targetMonth,
+              createdCount,
+              skippedCount,
+              reflectedCount,
+              totalSettledAmount
+            },
+            201
+          );
+        } catch (error: unknown) {
+          if (error instanceof Error && error.message.startsWith("Invalid")) {
+            return fail("VALIDATION_ERROR", error.message, 400);
+          }
+          context.log(error);
+          return fail("SERVER_ERROR", "Failed to settle recurring expenses", 500);
+        }
+      }
+
       try {
         const amount = ensureNumberInRange(body.amount, "amount", 0, Number.MAX_SAFE_INTEGER);
         const reflectToLiquidAsset = ensureOptionalBoolean(body.reflectToLiquidAsset, "reflectToLiquidAsset") ?? false;
@@ -235,9 +379,13 @@ export async function expensesHandler(context: InvocationContext, req: HttpReque
           billingDay,
           occurredAt,
           reflectToLiquidAsset,
+          isCardIncluded: ensureOptionalBoolean(body.isCardIncluded, "isCardIncluded") ?? false,
           reflectedAmount: 0,
           reflectedAssetId: "",
           reflectedAt: "",
+          entrySource: "manual",
+          sourceExpenseId: "",
+          settledMonth: "",
           category: ensureOptionalString(body.category, "category") ?? "",
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString()
@@ -341,6 +489,9 @@ export async function expensesHandler(context: InvocationContext, req: HttpReque
           billingDay: nextBillingDay,
           occurredAt: nextOccurredAt,
           reflectToLiquidAsset: nextReflectSetting,
+          isCardIncluded:
+            ensureOptionalBoolean(body.isCardIncluded, "isCardIncluded") ??
+            Boolean(existing.isCardIncluded ?? false),
           reflectedAmount: nextReflectedAmount,
           reflectedAssetId,
           reflectedAt,

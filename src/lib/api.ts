@@ -57,6 +57,10 @@ export type Expense = {
   cycle: 'monthly' | 'yearly' | 'one_time';
   occurredAt?: string;
   reflectToLiquidAsset?: boolean;
+  isCardIncluded?: boolean;
+  entrySource?: 'manual' | 'auto_settlement';
+  sourceExpenseId?: string;
+  settledMonth?: string;
   reflectedAmount?: number;
   reflectedAssetId?: string;
   reflectedAt?: string;
@@ -206,6 +210,17 @@ export const api = {
   updateExpense: (id: string, data: unknown) =>
     fetchApi(`/expenses/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
   deleteExpense: (id: string) => fetchApi(`/expenses/${id}`, { method: 'DELETE' }),
+  settleExpenseMonth: (targetMonth: string) =>
+    fetchApi<{
+      targetMonth: string;
+      createdCount: number;
+      skippedCount: number;
+      reflectedCount: number;
+      totalSettledAmount: number;
+    }>(`/expenses/settle-month`, {
+      method: 'POST',
+      body: JSON.stringify({ targetMonth })
+    }),
 
   // Incomes
   getIncomes: () => fetchApi<Income[]>('/incomes'),

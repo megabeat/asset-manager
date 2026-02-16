@@ -17,6 +17,7 @@ type ExpenseForm = {
   billingDay: NumericInput;
   occurredAt: string;
   reflectToLiquidAsset: boolean;
+  isCardIncluded: boolean;
   category: string;
 };
 
@@ -28,8 +29,14 @@ const defaultForm: ExpenseForm = {
   billingDay: new Date().getDate(),
   occurredAt: new Date().toISOString().slice(0, 10),
   reflectToLiquidAsset: false,
+  isCardIncluded: false,
   category: ''
 };
+
+function getCurrentMonthKey(): string {
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+}
 
 function getOccurredAtByBillingDay(day: number): string {
   const safeDay = Math.min(31, Math.max(1, Math.trunc(day)));
@@ -62,6 +69,8 @@ export default function ExpensesPage() {
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [settling, setSettling] = useState(false);
+  const [settlementMonth, setSettlementMonth] = useState(getCurrentMonthKey());
   const [editingExpenseId, setEditingExpenseId] = useState<string | null>(null);
   const [entryMode, setEntryMode] = useState<'card' | 'general'>('card');
   const [form, setForm] = useState<ExpenseForm>(defaultForm);
@@ -96,6 +105,33 @@ export default function ExpensesPage() {
       return sum + item.amount;
     }, 0);
   }, [expenses]);
+
+  const monthlySpendSummary = useMemo(() => {
+    const inMonth = (expense: Expense) => String(expense.occurredAt ?? '').slice(0, 7) === settlementMonth;
+    const monthlyRows = expenses.filter(inMonth);
+
+    const cardAmount = monthlyRows
+      .filter((expense) => (expense.category ?? '').includes('카드대금'))
+      .reduce((sum, expense) => sum + Number(expense.amount ?? 0), 0);
+
+    const autoRecurringAmount = monthlyRows
+      .filter((expense) => expense.entrySource === 'auto_settlement')
+      .reduce((sum, expense) => sum + Number(expense.amount ?? 0), 0);
+
+    const manualAmount = monthlyRows
+      .filter(
+        (expense) =>
+          expense.entrySource !== 'auto_settlement' && !(expense.category ?? '').includes('카드대금')
+      )
+      .reduce((sum, expense) => sum + Number(expense.amount ?? 0), 0);
+
+    return {
+      cardAmount,
+      autoRecurringAmount,
+      manualAmount,
+      totalAmount: cardAmount + autoRecurringAmount + manualAmount
+    };
+  }, [expenses, settlementMonth]);
 
   const previousCardAmount = useMemo(() => {
     const normalizedName = cardQuickForm.cardName.trim().toLowerCase();
@@ -206,6 +242,7 @@ export default function ExpensesPage() {
           : null,
       occurredAt: resolvedOccurredAt,
       reflectToLiquidAsset: form.reflectToLiquidAsset,
+      isCardIncluded: form.type === 'subscription' || form.type === 'fixed' ? form.isCardIncluded : false,
       category: form.category.trim()
     };
 
@@ -246,6 +283,7 @@ export default function ExpensesPage() {
       billingDay: null,
       occurredAt: cardQuickForm.occurredAt,
       reflectToLiquidAsset: true,
+      isCardIncluded: false,
       category: '카드대금'
     });
 
@@ -268,6 +306,30 @@ export default function ExpensesPage() {
     setExpenses((prev) => prev.filter((item) => item.id !== id));
   }
 
+  async function onSettleMonth() {
+    clearMessage();
+    if (!/^\d{4}-\d{2}$/.test(settlementMonth)) {
+      setMessageText('정산월 형식이 올바르지 않습니다. (YYYY-MM)');
+      return;
+    }
+
+    setSettling(true);
+    const result = await api.settleExpenseMonth(settlementMonth);
+
+    if (result.error) {
+      setErrorMessage('월마감 자동 반영 실패', result.error);
+      setSettling(false);
+      return;
+    }
+
+    const summary = result.data;
+    setSuccessMessage(
+      `${summary?.targetMonth ?? settlementMonth} 자동반영 완료: 생성 ${summary?.createdCount ?? 0}건, 중복건너뜀 ${summary?.skippedCount ?? 0}건, 총 ${Math.round(summary?.totalSettledAmount ?? 0).toLocaleString()}원`
+    );
+    await loadExpenses();
+    setSettling(false);
+  }
+
   function onEdit(expense: Expense) {
     setEntryMode('general');
     setEditingExpenseId(expense.id);
@@ -286,6 +348,7 @@ export default function ExpensesPage() {
             : new Date().getDate(),
       occurredAt: expense.occurredAt?.slice(0, 10) ?? new Date().toISOString().slice(0, 10),
       reflectToLiquidAsset: Boolean(expense.reflectToLiquidAsset),
+      isCardIncluded: Boolean(expense.isCardIncluded),
       category: expense.category ?? ''
     });
   }
@@ -303,6 +366,55 @@ export default function ExpensesPage() {
   return (
     <div className="py-4">
       <h1>지출 관리</h1>
+
+      <SectionCard className="mt-5 max-w-[980px]">
+        <h3 className="mb-3 mt-0">월마감 정산</h3>
+        <div className="form-grid [grid-template-columns:repeat(auto-fit,minmax(180px,1fr))]">
+          <FormField label="정산월">
+            <input
+              type="month"
+              value={settlementMonth}
+              onChange={(event) => setSettlementMonth(event.target.value)}
+            />
+          </FormField>
+          <button
+            type="button"
+            className="btn-primary w-[180px] self-end"
+            onClick={onSettleMonth}
+            disabled={settling}
+          >
+            {settling ? '월마감 반영 중...' : '월마감 실행'}
+          </button>
+          <FormField label="안내" fullWidth>
+            <input
+              value="비카드 고정/구독 지출만 결제일 기준으로 자동 생성/현금 차감됩니다."
+              readOnly
+            />
+          </FormField>
+        </div>
+      </SectionCard>
+
+      <SectionCard className="mt-4 max-w-[980px]">
+        <h3 className="mb-3 mt-0">{settlementMonth} 소비 요약</h3>
+        <div className="grid gap-3 [grid-template-columns:repeat(auto-fit,minmax(180px,1fr))]">
+          <div className="rounded-xl border border-[var(--line)] p-3">
+            <p className="helper-text m-0">카드대금</p>
+            <p className="m-0 mt-1 text-[1.1rem] font-bold">{Math.round(monthlySpendSummary.cardAmount).toLocaleString()}원</p>
+          </div>
+          <div className="rounded-xl border border-[var(--line)] p-3">
+            <p className="helper-text m-0">자동반영(비카드 정기)</p>
+            <p className="m-0 mt-1 text-[1.1rem] font-bold">{Math.round(monthlySpendSummary.autoRecurringAmount).toLocaleString()}원</p>
+          </div>
+          <div className="rounded-xl border border-[var(--line)] p-3">
+            <p className="helper-text m-0">수동등록(일회성/현금 등)</p>
+            <p className="m-0 mt-1 text-[1.1rem] font-bold">{Math.round(monthlySpendSummary.manualAmount).toLocaleString()}원</p>
+          </div>
+          <div className="rounded-xl border border-[var(--line)] p-3">
+            <p className="helper-text m-0">월 총소비</p>
+            <p className="m-0 mt-1 text-[1.1rem] font-bold">{Math.round(monthlySpendSummary.totalAmount).toLocaleString()}원</p>
+          </div>
+        </div>
+      </SectionCard>
 
       <SectionCard className="mt-5 max-w-[980px]">
         <div className="mb-3 flex flex-wrap gap-2">
@@ -357,6 +469,7 @@ export default function ExpensesPage() {
                   type: nextType,
                   cycle: nextType === 'one_time' ? 'one_time' : 'monthly',
                   reflectToLiquidAsset: nextType === 'one_time' ? true : prev.reflectToLiquidAsset,
+                  isCardIncluded: nextType === 'one_time' ? false : prev.isCardIncluded,
                 }));
               }}
             >
@@ -416,6 +529,21 @@ export default function ExpensesPage() {
               <span>입력 시 입출금 통장/현금 자산에서 금액 차감</span>
             </label>
           </FormField>
+
+          {(form.type === 'subscription' || form.type === 'fixed') ? (
+            <FormField label="카드 포함 여부" fullWidth>
+              <label className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={form.isCardIncluded}
+                  onChange={(event) =>
+                    setForm((prev) => ({ ...prev, isCardIncluded: event.target.checked }))
+                  }
+                />
+                <span>이 정기지출은 카드대금에 포함됨 (월마감 자동반영 제외)</span>
+              </label>
+            </FormField>
+          ) : null}
 
           <FormField label="카테고리">
             <input
@@ -539,6 +667,12 @@ export default function ExpensesPage() {
             { key: 'type', header: '유형', render: (expense) => expense.expenseType },
             { key: 'cycle', header: '주기', render: (expense) => expense.cycle },
             {
+              key: 'cardIncluded',
+              header: '카드포함',
+              align: 'center',
+              render: (expense) => (expense.isCardIncluded ? '예' : '아니오'),
+            },
+            {
               key: 'billingDay',
               header: '결제일',
               align: 'center',
@@ -590,6 +724,12 @@ export default function ExpensesPage() {
           columns={[
             { key: 'name', header: '항목명', render: (expense) => expense.name },
             { key: 'type', header: '유형', render: (expense) => expense.expenseType },
+            {
+              key: 'entrySource',
+              header: '생성방식',
+              align: 'center',
+              render: (expense) => (expense.entrySource === 'auto_settlement' ? '자동' : '수동'),
+            },
             { key: 'cycle', header: '주기', render: (expense) => expense.cycle },
             {
               key: 'amount',
