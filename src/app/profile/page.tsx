@@ -67,24 +67,33 @@ export default function ProfilePage() {
     let mounted = true;
 
     (async () => {
-      let authenticated = true;
+      let authenticated: boolean | null = null;
 
       try {
         const authResponse = await fetch('/.auth/me', { cache: 'no-store' });
         if (authResponse.ok) {
-          const authData = (await authResponse.json()) as Array<{
-            clientPrincipal?: { userId?: string };
-          }>;
-          authenticated = Boolean(authData?.[0]?.clientPrincipal?.userId);
+          const authData = (await authResponse.json()) as
+            | Array<{ clientPrincipal?: Record<string, unknown> | null }>
+            | { clientPrincipal?: Record<string, unknown> | null };
+
+          const principal = Array.isArray(authData)
+            ? authData?.[0]?.clientPrincipal
+            : authData?.clientPrincipal;
+
+          if (principal === null) {
+            authenticated = false;
+          } else if (principal && typeof principal === 'object') {
+            authenticated = true;
+          }
         }
       } catch {
-        authenticated = true;
+        authenticated = null;
       }
 
       if (!mounted) return;
-      setIsAuthenticated(authenticated);
 
-      if (!authenticated) {
+      if (authenticated === false) {
+        setIsAuthenticated(false);
         setLoading(false);
         return;
       }
@@ -97,6 +106,8 @@ export default function ProfilePage() {
         setLoading(false);
         return;
       }
+
+      setIsAuthenticated(true);
 
       if (result.data) {
         setForm({
@@ -293,67 +304,83 @@ export default function ProfilePage() {
     setSaving(false);
   }
 
+  function getTabButtonClass(tab: ProfileTab): string {
+    return activeTab === tab
+      ? 'btn-primary flex-1 sm:flex-none'
+      : 'btn-subtle flex-1 sm:flex-none';
+  }
+
   if (loading) {
     return <div className="p-5 sm:p-8">로딩 중...</div>;
   }
 
   return (
     <div className="p-5 sm:p-8">
-      <h1>설정</h1>
-      <p className="helper-text mt-2">
-        로그인은 Azure Static Web Apps 인증을 사용합니다.
-      </p>
+      <div className="mx-auto grid w-full max-w-[860px] gap-5">
+        <section className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-5 shadow-[0_10px_24px_rgba(15,23,42,0.045)]">
+          <h1>설정</h1>
+          <p className="helper-text mt-2 leading-relaxed">
+            로그인은 Azure Static Web Apps 인증을 사용합니다.
+          </p>
 
-      <div className="mt-3 flex flex-wrap gap-2">
+          <div className="mt-4 flex flex-wrap gap-2">
+            {!isAuthenticated ? (
+              <>
+                <a href="/.auth/login/aad" className="btn-primary no-underline">
+                  Microsoft 로그인
+                </a>
+                <a href="/.auth/login/github" className="btn-danger-outline no-underline">
+                  GitHub 로그인
+                </a>
+              </>
+            ) : (
+              <a href="/.auth/logout" className="btn-danger-outline no-underline">
+                로그아웃
+              </a>
+            )}
+          </div>
+        </section>
+
         {!isAuthenticated ? (
-          <>
-            <a href="/.auth/login/aad" className="btn-primary no-underline">
-              Microsoft 로그인
-            </a>
-            <a href="/.auth/login/github" className="btn-danger-outline no-underline">
-              GitHub 로그인
-            </a>
-          </>
-        ) : (
-          <a href="/.auth/logout" className="btn-danger-outline no-underline">
-            로그아웃
-          </a>
-        )}
-      </div>
+          <section className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-5">
+            <p className="helper-text leading-relaxed">
+              로그인 후 개인 프로파일 입력 폼이 표시됩니다.
+            </p>
+          </section>
+        ) : null}
 
-      {!isAuthenticated ? (
-        <p className="helper-text mt-4">로그인 후 개인 프로파일 입력 폼이 표시됩니다.</p>
-      ) : null}
-
-      {!isAuthenticated ? null : (
-
-      <form onSubmit={onSubmit} className="mt-6 grid max-w-[520px] gap-4">
-        <div className="flex flex-wrap gap-2">
-          <button
-            type="button"
-            className={activeTab === 'basic' ? 'btn-primary' : 'btn-subtle'}
-            onClick={() => setActiveTab('basic')}
+        {!isAuthenticated ? null : (
+          <form
+            onSubmit={onSubmit}
+            className="grid gap-5 rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-5 shadow-[0_10px_24px_rgba(15,23,42,0.045)] md:p-6 [&_.form-field>span]:text-[0.86rem] [&_.form-field>span]:font-semibold [&_.form-field>span]:leading-5 [&_.form-field>span]:text-[var(--muted)]"
           >
-            기본정보
-          </button>
-          <button
-            type="button"
-            className={activeTab === 'income' ? 'btn-primary' : 'btn-subtle'}
-            onClick={() => setActiveTab('income')}
-          >
-            소득정보
-          </button>
-          <button
-            type="button"
-            className={activeTab === 'family' ? 'btn-primary' : 'btn-subtle'}
-            onClick={() => setActiveTab('family')}
-          >
-            가족/은퇴
-          </button>
-        </div>
+            <div className="flex flex-wrap gap-2 rounded-xl border border-[var(--line)] bg-[var(--surface-2)] p-1">
+              <button
+                type="button"
+                className={getTabButtonClass('basic')}
+                onClick={() => setActiveTab('basic')}
+              >
+                기본정보
+              </button>
+              <button
+                type="button"
+                className={getTabButtonClass('income')}
+                onClick={() => setActiveTab('income')}
+              >
+                소득정보
+              </button>
+              <button
+                type="button"
+                className={getTabButtonClass('family')}
+                onClick={() => setActiveTab('family')}
+              >
+                가족/은퇴
+              </button>
+            </div>
 
-        {activeTab === 'basic' ? (
-          <>
+            <div className="grid gap-4">
+              {activeTab === 'basic' ? (
+                <>
             <label className="form-field">
               <span>이름</span>
               <input
@@ -396,11 +423,11 @@ export default function ProfilePage() {
               />
               {errors.currency && <p className="form-error">{errors.currency}</p>}
             </label>
-          </>
-        ) : null}
+                </>
+              ) : null}
 
-        {activeTab === 'income' ? (
-          <>
+              {activeTab === 'income' ? (
+                <>
             <label className="form-field">
               <span>직장명</span>
               <input
@@ -543,11 +570,11 @@ export default function ProfilePage() {
               />
               {errors.annualRaiseRatePct && <p className="form-error">{errors.annualRaiseRatePct}</p>}
             </label>
-          </>
-        ) : null}
+                </>
+              ) : null}
 
-        {activeTab === 'family' ? (
-          <>
+              {activeTab === 'family' ? (
+                <>
             <label className="form-field">
               <span>자녀1 이름</span>
               <input
@@ -641,20 +668,26 @@ export default function ProfilePage() {
               />
               {errors.retirementTargetAge && <p className="form-error">{errors.retirementTargetAge}</p>}
             </label>
-          </>
-        ) : null}
+                </>
+              ) : null}
+            </div>
 
-        <button
-          type="submit"
-          disabled={saving}
-          className="btn-primary mt-1"
-        >
-          {saving ? '저장 중...' : exists ? '프로파일 업데이트' : '프로파일 저장'}
-        </button>
-      </form>
-      )}
+            <button
+              type="submit"
+              disabled={saving}
+              className="btn-primary mt-1 w-full sm:w-auto"
+            >
+              {saving ? '저장 중...' : exists ? '프로파일 업데이트' : '프로파일 저장'}
+            </button>
+          </form>
+        )}
 
-      {message && <p className="mt-4">{message}</p>}
+        {message && (
+          <p className={message.includes('실패') ? 'form-error m-0' : 'helper-text leading-relaxed'}>
+            {message}
+          </p>
+        )}
+      </div>
     </div>
   );
 }
