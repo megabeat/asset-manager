@@ -2,6 +2,8 @@
 
 import { FormEvent, useEffect, useMemo, useState } from 'react';
 import { api, Profile } from '@/lib/api';
+import { FeedbackBanner } from '@/components/ui/FeedbackBanner';
+import { useFeedbackMessage } from '@/hooks/useFeedbackMessage';
 
 type ProfileForm = Omit<
   Profile,
@@ -63,7 +65,7 @@ export default function ProfilePage() {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
   const [saving, setSaving] = useState(false);
   const [exists, setExists] = useState(false);
-  const [message, setMessage] = useState<string | null>(null);
+  const { message, feedback, clearMessage, setMessageText, setSuccessMessage, setErrorMessage } = useFeedbackMessage();
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   useEffect(() => {
@@ -140,7 +142,7 @@ export default function ProfilePage() {
       }
 
       if (result.error && result.error.code !== 'NOT_FOUND') {
-        setMessage(`불러오기 실패: ${result.error.message}`);
+        setErrorMessage('불러오기 실패', result.error);
       }
 
       setLoading(false);
@@ -177,7 +179,7 @@ export default function ProfilePage() {
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setMessage(null);
+    clearMessage();
     const nextErrors: Record<string, string> = {};
 
     if (!form.fullName.trim()) nextErrors.fullName = '이름을 입력해주세요.';
@@ -265,7 +267,7 @@ export default function ProfilePage() {
     setErrors(nextErrors);
 
     if (!isValid || Object.keys(nextErrors).length > 0) {
-      setMessage('입력값을 확인해주세요.');
+      setMessageText('입력값을 확인해주세요.');
       return;
     }
 
@@ -305,10 +307,10 @@ export default function ProfilePage() {
       : await api.createProfile(payload);
 
     if (result.error) {
-      setMessage(`저장 실패: ${result.error.message}`);
+      setErrorMessage('저장 실패', result.error);
     } else {
       setExists(true);
-      setMessage('프로파일이 저장되었습니다.');
+      setSuccessMessage('프로파일이 저장되었습니다.');
     }
 
     setSaving(false);
@@ -709,11 +711,7 @@ export default function ProfilePage() {
           </form>
         )}
 
-        {message && (
-          <p className={message.includes('실패') ? 'form-error m-0' : 'helper-text leading-relaxed'}>
-            {message}
-          </p>
-        )}
+        <FeedbackBanner feedback={feedback} />
       </div>
     </div>
   );

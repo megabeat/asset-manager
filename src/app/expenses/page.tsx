@@ -2,6 +2,7 @@
 
 import { FormEvent, useEffect, useMemo, useState } from 'react';
 import { api, Expense } from '@/lib/api';
+import { FeedbackBanner } from '@/components/ui/FeedbackBanner';
 import { getAssetCategoryLabel } from '@/lib/assetCategory';
 import { SectionCard } from '@/components/ui/SectionCard';
 import { FormField } from '@/components/ui/FormField';
@@ -93,7 +94,7 @@ export default function ExpensesPage() {
   const [form, setForm] = useState<ExpenseForm>(defaultForm);
   const [cardQuickForm, setCardQuickForm] = useState<CardQuickForm>(defaultCardQuickForm);
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const { message, clearMessage, setMessageText, setSuccessMessage, setErrorMessage } = useFeedbackMessage();
+  const { message, feedback, clearMessage, setMessageText, setSuccessMessage, setErrorMessage } = useFeedbackMessage();
 
   async function loadExpenses() {
     const result = await api.getExpenses();
@@ -374,6 +375,7 @@ export default function ExpensesPage() {
   }
 
   async function onDelete(id: string) {
+    if (!confirm('이 지출 항목을 삭제하시겠습니까?')) return;
     const result = await api.deleteExpense(id);
     if (result.error) {
       setErrorMessage('삭제 실패', result.error);
@@ -856,7 +858,7 @@ export default function ExpensesPage() {
         월 환산 생활지출 합계: {Math.round(totalMonthly).toLocaleString()}원
       </p>
 
-      {message && <p>{message}</p>}
+      <FeedbackBanner feedback={feedback} />
 
       <SectionCard className="mt-4 max-w-[980px]">
         <h3 className="mb-3 mt-0">정기 지출 (고정/구독 생활비)</h3>

@@ -3,6 +3,8 @@
 import { KeyboardEvent, useEffect, useMemo, useRef, useState } from 'react';
 import { api, ChatMessage, Conversation } from '@/lib/api';
 import { SectionCard } from '@/components/ui/SectionCard';
+import { FeedbackBanner } from '@/components/ui/FeedbackBanner';
+import { useFeedbackMessage } from '@/hooks/useFeedbackMessage';
 
 export default function AIAdvisorPage() {
   const [conversations, setConversations] = useState<Conversation[]>([]);
@@ -10,7 +12,7 @@ export default function AIAdvisorPage() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState<string | null>(null);
+  const { message, feedback, clearMessage, setMessageText, setSuccessMessage, setErrorMessage } = useFeedbackMessage();
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
 
   const activeConversation = useMemo(
@@ -45,7 +47,7 @@ export default function AIAdvisorPage() {
       setConversations(sorted);
     }
     if (result.error) {
-      setMessage(`대화 조회 실패: ${result.error.message}`);
+      setErrorMessage('대화 조회 실패', result.error);
     }
   }
 
@@ -63,12 +65,12 @@ export default function AIAdvisorPage() {
       setMessages(result.data);
     }
     if (result.error) {
-      setMessage(`메시지 조회 실패: ${result.error.message}`);
+      setErrorMessage('메시지 조회 실패', result.error);
     }
   };
 
   const startConversation = async () => {
-    setMessage(null);
+    clearMessage();
     const result = await api.createConversation();
     if (result.data?.id) {
       setConversationId(result.data.id);
@@ -79,15 +81,16 @@ export default function AIAdvisorPage() {
       }
       await loadConversations();
     } else if (result.error) {
-      setMessage(`대화 시작 실패: ${result.error.message}`);
+      setErrorMessage('대화 시작 실패', result.error);
     }
   };
 
   const deleteConversation = async (id: string) => {
-    setMessage(null);
+    if (!confirm('이 대화를 삭제하시겠습니까?')) return;
+    clearMessage();
     const result = await api.deleteConversation(id);
     if (result.error) {
-      setMessage(`대화 삭제 실패: ${result.error.message}`);
+      setErrorMessage('대화 삭제 실패', result.error);
       return;
     }
 
@@ -102,7 +105,7 @@ export default function AIAdvisorPage() {
   const sendMessage = async () => {
     if (!conversationId || !input.trim() || loading) return;
 
-    setMessage(null);
+    clearMessage();
     const pendingText = input.trim();
     const tempUserMessageId = `temp-user-${Date.now()}`;
 
@@ -124,7 +127,7 @@ export default function AIAdvisorPage() {
 
       if (result.error) {
         setMessages((prev) => prev.filter((msg) => msg.id !== tempUserMessageId));
-        setMessage(`전송 실패: ${result.error.message}`);
+        setErrorMessage('전송 실패', result.error);
         return;
       }
 
@@ -175,7 +178,7 @@ export default function AIAdvisorPage() {
         </div>
       </SectionCard>
 
-      {message && <p className="mt-3">{message}</p>}
+      <FeedbackBanner feedback={feedback} />
 
       <div className="mt-4 grid gap-4 lg:grid-cols-[200px_minmax(0,1fr)]">
         <SectionCard className="flex h-[420px] flex-col p-3.5 sm:h-[520px] lg:h-[640px]">

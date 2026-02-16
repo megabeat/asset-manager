@@ -235,6 +235,7 @@ table {
   gap: 0.9rem;
   align-items: center;
   justify-content: space-between;
+  position: relative;
 }
 
 .brand-link {
@@ -262,6 +263,97 @@ table {
   @apply -translate-y-px;
   background: var(--nav-hover-bg);
   border-color: var(--nav-hover-border);
+}
+
+.nav-active {
+  background: var(--brand);
+  color: #ffffff !important;
+  border-color: var(--brand) !important;
+  font-weight: 700;
+}
+
+.nav-active:hover {
+  background: var(--brand-strong);
+  border-color: var(--brand-strong) !important;
+}
+
+/* --- Hamburger menu (mobile) --- */
+.nav-hamburger {
+  display: none;
+  @apply items-center justify-center rounded-lg border p-2;
+  border-color: var(--subtle-border);
+  background: var(--surface);
+}
+
+.hamburger-bar,
+.hamburger-bar::before,
+.hamburger-bar::after {
+  display: block;
+  width: 18px;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--text);
+  transition: transform 0.25s ease, opacity 0.2s ease;
+}
+
+.hamburger-bar::before,
+.hamburger-bar::after {
+  content: '';
+  position: absolute;
+}
+
+.hamburger-bar {
+  position: relative;
+}
+
+.hamburger-bar::before {
+  transform: translateY(-6px);
+}
+
+.hamburger-bar::after {
+  transform: translateY(6px);
+}
+
+.hamburger-open {
+  background: transparent;
+}
+
+.hamburger-open::before {
+  transform: rotate(45deg);
+}
+
+.hamburger-open::after {
+  transform: rotate(-45deg);
+}
+
+@media (max-width: 768px) {
+  .nav-hamburger {
+    display: flex;
+  }
+
+  .nav-links {
+    display: none;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    flex-direction: column;
+    gap: 0.25rem;
+    padding: 0.75rem 1rem;
+    background: var(--header-bg);
+    backdrop-filter: saturate(160%) blur(10px);
+    border-bottom: 1px solid var(--line);
+    z-index: 20;
+  }
+
+  .nav-open {
+    display: flex;
+  }
+
+  .nav-link {
+    @apply rounded-lg py-2.5 px-3;
+    border-radius: 0.5rem;
+  }
 }
 
 .app-main {
@@ -345,7 +437,7 @@ table {
 
 .kpi-label {
   margin: 0;
-  color: #4b5563;
+  color: var(--muted);
   font-size: 0.84rem;
   font-weight: 600;
   letter-spacing: 0.01em;
@@ -366,4 +458,62 @@ table {
 
 .kpi-value.kpi-positive {
   color: #2e7d32;
+}
+
+/* --- Feedback banner --- */
+.feedback-banner {
+  @apply flex items-center gap-2 rounded-xl border px-4 py-3 text-sm font-medium;
+  margin-top: 0.75rem;
+}
+
+.feedback-icon {
+  @apply flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full text-xs font-bold text-white;
+}
+
+.feedback-success {
+  background: #ecfdf5;
+  border-color: #a7f3d0;
+  color: #065f46;
+}
+
+.feedback-success .feedback-icon {
+  background: #10b981;
+}
+
+.feedback-error {
+  background: #fef2f2;
+  border-color: #fecaca;
+  color: #991b1b;
+}
+
+.feedback-error .feedback-icon {
+  background: #ef4444;
+}
+
+.feedback-info {
+  background: #eff6ff;
+  border-color: #bfdbfe;
+  color: #1e40af;
+}
+
+.feedback-info .feedback-icon {
+  background: #3b82f6;
+}
+
+[data-theme='dark'] .feedback-success {
+  background: rgba(16, 185, 129, 0.1);
+  border-color: rgba(16, 185, 129, 0.3);
+  color: #6ee7b7;
+}
+
+[data-theme='dark'] .feedback-error {
+  background: rgba(239, 68, 68, 0.1);
+  border-color: rgba(239, 68, 68, 0.3);
+  color: #fca5a5;
+}
+
+[data-theme='dark'] .feedback-info {
+  background: rgba(59, 130, 246, 0.1);
+  border-color: rgba(59, 130, 246, 0.3);
+  color: #93c5fd;
 }

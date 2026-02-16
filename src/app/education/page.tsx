@@ -2,6 +2,7 @@
 
 import { FormEvent, useEffect, useMemo, useState } from 'react';
 import { api, EducationPlan, EducationSimulationResult, Profile } from '@/lib/api';
+import { FeedbackBanner } from '@/components/ui/FeedbackBanner';
 import { SectionCard } from '@/components/ui/SectionCard';
 import { FormField } from '@/components/ui/FormField';
 import { DataTable } from '@/components/ui/DataTable';
@@ -146,7 +147,7 @@ export default function EducationPage() {
   const [loading, setLoading] = useState(true);
   const [planErrors, setPlanErrors] = useState<Record<string, string>>({});
   const [scenarioErrors, setScenarioErrors] = useState<Record<string, string>>({});
-  const { message, clearMessage, setMessageText, setSuccessMessage, setErrorMessage } = useFeedbackMessage();
+  const { message, feedback, clearMessage, setMessageText, setSuccessMessage, setErrorMessage } = useFeedbackMessage();
 
   function getAgeFromBirthDate(birthDate?: string): number | null {
     if (!birthDate) return null;
@@ -425,6 +426,7 @@ export default function EducationPage() {
   }
 
   async function onDeletePlan(planId: string) {
+    if (!confirm('이 교육 계획을 삭제하시겠습니까?')) return;
     const result = await api.deleteEducationPlan(planId);
     if (result.error) {
       setErrorMessage('삭제 실패', result.error);
@@ -488,7 +490,7 @@ export default function EducationPage() {
         </form>
       </SectionCard>
 
-      {message && <p className="mt-4">{message}</p>}
+      <FeedbackBanner feedback={feedback} />
 
       <SectionCard className="mt-4 max-w-[980px]">
         <h2 className="mt-0">자산 시나리오 설정</h2>

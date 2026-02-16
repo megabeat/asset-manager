@@ -2,6 +2,8 @@
 
 import { FormEvent, useEffect, useMemo, useState } from 'react';
 import { api, Asset } from '@/lib/api';
+import { FeedbackBanner } from '@/components/ui/FeedbackBanner';
+import { useFeedbackMessage } from '@/hooks/useFeedbackMessage';
 import { SectionCard } from '@/components/ui/SectionCard';
 import { FormField } from '@/components/ui/FormField';
 import { DataTable } from '@/components/ui/DataTable';
@@ -62,7 +64,7 @@ export default function PensionsPage() {
   const [editingAssetId, setEditingAssetId] = useState<string | null>(null);
   const [form, setForm] = useState<PensionForm>(defaultForm);
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [message, setMessage] = useState<string | null>(null);
+  const { message, feedback, clearMessage, setMessageText, setSuccessMessage, setErrorMessage } = useFeedbackMessage();
 
   async function loadPensions() {
     const result = await api.getAssets();
@@ -70,7 +72,7 @@ export default function PensionsPage() {
       setPensions(result.data.filter((asset) => isPensionCategory(asset.category)));
     }
     if (result.error) {
-      setMessage(`조회 실패: ${result.error.message}`);
+      setErrorMessage('조회 실패', result.error);
     }
   }
 
@@ -122,7 +124,7 @@ export default function PensionsPage() {
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setMessage(null);
+    clearMessage();
 
     const nextErrors: Record<string, string> = {};
     const currentValue = Number(form.currentValue || 0);
@@ -138,7 +140,7 @@ export default function PensionsPage() {
 
     setErrors(nextErrors);
     if (Object.keys(nextErrors).length > 0) {
-      setMessage('입력값을 확인해주세요.');
+      setMessageText('입력값을 확인해주세요.');
       return;
     }
 
@@ -159,11 +161,11 @@ export default function PensionsPage() {
       : await api.createAsset(payload);
 
     if (result.error) {
-      setMessage(`${editingAssetId ? '수정' : '저장'} 실패: ${result.error.message}`);
+      setErrorMessage(editingAssetId ? '수정 실패' : '저장 실패', result.error);
     } else {
       setEditingAssetId(null);
       setForm(defaultForm);
-      setMessage(editingAssetId ? '연금 자산이 수정되었습니다.' : '연금 자산이 저장되었습니다.');
+      setSuccessMessage(editingAssetId ? '연금 자산이 수정되었습니다.' : '연금 자산이 저장되었습니다.');
       await loadPensions();
     }
 
@@ -173,7 +175,7 @@ export default function PensionsPage() {
   function onEdit(asset: Asset) {
     setEditingAssetId(asset.id);
     setErrors({});
-    setMessage(null);
+    clearMessage();
     setForm({
       category: normalizePensionCategory(asset.category),
       name: asset.name ?? '',
@@ -193,10 +195,11 @@ export default function PensionsPage() {
   }
 
   async function onDelete(id: string) {
-    setMessage(null);
+    if (!confirm('이 연금 자산을 삭제하시겠습니까?')) return;
+    clearMessage();
     const result = await api.deleteAsset(id);
     if (result.error) {
-      setMessage(`삭제 실패: ${result.error.message}`);
+      setErrorMessage('삭제 실패', result.error);
       return;
     }
     setPensions((prev) => prev.filter((item) => item.id !== id));
@@ -345,7 +348,7 @@ export default function PensionsPage() {
         </form>
       </SectionCard>
 
-      {message && <p className="mt-4">{message}</p>}
+      <FeedbackBanner feedback={feedback} />
 
       <SectionCard className="mt-4">
         <h3 className="mb-3 mt-0">연금 자산 목록</h3>

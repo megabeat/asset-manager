@@ -2,6 +2,8 @@
 
 import { FormEvent, useEffect, useMemo, useState } from 'react';
 import { api, Asset } from '@/lib/api';
+import { FeedbackBanner } from '@/components/ui/FeedbackBanner';
+import { useFeedbackMessage } from '@/hooks/useFeedbackMessage';
 import { SectionCard } from '@/components/ui/SectionCard';
 import { FormField } from '@/components/ui/FormField';
 import { DataTable } from '@/components/ui/DataTable';
@@ -164,7 +166,7 @@ export default function AssetsPage() {
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState<AssetForm>(defaultForm);
   const [editingAssetId, setEditingAssetId] = useState<string | null>(null);
-  const [message, setMessage] = useState<string | null>(null);
+  const { message, feedback, clearMessage, setMessageText, setSuccessMessage, setErrorMessage } = useFeedbackMessage();
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [fxLoading, setFxLoading] = useState(false);
 
@@ -183,7 +185,7 @@ export default function AssetsPage() {
       setAssets(result.data.filter((asset) => !isPensionCategory(asset.category)));
     }
     if (result.error) {
-      setMessage(`목록 조회 실패: ${result.error.message}`);
+      setErrorMessage('목록 조회 실패', result.error);
     }
   }
 
@@ -197,7 +199,7 @@ export default function AssetsPage() {
         setForm((prev) => ({ ...prev, exchangeRate: Math.round(rate * 100) / 100 }));
       }
     } catch {
-      setMessage('환율 정보를 가져오지 못했습니다. 직접 입력해 주세요.');
+      setMessageText('환율 정보를 가져오지 못했습니다. 직접 입력해 주세요.');
     } finally {
       setFxLoading(false);
     }
@@ -224,7 +226,7 @@ export default function AssetsPage() {
     const preservedRate = form.exchangeRate;
     setEditingAssetId(null);
     setErrors({});
-    setMessage(null);
+    clearMessage();
     setForm({
       ...defaultForm,
       exchangeRate: preservedRate,
@@ -353,7 +355,7 @@ export default function AssetsPage() {
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setMessage(null);
+    clearMessage();
     const nextErrors: Record<string, string> = {};
 
     if (!form.name.trim()) nextErrors.name = '자산명을 입력해주세요.';
@@ -382,7 +384,7 @@ export default function AssetsPage() {
 
     setErrors(nextErrors);
     if (Object.keys(nextErrors).length > 0) {
-      setMessage('입력값을 다시 확인해주세요.');
+      setMessageText('입력값을 다시 확인해주세요.');
       return;
     }
 
@@ -409,11 +411,11 @@ export default function AssetsPage() {
       : await api.createAsset(payload);
 
     if (result.error) {
-      setMessage(`${editingAssetId ? '수정' : '저장'} 실패: ${result.error.message}`);
+      setErrorMessage(editingAssetId ? '수정 실패' : '저장 실패', result.error);
     } else {
       resetFormWithRate(form.exchangeRate);
       setEditingAssetId(null);
-      setMessage(editingAssetId ? '자산이 수정되었습니다.' : '자산이 저장되었습니다.');
+      setSuccessMessage(editingAssetId ? '자산이 수정되었습니다.' : '자산이 저장되었습니다.');
       await loadAssets();
     }
 
@@ -421,15 +423,16 @@ export default function AssetsPage() {
   }
 
   async function onDelete(id: string) {
-    setMessage(null);
+    if (!confirm('이 자산을 삭제하시겠습니까?')) return;
+    clearMessage();
     const result = await api.deleteAsset(id);
     if (result.error) {
-      setMessage(`삭제 실패: ${result.error.message}`);
+      setErrorMessage('삭제 실패', result.error);
       return;
     }
 
     setAssets((prev) => prev.filter((asset) => asset.id !== id));
-    setMessage('자산을 삭제했습니다.');
+    setSuccessMessage('자산을 삭제했습니다.');
   }
 
   function onEdit(asset: Asset) {
@@ -438,7 +441,7 @@ export default function AssetsPage() {
 
     setEditingAssetId(asset.id);
     setErrors({});
-    setMessage(null);
+    clearMessage();
     setForm({
       category: (asset.category as AssetCategory) ?? 'etc',
       name: asset.name ?? '',
@@ -685,7 +688,7 @@ export default function AssetsPage() {
         </form>
       </SectionCard>
 
-      {message && <p className="mt-4">{message}</p>}
+      <FeedbackBanner feedback={feedback} />
 
       <SectionCard className="mt-4">
         <h3 className="mt-0">자산 분류 요약</h3>

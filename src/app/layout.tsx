@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import { AppLogo } from "@/components/ui/AppLogo";
+import { NavLinks } from "@/components/ui/NavLinks";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -9,40 +10,26 @@ export const metadata: Metadata = {
   description: "개인 자산 및 지출 관리"
 };
 
+const themeScript = `(function(){try{var t=localStorage.getItem('theme');if(!t){t=matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light'}document.documentElement.setAttribute('data-theme',t)}catch(e){}})()`;
+
 export default function RootLayout({
   children
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const navItems = [
-    { href: "/", label: "홈" },
-    { href: "/dashboard", label: "대시보드" },
-    { href: "/assets", label: "자산" },
-    { href: "/pensions", label: "연금관리" },
-    { href: "/incomes", label: "수입" },
-    { href: "/expenses", label: "지출" },
-    { href: "/liabilities", label: "부채" },
-    { href: "/education", label: "자산시뮬레이션" },
-    { href: "/ai-advisor", label: "AI 상담" },
-    { href: "/profile", label: "설정" }
-  ];
-
   return (
-    <html lang="ko">
+    <html lang="ko" suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: themeScript }} />
+      </head>
       <body>
         <header className="app-header">
           <div className="app-header-inner">
             <Link href="/" className="brand-link">
               <AppLogo />
             </Link>
-            <nav className="nav-links">
-              {navItems.map((item) => (
-                <Link key={item.href} href={item.href} className="nav-link">
-                  {item.label}
-                </Link>
-              ))}
-              <ThemeToggle />
-            </nav>
+            <NavLinks />
+            <ThemeToggle />
           </div>
         </header>
 
