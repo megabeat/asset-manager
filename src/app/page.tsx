@@ -39,6 +39,10 @@ export default function Home() {
   const [incomes, setIncomes] = useState<Income[]>([]);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
+  const settlementMonthKey = useMemo(() => {
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  }, []);
 
   useEffect(() => {
     Promise.all([
@@ -116,6 +120,20 @@ export default function Home() {
 
   const monthlySurplus = monthlyIncome - monthlyExpense;
 
+  const monthlySettledIncome = useMemo(() => {
+    return incomes
+      .filter((income) => String(income.occurredAt ?? '').slice(0, 7) === settlementMonthKey)
+      .reduce((sum, income) => sum + Number(income.amount ?? 0), 0);
+  }, [incomes, settlementMonthKey]);
+
+  const monthlySettledExpense = useMemo(() => {
+    return expenses
+      .filter((expense) => String(expense.occurredAt ?? '').slice(0, 7) === settlementMonthKey)
+      .reduce((sum, expense) => sum + Number(expense.amount ?? 0), 0);
+  }, [expenses, settlementMonthKey]);
+
+  const monthlyNetCashflow = monthlySettledIncome - monthlySettledExpense;
+
   return (
     <div className="pb-8 pt-4">
       <section className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-5 shadow-[0_8px_24px_rgba(15,23,42,0.05)]">
@@ -179,6 +197,13 @@ export default function Home() {
           <p className={`kpi-value ${monthlySurplus >= 0 ? 'kpi-positive' : 'kpi-negative'}`}>
             {Math.round(monthlySurplus).toLocaleString()}원
           </p>
+        </div>
+        <div className="kpi-card">
+          <h3 className="kpi-label">월 순현금흐름(정산)</h3>
+          <p className={`kpi-value ${monthlyNetCashflow >= 0 ? 'kpi-positive' : 'kpi-negative'}`}>
+            {Math.round(monthlyNetCashflow).toLocaleString()}원
+          </p>
+          <p className="helper-text mt-1">기준월: {settlementMonthKey} (수입 {Math.round(monthlySettledIncome).toLocaleString()}원 - 지출 {Math.round(monthlySettledExpense).toLocaleString()}원)</p>
         </div>
       </section>
 
