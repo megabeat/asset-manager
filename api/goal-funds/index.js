@@ -12,8 +12,7 @@ const vehicleTypes = ["savings", "deposit", "etf", "stock", "fund", "crypto", "c
 const statusTypes = ["active", "paused", "completed", "cancelled"];
 async function goalFundsHandler(req, context) {
     try {
-        const authContext = (0, auth_1.getAuthContext)(req);
-        const userId = authContext.userId;
+        const { userId } = (0, auth_1.getAuthContext)(req.headers);
         (0, validators_1.requireUserId)(userId);
         const container = (0, cosmosClient_1.getContainer)("goalFunds");
         const method = req.method.toUpperCase();
@@ -23,7 +22,7 @@ async function goalFundsHandler(req, context) {
             if (fundId) {
                 const { resource } = await container.item(fundId, userId).read();
                 if (!resource || resource.userId !== userId) {
-                    return (0, responses_1.fail)("Goal fund not found", 404);
+                    return (0, responses_1.fail)("NOT_FOUND", "Goal fund not found", 404);
                 }
                 return (0, responses_1.ok)(resource);
             }
@@ -38,14 +37,14 @@ async function goalFundsHandler(req, context) {
         if (method === "POST") {
             const body = await (0, request_body_1.parseJsonBody)(req);
             const name = (0, validators_1.ensureString)(body.name, "name");
-            const horizon = (0, validators_1.ensureEnum)(body.horizon, horizonTypes, "horizon");
-            const vehicle = (0, validators_1.ensureEnum)(body.vehicle, vehicleTypes, "vehicle");
+            const horizon = (0, validators_1.ensureEnum)(body.horizon, "horizon", horizonTypes);
+            const vehicle = (0, validators_1.ensureEnum)(body.vehicle, "vehicle", vehicleTypes);
             const targetAmount = (0, validators_1.ensureNumber)(body.targetAmount, "targetAmount");
             const currentAmount = body.currentAmount != null ? (0, validators_1.ensureNumber)(body.currentAmount, "currentAmount") : 0;
             const monthlyContribution = body.monthlyContribution != null ? (0, validators_1.ensureNumber)(body.monthlyContribution, "monthlyContribution") : 0;
             const targetDate = (0, validators_1.ensureOptionalString)(body.targetDate, "targetDate");
             const note = (0, validators_1.ensureOptionalString)(body.note, "note");
-            const status = body.status ? (0, validators_1.ensureEnum)(body.status, statusTypes, "status") : "active";
+            const status = body.status ? (0, validators_1.ensureEnum)(body.status, "status", statusTypes) : "active";
             const now = new Date().toISOString();
             const item = {
                 id: (0, crypto_1.randomUUID)(),
@@ -70,10 +69,10 @@ async function goalFundsHandler(req, context) {
         // PUT - update
         if (method === "PUT") {
             if (!fundId)
-                return (0, responses_1.fail)("Fund ID required", 400);
+                return (0, responses_1.fail)("BAD_REQUEST", "Fund ID required", 400);
             const { resource: existing } = await container.item(fundId, userId).read();
             if (!existing || existing.userId !== userId) {
-                return (0, responses_1.fail)("Goal fund not found", 404);
+                return (0, responses_1.fail)("NOT_FOUND", "Goal fund not found", 404);
             }
             const body = await (0, request_body_1.parseJsonBody)(req);
             // Allow updating monthlyLogs via special action
@@ -118,14 +117,14 @@ async function goalFundsHandler(req, context) {
             const updated = {
                 ...existing,
                 name: body.name != null ? (0, validators_1.ensureString)(body.name, "name") : existing.name,
-                horizon: body.horizon != null ? (0, validators_1.ensureEnum)(body.horizon, horizonTypes, "horizon") : existing.horizon,
-                vehicle: body.vehicle != null ? (0, validators_1.ensureEnum)(body.vehicle, vehicleTypes, "vehicle") : existing.vehicle,
+                horizon: body.horizon != null ? (0, validators_1.ensureEnum)(body.horizon, "horizon", horizonTypes) : existing.horizon,
+                vehicle: body.vehicle != null ? (0, validators_1.ensureEnum)(body.vehicle, "vehicle", vehicleTypes) : existing.vehicle,
                 targetAmount: body.targetAmount != null ? (0, validators_1.ensureNumber)(body.targetAmount, "targetAmount") : existing.targetAmount,
                 currentAmount: body.currentAmount != null ? (0, validators_1.ensureNumber)(body.currentAmount, "currentAmount") : existing.currentAmount,
                 monthlyContribution: body.monthlyContribution != null ? (0, validators_1.ensureNumber)(body.monthlyContribution, "monthlyContribution") : existing.monthlyContribution,
                 targetDate: body.targetDate !== undefined ? ((0, validators_1.ensureOptionalString)(body.targetDate, "targetDate") ?? null) : existing.targetDate,
                 note: body.note !== undefined ? ((0, validators_1.ensureOptionalString)(body.note, "note") ?? null) : existing.note,
-                status: body.status != null ? (0, validators_1.ensureEnum)(body.status, statusTypes, "status") : existing.status,
+                status: body.status != null ? (0, validators_1.ensureEnum)(body.status, "status", statusTypes) : existing.status,
                 updatedAt: new Date().toISOString()
             };
             await container.item(fundId, userId).replace(updated);
@@ -134,21 +133,21 @@ async function goalFundsHandler(req, context) {
         // DELETE
         if (method === "DELETE") {
             if (!fundId)
-                return (0, responses_1.fail)("Fund ID required", 400);
+                return (0, responses_1.fail)("BAD_REQUEST", "Fund ID required", 400);
             const { resource: existing } = await container.item(fundId, userId).read();
             if (!existing || existing.userId !== userId) {
-                return (0, responses_1.fail)("Goal fund not found", 404);
+                return (0, responses_1.fail)("NOT_FOUND", "Goal fund not found", 404);
             }
             await container.item(fundId, userId).delete();
             return (0, responses_1.ok)({ deleted: true });
         }
-        return (0, responses_1.fail)("Method not allowed", 405);
+        return (0, responses_1.fail)("METHOD_NOT_ALLOWED", "Method not allowed", 405);
     }
     catch (error) {
         const message = error instanceof Error ? error.message : "Unknown error";
         if (message === "UNAUTHORIZED")
-            return (0, responses_1.fail)("Unauthorized", 401);
+            return (0, responses_1.fail)("UNAUTHORIZED", "Unauthorized", 401);
         context.log("GoalFunds error:", message);
-        return (0, responses_1.fail)(message, 400);
+        return (0, responses_1.fail)("BAD_REQUEST", message, 400);
     }
 }
