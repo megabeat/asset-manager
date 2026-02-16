@@ -1,0 +1,19 @@
+{
+  "scriptFile": "index.js",
+  "entryPoint": "goalFundsHandler",
+  "bindings": [
+    {
+      "authLevel": "anonymous",
+      "type": "httpTrigger",
+      "direction": "in",
+      "name": "req",
+      "methods": ["get", "post", "put", "delete"],
+      "route": "goal-funds/{fundId?}"
+    },
+    {
+      "type": "http",
+      "direction": "out",
+      "name": "$return"
+    }
+  ]
+}

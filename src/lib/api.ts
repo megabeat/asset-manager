@@ -151,6 +151,28 @@ export type MonthlySnapshot = {
   recordedAt: string;
 };
 
+export type GoalFundLog = {
+  month: string;
+  amount: number;
+  note?: string;
+};
+
+export type GoalFund = {
+  id: string;
+  name: string;
+  horizon: 'short' | 'mid' | 'long';
+  vehicle: 'savings' | 'deposit' | 'etf' | 'stock' | 'fund' | 'crypto' | 'cash' | 'other';
+  targetAmount: number;
+  currentAmount: number;
+  monthlyContribution: number;
+  targetDate?: string | null;
+  note?: string | null;
+  status: 'active' | 'paused' | 'completed' | 'cancelled';
+  monthlyLogs: GoalFundLog[];
+  createdAt: string;
+  updatedAt: string;
+};
+
 async function fetchApi<T>(
   endpoint: string,
   options?: RequestInit
@@ -323,5 +345,11 @@ export const api = {
     }),
   getMessages: (conversationId: string) => fetchApi<ChatMessage[]>(`/ai/conversations/${conversationId}/messages`),
   sendMessage: (conversationId: string, message: string) =>
-    fetchApi(`/ai/conversations/${conversationId}/messages`, { method: 'POST', body: JSON.stringify({ message }) })
+    fetchApi(`/ai/conversations/${conversationId}/messages`, { method: 'POST', body: JSON.stringify({ message }) }),
+
+  // Goal Funds
+  getGoalFunds: () => fetchApi<GoalFund[]>('/goal-funds'),
+  createGoalFund: (data: unknown) => fetchApi<GoalFund>('/goal-funds', { method: 'POST', body: JSON.stringify(data) }),
+  updateGoalFund: (id: string, data: unknown) => fetchApi<GoalFund>(`/goal-funds/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+  deleteGoalFund: (id: string) => fetchApi(`/goal-funds/${id}`, { method: 'DELETE' }),
 };
