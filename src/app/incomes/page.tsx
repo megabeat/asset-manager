@@ -1,6 +1,6 @@
 'use client';
 
-import { FormEvent, useEffect, useMemo, useState } from 'react';
+import { FormEvent, useEffect, useMemo, useRef, useState } from 'react';
 import { api, Income } from '@/lib/api';
 import { FeedbackBanner } from '@/components/ui/FeedbackBanner';
 import { SectionCard } from '@/components/ui/SectionCard';
@@ -54,6 +54,8 @@ export default function IncomesPage() {
   const [settlementMonth, setSettlementMonth] = useState(getCurrentMonthKey());
   const [form, setForm] = useState<IncomeForm>(defaultForm);
   const [editingIncomeId, setEditingIncomeId] = useState<string | null>(null);
+  const [formOpen, setFormOpen] = useState(false);
+  const formSectionRef = useRef<HTMLElement>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const { message, feedback, clearMessage, setMessageText, setSuccessMessage, setErrorMessage } = useFeedbackMessage();
   const { confirmState, confirm, onConfirm: onModalConfirm, onCancel: onModalCancel } = useConfirmModal();
@@ -156,6 +158,7 @@ export default function IncomesPage() {
       setErrorMessage(editingIncomeId ? '수정 실패' : '저장 실패', result.error);
     } else {
       setEditingIncomeId(null);
+      setFormOpen(false);
       setForm(defaultForm);
       setSuccessMessage(editingIncomeId ? '수입이 수정되었습니다.' : '수입이 저장되었습니다.');
       await loadIncomes();
@@ -176,6 +179,7 @@ export default function IncomesPage() {
 
   function onEdit(income: Income) {
     setEditingIncomeId(income.id);
+    setFormOpen(true);
     setErrors({});
     clearMessage();
     setForm({
@@ -195,10 +199,15 @@ export default function IncomesPage() {
       note: income.note ?? '',
       owner: income.owner ?? '본인'
     });
+
+    setTimeout(() => {
+      formSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 0);
   }
 
   function onCancelEdit() {
     setEditingIncomeId(null);
+    setFormOpen(false);
     setErrors({});
     setForm(defaultForm);
   }
@@ -328,8 +337,21 @@ export default function IncomesPage() {
         </div>
       </SectionCard>
 
-      <SectionCard className="mt-4 max-w-[980px]">
-        <form onSubmit={onSubmit} className="form-grid">
+      <SectionCard className="mt-4 max-w-[980px]" ref={formSectionRef}>
+        <button
+          type="button"
+          onClick={() => setFormOpen((prev) => !prev)}
+          className="flex w-full items-center justify-between bg-transparent border-0 cursor-pointer p-0 text-left"
+        >
+          <h3 className="m-0 text-base font-semibold">
+            {editingIncomeId ? '✘ 수입 수정' : '✘ 수입 입력'}
+          </h3>
+          <span className={`text-[var(--color-text-muted)] transition-transform duration-200 ${formOpen ? 'rotate-180' : ''}`}>
+            ▼
+          </span>
+        </button>
+
+        {formOpen && <form onSubmit={onSubmit} className="form-grid mt-3">
           <FormField label="수입명" error={errors.name}>
             <input
               placeholder="수입명"
@@ -480,7 +502,7 @@ export default function IncomesPage() {
               수정 취소
             </button>
           ) : null}
-        </form>
+        </form>}
       </SectionCard>
 
       <p className="mt-4 font-semibold">
