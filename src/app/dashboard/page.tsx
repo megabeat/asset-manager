@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { api } from '@/lib/api';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { formatCompact } from '@/lib/formatCompact';
@@ -20,6 +21,28 @@ import {
 } from 'recharts';
 import { SectionCard } from '@/components/ui/SectionCard';
 import { getAssetCategoryLabel } from '@/lib/assetCategory';
+
+function EmptyGuide({ icon, title, description, linkHref, linkLabel }: {
+  icon: string;
+  title: string;
+  description: string;
+  linkHref: string;
+  linkLabel: string;
+}) {
+  return (
+    <div className="flex flex-col items-center justify-center py-8 text-center">
+      <span className="text-4xl mb-3">{icon}</span>
+      <p className="font-semibold text-[var(--color-text)]">{title}</p>
+      <p className="text-sm text-[var(--color-text-muted)] mt-1 max-w-[260px]">{description}</p>
+      <Link
+        href={linkHref}
+        className="mt-3 inline-block rounded-md bg-[var(--color-primary)] px-4 py-2 text-sm font-medium text-white hover:opacity-90 transition-opacity"
+      >
+        {linkLabel}
+      </Link>
+    </div>
+  );
+}
 
 type Summary = {
   totalAssets: number;
@@ -140,6 +163,26 @@ export default function DashboardPage() {
 
       {error && <p className="mt-3">일부 데이터 로드 실패: {error}</p>}
 
+      {assets.length === 0 && snapshots.length === 0 && summary.totalAssets === 0 && summary.totalLiabilities === 0 && (
+        <SectionCard className="mt-4 p-6 border-l-[3px] border-l-[var(--color-primary)]">
+          <h2 className="mt-0 text-lg font-bold">👋 환영합니다!</h2>
+          <p className="text-[var(--color-text-muted)] mt-1 mb-4">
+            아직 등록된 데이터가 없습니다. 아래 메뉴에서 자산·지출·소득을 등록하면 대시보드가 자동으로 채워집니다.
+          </p>
+          <div className="flex flex-wrap gap-3">
+            <Link href="/assets" className="inline-flex items-center gap-1.5 rounded-md bg-[var(--color-primary)] px-4 py-2 text-sm font-medium text-white hover:opacity-90 transition-opacity">
+              📊 자산 등록
+            </Link>
+            <Link href="/expenses" className="inline-flex items-center gap-1.5 rounded-md border border-[var(--color-border)] px-4 py-2 text-sm font-medium text-[var(--color-text)] hover:bg-[var(--color-bg-secondary)] transition-colors">
+              💳 지출 등록
+            </Link>
+            <Link href="/profile" className="inline-flex items-center gap-1.5 rounded-md border border-[var(--color-border)] px-4 py-2 text-sm font-medium text-[var(--color-text)] hover:bg-[var(--color-bg-secondary)] transition-colors">
+              👤 프로필 설정
+            </Link>
+          </div>
+        </SectionCard>
+      )}
+
       <div className="mt-4 grid gap-4 [grid-template-columns:repeat(auto-fit,minmax(200px,1fr))]">
         <SectionCard className="p-5">
           <h3 className="kpi-label">총 자산(연금 제외)</h3>
@@ -191,7 +234,13 @@ export default function DashboardPage() {
         <SectionCard>
           <h3 className="mt-0">자산 추이 (월별 스냅샷)</h3>
           {snapshots.length === 0 ? (
-            <p>스냅샷 데이터가 없습니다. 매월 말일 자동 생성됩니다.</p>
+            <EmptyGuide
+              icon="📈"
+              title="아직 스냅샷이 없습니다"
+              description="자산을 등록하면 매월 말일에 자동으로 자산 추이가 기록됩니다."
+              linkHref="/assets"
+              linkLabel="자산 등록하기"
+            />
           ) : (
             <div className="h-[260px] w-full sm:h-[320px]">
               <ResponsiveContainer>
@@ -210,7 +259,13 @@ export default function DashboardPage() {
         <SectionCard>
           <h3 className="mt-0">자산 카테고리 비중</h3>
           {categoryData.length === 0 ? (
-            <p>카테고리 데이터가 없습니다.</p>
+            <EmptyGuide
+              icon="🥧"
+              title="자산 카테고리 데이터 없음"
+              description="자산을 등록하면 카테고리별 비중이 파이 차트로 표시됩니다."
+              linkHref="/assets"
+              linkLabel="자산 등록하기"
+            />
           ) : (
             <div className="h-[260px] w-full sm:h-[320px]">
               <ResponsiveContainer>
@@ -240,7 +295,13 @@ export default function DashboardPage() {
         <SectionCard>
           <h3 className="mt-0">국내/미국 주식 비중</h3>
           {stockSplitData.length === 0 ? (
-            <p>주식 데이터가 없습니다.</p>
+            <EmptyGuide
+              icon="📊"
+              title="주식 데이터 없음"
+              description="국내주식 또는 미국주식 카테고리의 자산을 등록하면 비중이 표시됩니다."
+              linkHref="/assets"
+              linkLabel="주식 자산 등록하기"
+            />
           ) : (
             <div className="h-[240px] w-full sm:h-[280px]">
               <ResponsiveContainer>
@@ -271,7 +332,13 @@ export default function DashboardPage() {
           <h3 className="mt-0">월말 자산 스냅샷 이력</h3>
           <p className="helper-text mt-1 mb-3">매월 말일 정오에 자동 집계된 전체 자산 평가액입니다.</p>
           {snapshots.length === 0 ? (
-            <p>아직 월말 스냅샷 데이터가 없습니다. 매월 말일 자동 생성됩니다.</p>
+            <EmptyGuide
+              icon="📋"
+              title="월말 스냅샷 이력 없음"
+              description="자산 등록 후 매월 말일에 자동 집계됩니다. 첫 집계까지 기다려 주세요."
+              linkHref="/assets"
+              linkLabel="자산 등록하기"
+            />
           ) : (
             <div className="ui-table-wrap">
               <table className="ui-table">
