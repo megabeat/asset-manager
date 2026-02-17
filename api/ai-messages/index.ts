@@ -407,6 +407,141 @@ export async function aiMessagesHandler(context: InvocationContext, req: HttpReq
 
         profileContextText = clampText(profileContextText, 2200);
 
+        // --- Fetch detailed asset, expense, income, children, education, goal fund data ---
+        type AssetDetail = { name: string; category: string; currentValue: number; acquiredValue?: number; quantity?: number; symbol?: string; note?: string; pensionMonthlyContribution?: number; pensionReceiveAge?: number; autoUpdate?: boolean };
+        type ExpenseDetail = { name: string; amount: number; cycle: string; expenseType: string; billingDay?: number; isInvestmentTransfer?: boolean; investmentTargetCategory?: string; category?: string };
+        type IncomeDetail = { name: string; amount: number; cycle: string; isFixedIncome?: boolean; category?: string; note?: string };
+        type ChildDetail = { name: string; birthYear: number; grade: string; targetUniversityYear: number };
+        type EduPlanDetail = { childId: string; annualCost: number; inflationRate: number; startYear: number; endYear: number };
+        type GoalFundDetail = { name: string; horizon: string; vehicle: string; targetAmount: number; currentAmount: number; monthlyContribution: number; targetDate?: string; status: string; note?: string };
+
+        let assetDetails: AssetDetail[] = [];
+        let expenseDetails: ExpenseDetail[] = [];
+        let incomeDetails: IncomeDetail[] = [];
+        let childDetails: ChildDetail[] = [];
+        let eduPlanDetails: EduPlanDetail[] = [];
+        let goalFundDetails: GoalFundDetail[] = [];
+
+        try {
+          const [assetsRes, expensesRes, incomesRes, childrenRes, eduRes, goalRes] = await Promise.all([
+            getContainer("assets").items.query({
+              query: "SELECT c.name, c.category, c.currentValue, c.acquiredValue, c.quantity, c.symbol, c.note, c.pensionMonthlyContribution, c.pensionReceiveAge, c.autoUpdate FROM c WHERE c.userId = @userId AND c.type = 'Asset'",
+              parameters: [{ name: "@userId", value: userId }]
+            }).fetchAll(),
+            getContainer("expenses").items.query({
+              query: "SELECT c.name, c.amount, c.cycle, c.expenseType, c.billingDay, c.isInvestmentTransfer, c.investmentTargetCategory, c.category FROM c WHERE c.userId = @userId AND c.type = 'Expense' AND c.entrySource != 'auto_settlement'",
+              parameters: [{ name: "@userId", value: userId }]
+            }).fetchAll(),
+            getContainer("incomes").items.query({
+              query: "SELECT c.name, c.amount, c.cycle, c.isFixedIncome, c.category, c.note FROM c WHERE c.userId = @userId AND c.type = 'Income' AND c.entrySource != 'auto_settlement'",
+              parameters: [{ name: "@userId", value: userId }]
+            }).fetchAll(),
+            getContainer("children").items.query({
+              query: "SELECT c.id, c.name, c.birthYear, c.grade, c.targetUniversityYear FROM c WHERE c.userId = @userId AND c.type = 'Child'",
+              parameters: [{ name: "@userId", value: userId }]
+            }).fetchAll(),
+            getContainer("educationPlans").items.query({
+              query: "SELECT c.childId, c.annualCost, c.inflationRate, c.startYear, c.endYear FROM c WHERE c.userId = @userId AND c.type = 'EducationPlan'",
+              parameters: [{ name: "@userId", value: userId }]
+            }).fetchAll(),
+            getContainer("goalFunds").items.query({
+              query: "SELECT c.name, c.horizon, c.vehicle, c.targetAmount, c.currentAmount, c.monthlyContribution, c.targetDate, c.status, c.note FROM c WHERE c.userId = @userId AND c.type = 'GoalFund'",
+              parameters: [{ name: "@userId", value: userId }]
+            }).fetchAll()
+          ]);
+
+          assetDetails = assetsRes.resources as AssetDetail[];
+          expenseDetails = expensesRes.resources as ExpenseDetail[];
+          incomeDetails = incomesRes.resources as IncomeDetail[];
+          childDetails = childrenRes.resources as ChildDetail[];
+          eduPlanDetails = eduRes.resources as EduPlanDetail[];
+          goalFundDetails = goalRes.resources as GoalFundDetail[];
+        } catch (detailError: unknown) {
+          context.log("Detail context fetch error:", detailError);
+        }
+
+        const categoryLabels: Record<string, string> = {
+          deposit: "예적금", savings: "저축", stock_kr: "한국주식", stock_us: "미국주식",
+          etf: "ETF", bond: "채권", fund: "펀드", crypto: "암호화폐", pension: "연금",
+          insurance: "보험", real_estate: "부동산", cash: "현금", car: "자동차", other: "기타"
+        };
+        const cycleLabelsMap: Record<string, string> = { monthly: "매월", yearly: "매년", one_time: "일회성" };
+        const horizonLabels: Record<string, string> = { short: "단기", mid: "중기", long: "장기" };
+        const vehicleLabels: Record<string, string> = {
+          savings: "저축", deposit: "예금", etf: "ETF", stock: "주식",
+          fund: "펀드", crypto: "암호화폐", cash: "현금", other: "기타"
+        };
+
+        const formatAssetList = (assets: AssetDetail[]): string => {
+          if (assets.length === 0) return "등록된 자산 없음";
+          return assets.map((a, i) => {
+            const parts = [`${i + 1}. ${a.name} (${categoryLabels[a.category] ?? a.category}): 현재가치 ${a.currentValue.toLocaleString()}원`];
+            if (a.acquiredValue) parts.push(`매입가 ${a.acquiredValue.toLocaleString()}원`);
+            if (a.quantity) parts.push(`수량 ${a.quantity}`);
+            if (a.symbol) parts.push(`종목코드 ${a.symbol}`);
+            if (a.pensionMonthlyContribution) parts.push(`월 납입 ${a.pensionMonthlyContribution.toLocaleString()}원`);
+            if (a.pensionReceiveAge) parts.push(`수령 시작 ${a.pensionReceiveAge}세`);
+            if (a.note) parts.push(`메모: ${a.note}`);
+            return parts.join(" / ");
+          }).join("\n");
+        };
+
+        const formatExpenseList = (expenses: ExpenseDetail[]): string => {
+          if (expenses.length === 0) return "등록된 지출 없음";
+          const sorted = [...expenses].sort((a, b) => b.amount - a.amount);
+          return sorted.map((e, i) => {
+            const typeLabel = e.expenseType === "fixed" ? "고정" : e.expenseType === "subscription" ? "구독" : "일회성";
+            const parts = [`${i + 1}. ${e.name}: ${e.amount.toLocaleString()}원 (${typeLabel}, ${cycleLabelsMap[e.cycle] ?? e.cycle})`];
+            if (e.billingDay) parts.push(`결제일 ${e.billingDay}일`);
+            if (e.isInvestmentTransfer) parts.push(`[투자이체→${categoryLabels[e.investmentTargetCategory ?? ""] ?? e.investmentTargetCategory ?? "미지정"}]`);
+            if (e.category) parts.push(`분류: ${e.category}`);
+            return parts.join(" / ");
+          }).join("\n");
+        };
+
+        const formatIncomeList = (incomes: IncomeDetail[]): string => {
+          if (incomes.length === 0) return "등록된 수입 없음";
+          return incomes.map((inc, i) => {
+            const parts = [`${i + 1}. ${inc.name}: ${inc.amount.toLocaleString()}원 (${cycleLabelsMap[inc.cycle] ?? inc.cycle})`];
+            if (inc.isFixedIncome) parts.push("[고정수입]");
+            if (inc.category) parts.push(`분류: ${inc.category}`);
+            if (inc.note) parts.push(`메모: ${inc.note}`);
+            return parts.join(" / ");
+          }).join("\n");
+        };
+
+        const formatChildAndEdu = (children: ChildDetail[], eduPlans: EduPlanDetail[]): string => {
+          if (children.length === 0) return "등록된 자녀 정보 없음";
+          return children.map((child, i) => {
+            const age = new Date().getFullYear() - child.birthYear;
+            const plans = eduPlans.filter(p => p.childId === (child as unknown as { id: string }).id);
+            const planText = plans.length > 0
+              ? plans.map(p => `교육비 연 ${p.annualCost.toLocaleString()}원 (${p.startYear}~${p.endYear}년, 물가상승률 ${(p.inflationRate * 100).toFixed(1)}%)`).join("; ")
+              : "교육 플랜 미설정";
+            return `${i + 1}. ${child.name} (${age}세, ${child.grade}) / 대학 진학 ${child.targetUniversityYear}년 / ${planText}`;
+          }).join("\n");
+        };
+
+        const formatGoalFunds = (goals: GoalFundDetail[]): string => {
+          if (goals.length === 0) return "등록된 목표자금 없음";
+          const statusLabels: Record<string, string> = { active: "진행중", paused: "일시정지", completed: "완료", cancelled: "취소" };
+          return goals.map((g, i) => {
+            const progress = g.targetAmount > 0 ? ((g.currentAmount / g.targetAmount) * 100).toFixed(1) : "0";
+            const parts = [`${i + 1}. ${g.name} (${horizonLabels[g.horizon] ?? g.horizon}, ${vehicleLabels[g.vehicle] ?? g.vehicle}, ${statusLabels[g.status] ?? g.status})`];
+            parts.push(`목표 ${g.targetAmount.toLocaleString()}원 / 현재 ${g.currentAmount.toLocaleString()}원 (${progress}%)`);
+            parts.push(`월 납입 ${g.monthlyContribution.toLocaleString()}원`);
+            if (g.targetDate) parts.push(`목표일 ${g.targetDate}`);
+            if (g.note) parts.push(`메모: ${g.note}`);
+            return parts.join(" / ");
+          }).join("\n");
+        };
+
+        const detailedAssetsText = clampText(formatAssetList(assetDetails), 3000);
+        const detailedExpensesText = clampText(formatExpenseList(expenseDetails), 2000);
+        const detailedIncomesText = clampText(formatIncomeList(incomeDetails), 1000);
+        const detailedChildEduText = clampText(formatChildAndEdu(childDetails, eduPlanDetails), 1000);
+        const detailedGoalFundsText = clampText(formatGoalFunds(goalFundDetails), 1500);
+
         let webSearchContext = "웹 검색 결과 없음";
         try {
           const webResults = await withTimeout(
@@ -463,23 +598,33 @@ export async function aiMessagesHandler(context: InvocationContext, req: HttpReq
 - 월 고정지출: ${userContext.monthlyExpenses.toLocaleString()}원
 - 월 수입: ${userContext.monthlyIncome.toLocaleString()}원
 
-자산 구성:
+자산 구성(카테고리별 합계):
 ${(userContext.assetBreakdown.length > 0 ? userContext.assetBreakdown : [{ category: "기타", value: 0 }])
   .map((a) => `- ${a.category}: ${a.value.toLocaleString()}원`)
   .join("\n")}
 
-주요 지출:
-${(userContext.topExpenses.length > 0 ? userContext.topExpenses : [{ name: "데이터 없음", amount: 0 }])
-  .map((e) => `- ${e.name}: ${e.amount.toLocaleString()}원`)
-  .join("\n")}
+보유 자산 개별 상세:
+${detailedAssetsText}
+
+전체 지출 내역:
+${detailedExpensesText}
+
+전체 수입 내역:
+${detailedIncomesText}
 
 사용자 프로필/가족/은퇴 정보:
 ${profileContextText}
 
+자녀 및 교육 플랜 상세:
+${detailedChildEduText}
+
+목표 자금(Goal Funds):
+${detailedGoalFundsText}
+
 웹 검색 결과(최신 정보 참고용):
 ${webSearchContext}
 
-사용자 질문에 대해 구체적이고 실용적인 조언을 제공하세요.`;
+중요: 위 데이터는 사용자가 직접 등록한 실제 자산/지출/수입/가족 정보입니다. 상담 시 이 구체적인 데이터를 적극 활용하여 맞춤형 조언을 제공하세요. 각 자산의 이름, 금액, 카테고리를 정확히 언급하며, 사용자의 전체 재무 그림을 기반으로 답변하세요.`;
 
         // Fetch conversation history
         let history: Array<{ role: string; content: string }> = [];
