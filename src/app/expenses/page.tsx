@@ -1,7 +1,7 @@
 'use client';
 
 import { FormEvent, useEffect, useMemo, useState } from 'react';
-import { api, Expense } from '@/lib/api';
+import { api, Expense, GoalFund } from '@/lib/api';
 import { FeedbackBanner } from '@/components/ui/FeedbackBanner';
 import { getAssetCategoryLabel } from '@/lib/assetCategory';
 import { SectionCard } from '@/components/ui/SectionCard';
@@ -24,6 +24,7 @@ type ExpenseForm = {
   investmentTargetCategory: string;
   isCardIncluded: boolean;
   category: string;
+  goalFundId: string;
 };
 
 const defaultForm: ExpenseForm = {
@@ -37,7 +38,8 @@ const defaultForm: ExpenseForm = {
   isInvestmentTransfer: false,
   investmentTargetCategory: 'stock_kr',
   isCardIncluded: false,
-  category: ''
+  category: '',
+  goalFundId: ''
 };
 
 const INVESTMENT_TARGET_OPTIONS = [
@@ -95,6 +97,7 @@ export default function ExpensesPage() {
   const [form, setForm] = useState<ExpenseForm>(defaultForm);
   const [cardQuickForm, setCardQuickForm] = useState<CardQuickForm>(defaultCardQuickForm);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [goalFunds, setGoalFunds] = useState<GoalFund[]>([]);
   const { message, feedback, clearMessage, setMessageText, setSuccessMessage, setErrorMessage } = useFeedbackMessage();
 
   async function loadExpenses() {
@@ -115,6 +118,9 @@ export default function ExpensesPage() {
   useEffect(() => {
     loadExpenses().finally(() => {
       setLoading(false);
+    });
+    api.getGoalFunds().then((res) => {
+      if (res.data) setGoalFunds(res.data.filter((f) => f.status === 'active'));
     });
   }, []);
 
@@ -320,7 +326,8 @@ export default function ExpensesPage() {
           : form.type === 'subscription' || form.type === 'fixed'
             ? form.isCardIncluded
             : false,
-      category: form.category.trim()
+      category: form.category.trim(),
+      goalFundId: normalizedIsInvestmentTransfer ? form.goalFundId : ''
     };
 
     const result = editingExpenseId
@@ -463,7 +470,8 @@ export default function ExpensesPage() {
       isInvestmentTransfer: Boolean(expense.isInvestmentTransfer),
       investmentTargetCategory: expense.investmentTargetCategory ?? 'stock_kr',
       isCardIncluded: Boolean(expense.isCardIncluded),
-      category: expense.category ?? ''
+      category: expense.category ?? '',
+      goalFundId: expense.goalFundId ?? ''
     });
   }
 
@@ -732,6 +740,29 @@ export default function ExpensesPage() {
                   <option key={option.value} value={option.value}>{option.label}</option>
                 ))}
               </select>
+            </FormField>
+          ) : null}
+
+          {(entryMode === 'investment' || form.isInvestmentTransfer) ? (
+            <FormField label="목적자금 연결">
+              <select
+                value={form.goalFundId}
+                onChange={(event) =>
+                  setForm((prev) => ({ ...prev, goalFundId: event.target.value }))
+                }
+              >
+                <option value="">연결 안함</option>
+                {goalFunds.map((fund) => (
+                  <option key={fund.id} value={fund.id}>
+                    {fund.name} ({Math.round((fund.currentAmount / fund.targetAmount) * 100)}%)
+                  </option>
+                ))}
+              </select>
+              {form.goalFundId && (
+                <p className="helper-text m-0 mt-1">
+                  이체 시 해당 목적자금의 진행률이 자동으로 업데이트됩니다.
+                </p>
+              )}
             </FormField>
           ) : null}
 

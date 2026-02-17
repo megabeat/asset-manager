@@ -515,7 +515,14 @@ export default function GoalFundsPage() {
                                 <tr key={log.month} className={idx % 2 === 0 ? 'ui-table-row-even' : 'ui-table-row-odd'}>
                                   <td className="ui-table-td text-left">{log.month}</td>
                                   <td className="ui-table-td text-right">{log.amount.toLocaleString()}원</td>
-                                  <td className="ui-table-td text-left text-[var(--muted)]">{log.note ?? '-'}</td>
+                                  <td className="ui-table-td text-left text-[var(--muted)]">
+                                    {log.note === '지출연동' ? (
+                                      <span className="inline-flex items-center gap-1">
+                                        <span className="rounded bg-blue-100 px-1.5 py-0.5 text-[0.7rem] text-blue-700 dark:bg-blue-900/40 dark:text-blue-300">자동</span>
+                                        지출연동
+                                      </span>
+                                    ) : (log.note ?? '-')}
+                                  </td>
                                   <td className="ui-table-td text-center">
                                     <button
                                       type="button"

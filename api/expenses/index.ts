@@ -34,6 +34,7 @@ type ExpenseRecord = {
   investmentTargetCategory?: string;
   investmentTargetAssetId?: string;
   transferredAmount?: number;
+  goalFundId?: string;
   isCardIncluded?: boolean;
   entrySource?: "manual" | "auto_settlement";
   sourceExpenseId?: string;
@@ -76,6 +77,55 @@ function resolveOccurredAt(value: unknown): string {
     throw new Error("Invalid occurredAt");
   }
   return date.toISOString().slice(0, 10);
+}
+
+async function syncGoalFundLog(
+  userId: string,
+  goalFundId: string,
+  occurredAt: string,
+  amount: number,
+  action: "add" | "remove"
+): Promise<void> {
+  const goalFundsContainer = getContainer("goalFunds");
+  try {
+    const { resource: fund } = await goalFundsContainer.item(goalFundId, userId).read();
+    if (!fund || fund.userId !== userId) return;
+
+    const month = occurredAt.slice(0, 7); // yyyy-MM
+    type LogEntry = { month: string; amount: number; note?: string };
+    let logs: LogEntry[] = fund.monthlyLogs || [];
+
+    if (action === "add") {
+      const existingIdx = logs.findIndex((l: LogEntry) => l.month === month);
+      if (existingIdx >= 0) {
+        logs[existingIdx] = { month, amount: logs[existingIdx].amount + amount, note: "지출연동" };
+      } else {
+        logs.push({ month, amount, note: "지출연동" });
+        logs.sort((a: LogEntry, b: LogEntry) => a.month.localeCompare(b.month));
+      }
+    } else {
+      const existingIdx = logs.findIndex((l: LogEntry) => l.month === month);
+      if (existingIdx >= 0) {
+        const newAmount = logs[existingIdx].amount - amount;
+        if (newAmount <= 0) {
+          logs = logs.filter((_: LogEntry, i: number) => i !== existingIdx);
+        } else {
+          logs[existingIdx] = { ...logs[existingIdx], amount: newAmount };
+        }
+      }
+    }
+
+    const totalFromLogs = logs.reduce((s: number, l: LogEntry) => s + l.amount, 0);
+    const updated = {
+      ...fund,
+      monthlyLogs: logs,
+      currentAmount: totalFromLogs,
+      updatedAt: new Date().toISOString()
+    };
+    await goalFundsContainer.item(goalFundId, userId).replace(updated);
+  } catch {
+    // Goal fund sync failure should not block expense creation
+  }
 }
 
 function shouldReflectNow(reflectToLiquidAsset: boolean, occurredAt: string): boolean {
@@ -398,6 +448,14 @@ export async function expensesHandler(context: InvocationContext, req: HttpReque
             await container.item(String(expense.id), userId).delete();
             deletedCount += 1;
             reversedAmount += Number(expense.amount ?? 0);
+
+            // Reverse goal fund log on rollback
+            const rollbackGoalFundId = String(expense.goalFundId ?? "");
+            const rollbackOccurredAt = String(expense.occurredAt ?? "");
+            const rollbackAmount = Number(expense.amount ?? 0);
+            if (rollbackGoalFundId && expense.isInvestmentTransfer && rollbackAmount > 0 && rollbackOccurredAt) {
+              await syncGoalFundLog(userId, rollbackGoalFundId, rollbackOccurredAt, rollbackAmount, "remove");
+            }
           }
 
           return ok({ targetMonth, deletedCount, reversedAmount });
@@ -474,6 +532,7 @@ export async function expensesHandler(context: InvocationContext, req: HttpReque
 
             const isInvestmentTransfer = Boolean(template.isInvestmentTransfer ?? false);
             const investmentTargetCategory = String(template.investmentTargetCategory ?? "");
+            const templateGoalFundId = String(template.goalFundId ?? "");
             if (isInvestmentTransfer && !investmentTargetCategory) {
               skippedCount += 1;
               continue;
@@ -497,6 +556,7 @@ export async function expensesHandler(context: InvocationContext, req: HttpReque
               investmentTargetCategory,
               investmentTargetAssetId: "",
               transferredAmount: 0,
+              goalFundId: templateGoalFundId,
               reflectedAmount: 0,
               reflectedAssetId: "",
               reflectedAt: "",
@@ -545,6 +605,11 @@ export async function expensesHandler(context: InvocationContext, req: HttpReque
                 };
                 await container.item(String(created.id), userId).replace(updatedExpense);
               }
+
+              // Sync goal fund progress for settled expense
+              if (templateGoalFundId && isInvestmentTransfer && amount > 0) {
+                await syncGoalFundLog(userId, templateGoalFundId, occurredAt, amount, "add");
+              }
             }
           }
 
@@ -578,6 +643,7 @@ export async function expensesHandler(context: InvocationContext, req: HttpReque
           ensureOptionalBoolean(body.isInvestmentTransfer, "isInvestmentTransfer") ?? false;
         const investmentTargetCategory =
           ensureOptionalString(body.investmentTargetCategory, "investmentTargetCategory") ?? "";
+        const goalFundId = ensureOptionalString(body.goalFundId, "goalFundId") ?? "";
 
         if ((expenseType === "subscription" || expenseType === "fixed") && billingDay === null) {
           return fail("VALIDATION_ERROR", "billingDay is required for recurring expenses", 400);
@@ -602,6 +668,7 @@ export async function expensesHandler(context: InvocationContext, req: HttpReque
           investmentTargetCategory,
           investmentTargetAssetId: "",
           transferredAmount: 0,
+          goalFundId,
           isCardIncluded: ensureOptionalBoolean(body.isCardIncluded, "isCardIncluded") ?? false,
           reflectedAmount: 0,
           reflectedAssetId: "",
@@ -621,6 +688,10 @@ export async function expensesHandler(context: InvocationContext, req: HttpReque
         }
 
         if (!shouldReflectNow(reflectToLiquidAsset, occurredAt)) {
+          // Still sync goal fund even if asset reflection is deferred
+          if (goalFundId && isInvestmentTransfer && amount > 0) {
+            await syncGoalFundLog(userId, goalFundId, occurredAt, amount, "add");
+          }
           return ok(resource, 201);
         }
 
@@ -649,6 +720,12 @@ export async function expensesHandler(context: InvocationContext, req: HttpReque
         };
 
         const { resource: savedExpense } = await container.item(updatedExpense.id, userId).replace(updatedExpense);
+
+        // Sync goal fund progress
+        if (goalFundId && isInvestmentTransfer && amount > 0) {
+          await syncGoalFundLog(userId, goalFundId, occurredAt, amount, "add");
+        }
+
         return ok(savedExpense ?? updatedExpense, 201);
       } catch (error: unknown) {
         if (error instanceof Error && error.message.startsWith("Invalid")) {
@@ -780,6 +857,7 @@ export async function expensesHandler(context: InvocationContext, req: HttpReque
           reflectedAssetId,
           reflectedAt,
           category: ensureOptionalString(body.category, "category") ?? existing.category,
+          goalFundId: ensureOptionalString(body.goalFundId, "goalFundId") ?? String(existing.goalFundId ?? ""),
           updatedAt: new Date().toISOString()
         };
 
@@ -832,6 +910,15 @@ export async function expensesHandler(context: InvocationContext, req: HttpReque
         }
 
         await container.item(expenseId, userId).delete();
+
+        // Reverse goal fund log on delete
+        const expenseGoalFundId = String(expense.goalFundId ?? "");
+        const expenseOccurredAt = String(expense.occurredAt ?? "");
+        const expenseAmount = Number(expense.amount ?? 0);
+        if (expenseGoalFundId && expense.isInvestmentTransfer && expenseAmount > 0 && expenseOccurredAt) {
+          await syncGoalFundLog(userId, expenseGoalFundId, expenseOccurredAt, expenseAmount, "remove");
+        }
+
         return ok({ id: expenseId });
       } catch (error: unknown) {
         const status = (error as { code?: number; statusCode?: number }).statusCode;

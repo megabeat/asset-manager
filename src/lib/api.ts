@@ -61,6 +61,7 @@ export type Expense = {
   investmentTargetCategory?: string;
   investmentTargetAssetId?: string;
   transferredAmount?: number;
+  goalFundId?: string;
   isCardIncluded?: boolean;
   entrySource?: 'manual' | 'auto_settlement';
   sourceExpenseId?: string;
