@@ -1,6 +1,6 @@
 'use client';
 
-import { FormEvent, useEffect, useMemo, useState } from 'react';
+import { FormEvent, useEffect, useMemo, useRef, useState } from 'react';
 import { api, Liability } from '@/lib/api';
 import { FeedbackBanner } from '@/components/ui/FeedbackBanner';
 import { SectionCard } from '@/components/ui/SectionCard';
@@ -62,6 +62,8 @@ export default function LiabilitiesPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [editingLiabilityId, setEditingLiabilityId] = useState<string | null>(null);
+  const [formOpen, setFormOpen] = useState(false);
+  const formSectionRef = useRef<HTMLElement>(null);
   const [form, setForm] = useState<LiabilityForm>(defaultForm);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const { message, feedback, clearMessage, setMessageText, setSuccessMessage, setErrorMessage } = useFeedbackMessage();
@@ -139,6 +141,7 @@ export default function LiabilitiesPage() {
       setErrorMessage(editingLiabilityId ? '수정 실패' : '저장 실패', result.error);
     } else {
       setEditingLiabilityId(null);
+      setFormOpen(false);
       setForm(defaultForm);
       setSuccessMessage(editingLiabilityId ? '부채가 수정되었습니다.' : '부채가 저장되었습니다.');
       await loadLiabilities();
@@ -148,6 +151,7 @@ export default function LiabilitiesPage() {
 
   function onEdit(liability: Liability) {
     setEditingLiabilityId(liability.id);
+    setFormOpen(true);
     setErrors({});
     setForm({
       name: liability.name,
@@ -162,10 +166,15 @@ export default function LiabilitiesPage() {
       note: liability.note ?? '',
       owner: liability.owner ?? '본인'
     });
+
+    setTimeout(() => {
+      formSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 0);
   }
 
   function onCancelEdit() {
     setEditingLiabilityId(null);
+    setFormOpen(false);
     setErrors({});
     setForm(defaultForm);
   }
@@ -189,8 +198,21 @@ export default function LiabilitiesPage() {
     <div className="py-4">
       <h1>부채 관리</h1>
 
-      <SectionCard className="mt-5 max-w-[980px]">
-        <form onSubmit={onSubmit} className="form-grid">
+      <SectionCard className="mt-5 max-w-[980px]" ref={formSectionRef}>
+        <button
+          type="button"
+          onClick={() => setFormOpen((prev) => !prev)}
+          className="flex w-full items-center justify-between bg-transparent border-0 cursor-pointer p-0 text-left"
+        >
+          <h3 className="m-0 text-base font-semibold">
+            {editingLiabilityId ? '✘ 부채 수정' : '✘ 부채 입력'}
+          </h3>
+          <span className={`text-[var(--color-text-muted)] transition-transform duration-200 ${formOpen ? 'rotate-180' : ''}`}>
+            ▼
+          </span>
+        </button>
+
+        {formOpen && <form onSubmit={onSubmit} className="form-grid mt-3">
           <FormField label="부채명" error={errors.name}>
             <input
               placeholder="부채명"
@@ -332,7 +354,7 @@ export default function LiabilitiesPage() {
               취소
             </button>
           ) : null}
-        </form>
+        </form>}
       </SectionCard>
 
       <div className="mt-4 grid gap-3 [grid-template-columns:repeat(auto-fit,minmax(180px,1fr))] max-w-[980px]">
