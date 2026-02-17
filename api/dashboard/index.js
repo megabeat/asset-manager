@@ -164,8 +164,9 @@ async function dashboardHandler(context, req) {
                 return (0, responses_1.ok)(points);
             }
             catch (error) {
-                context.log(error);
-                return (0, responses_1.fail)("SERVER_ERROR", "Failed to build asset trend", 500);
+                context.log("asset-trend error:", error);
+                const msg = error instanceof Error ? error.message : String(error);
+                return (0, responses_1.fail)("SERVER_ERROR", `Failed to build asset trend: ${msg}`, 500);
             }
         }
         case "monthly-change": {
