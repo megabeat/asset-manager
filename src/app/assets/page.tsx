@@ -167,6 +167,7 @@ export default function AssetsPage() {
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState<AssetForm>(defaultForm);
   const [editingAssetId, setEditingAssetId] = useState<string | null>(null);
+  const [formOpen, setFormOpen] = useState(false);
   const { message, feedback, clearMessage, setMessageText, setSuccessMessage, setErrorMessage } = useFeedbackMessage();
   const { confirmState, confirm, onConfirm: onModalConfirm, onCancel: onModalCancel } = useConfirmModal();
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -429,6 +430,7 @@ export default function AssetsPage() {
     } else {
       resetFormWithRate(form.exchangeRate);
       setEditingAssetId(null);
+      setFormOpen(false);
       setSuccessMessage(editingAssetId ? '자산이 수정되었습니다.' : '자산이 저장되었습니다.');
       await loadAssets();
     }
@@ -457,6 +459,7 @@ export default function AssetsPage() {
     const acquiredValue = Number(asset.acquiredValue ?? 0);
 
     setEditingAssetId(asset.id);
+    setFormOpen(true);
     setErrors({});
     clearMessage();
     setForm({
@@ -498,6 +501,7 @@ export default function AssetsPage() {
 
   function onCancelEdit() {
     setEditingAssetId(null);
+    setFormOpen(false);
     setErrors({});
     resetFormWithRate(form.exchangeRate);
   }
@@ -525,7 +529,20 @@ export default function AssetsPage() {
       </div>
 
       <SectionCard className="mt-4" ref={formSectionRef}>
-        <form onSubmit={onSubmit} className="form-grid">
+        <button
+          type="button"
+          onClick={() => setFormOpen((prev) => !prev)}
+          className="flex w-full items-center justify-between bg-transparent border-0 cursor-pointer p-0 text-left"
+        >
+          <h3 className="m-0 text-base font-semibold">
+            {editingAssetId ? '✘ 자산 수정' : '✘ 자산 입력'}
+          </h3>
+          <span className={`text-[var(--color-text-muted)] transition-transform duration-200 ${formOpen ? 'rotate-180' : ''}`}>
+            ▼
+          </span>
+        </button>
+
+        {formOpen && <form onSubmit={onSubmit} className="form-grid mt-3">
           <FormField label="카테고리" fullWidth>
             <div className="flex flex-wrap gap-1.5">
               {(Object.keys(categoryLabel) as AssetCategory[]).map((category) => {
@@ -721,7 +738,7 @@ export default function AssetsPage() {
               </button>
             ) : null}
           </div>
-        </form>
+        </form>}
       </SectionCard>
 
       <FeedbackBanner feedback={feedback} />
