@@ -3,7 +3,8 @@
     "apiRuntime": "node:20"
   },
   "navigationFallback": {
-    "rewrite": "/index.html"
+    "rewrite": "/index.html",
+    "exclude": ["/docs/*", "/images/*", "*.css", "*.js", "*.html", "*.json", "*.ico", "*.png", "*.jpg", "*.svg"]
   },
   "routes": [
     {

@@ -1,0 +1,924 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>자산관리 앱 — 사용자 설명서</title>
+<style>
+/* ── Reset & Base ──────────────────────────── */
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{font-family:'Pretendard',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+  background:#f5f6f8;color:#1c1f26;line-height:1.7;font-size:15px}
+
+/* ── Layout ────────────────────────────────── */
+.wrap{max-width:960px;margin:0 auto;padding:24px 20px 80px}
+header.doc-header{background:linear-gradient(135deg,#3366cc 0%,#5588ee 100%);
+  color:#fff;padding:48px 32px;text-align:center;border-radius:0 0 24px 24px}
+header.doc-header h1{font-size:2rem;font-weight:800;margin-bottom:6px}
+header.doc-header p{opacity:.88;font-size:1rem}
+
+/* ── TOC ───────────────────────────────────── */
+.toc{background:#fff;border:1px solid #e5e7eb;border-radius:16px;padding:28px 32px;margin-top:32px}
+.toc h2{font-size:1.1rem;margin-bottom:14px;color:#3366cc}
+.toc ol{padding-left:20px}
+.toc li{margin-bottom:6px}
+.toc a{color:#3366cc;text-decoration:none;font-weight:500}
+.toc a:hover{text-decoration:underline}
+
+/* ── Section ───────────────────────────────── */
+section.chapter{background:#fff;border:1px solid #e5e7eb;border-radius:16px;
+  padding:32px;margin-top:28px;scroll-margin-top:20px}
+section.chapter h2{font-size:1.35rem;font-weight:700;color:#1c1f26;
+  border-bottom:2px solid #3366cc;padding-bottom:8px;margin-bottom:20px}
+section.chapter h3{font-size:1.08rem;font-weight:600;margin:22px 0 10px;color:#2952a3}
+section.chapter h4{font-size:.98rem;font-weight:600;margin:16px 0 8px;color:#4b5563}
+p,li{line-height:1.8}
+ul,ol{padding-left:22px;margin:8px 0 16px}
+li{margin-bottom:4px}
+
+/* ── Mockup (CSS UI Preview) ───────────────── */
+.mockup{border:1px solid #d1d5db;border-radius:12px;overflow:hidden;margin:16px 0;
+  background:#f5f6f8;font-size:13px}
+.mockup-bar{background:#fff;border-bottom:1px solid #e5e7eb;padding:8px 16px;
+  display:flex;align-items:center;gap:8px}
+.mockup-bar .dot{width:10px;height:10px;border-radius:50%;display:inline-block}
+.mockup-bar .dot.r{background:#ff5f57}.mockup-bar .dot.y{background:#febd2f}.mockup-bar .dot.g{background:#28c841}
+.mockup-bar .url{flex:1;background:#f5f6f8;border:1px solid #e5e7eb;border-radius:6px;
+  padding:4px 10px;font-size:12px;color:#6b7280;margin-left:8px}
+.mockup-body{padding:20px}
+
+/* Nav mockup */
+.mock-nav{display:flex;gap:6px;flex-wrap:wrap;padding:10px 16px;background:#fff;
+  border-bottom:1px solid #e5e7eb}
+.mock-nav span{font-size:12px;padding:4px 10px;border-radius:6px;color:#4b5563;cursor:default}
+.mock-nav span.active{background:#3366cc;color:#fff;font-weight:600}
+
+/* KPI cards */
+.mock-kpi-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin:12px 0}
+.mock-kpi{background:#fff;border:1px solid #e5e7eb;border-radius:10px;padding:12px 14px}
+.mock-kpi .label{font-size:11px;color:#6b7280;margin-bottom:2px}
+.mock-kpi .value{font-size:1.15rem;font-weight:700}
+.mock-kpi .value.positive{color:#0d9668}
+.mock-kpi .value.negative{color:#d63031}
+
+/* Form mockup */
+.mock-form{background:#fff;border:1px solid #e5e7eb;border-radius:10px;padding:16px;margin:12px 0}
+.mock-form .field{margin-bottom:10px}
+.mock-form .field label{display:block;font-size:12px;color:#6b7280;margin-bottom:3px;font-weight:600}
+.mock-form .field .input{width:100%;border:1px solid #d1d5db;border-radius:6px;padding:6px 10px;
+  background:#fff;font-size:12px;color:#999}
+.mock-form .field select{width:100%;border:1px solid #d1d5db;border-radius:6px;padding:6px 10px;
+  background:#fff;font-size:12px;color:#1c1f26}
+.mock-btn{display:inline-block;padding:7px 18px;border-radius:8px;font-size:12px;
+  font-weight:600;border:none;cursor:default}
+.mock-btn.primary{background:#3366cc;color:#fff}
+.mock-btn.danger{background:#fff;color:#d63031;border:1px solid #d63031}
+.mock-btn.subtle{background:#f0f1f3;color:#4b5563}
+
+/* Table mockup */
+.mock-table{width:100%;border-collapse:collapse;font-size:12px;margin:10px 0}
+.mock-table th{text-align:left;padding:8px 10px;border-bottom:2px solid #d6d9e0;
+  color:#4b5563;font-weight:600;font-size:11px}
+.mock-table td{padding:8px 10px;border-bottom:1px solid #e5e7eb}
+.mock-table tr:nth-child(even){background:#fafbfc}
+.mock-table .right{text-align:right}
+.mock-table .center{text-align:center}
+
+/* Chart placeholder */
+.mock-chart{background:linear-gradient(135deg,#eef1f8 0%,#f5f6f8 100%);
+  border:1px dashed #d1d5db;border-radius:10px;height:160px;display:flex;
+  align-items:center;justify-content:center;color:#6b7280;font-size:13px;margin:12px 0}
+
+/* Tab mockup */
+.mock-tabs{display:flex;gap:0;border-bottom:2px solid #e5e7eb;margin-bottom:14px}
+.mock-tabs span{padding:8px 16px;font-size:12px;font-weight:600;color:#6b7280;cursor:default;
+  border-bottom:2px solid transparent;margin-bottom:-2px}
+.mock-tabs span.active{color:#3366cc;border-bottom-color:#3366cc}
+
+/* Chat mockup */
+.mock-chat{max-height:220px;overflow-y:auto;display:flex;flex-direction:column;gap:8px;margin:12px 0}
+.mock-bubble{max-width:75%;padding:10px 14px;border-radius:12px;font-size:12px;line-height:1.6}
+.mock-bubble.user{align-self:flex-end;background:#eef1f8;border:1px solid #c9d1e3}
+.mock-bubble.assistant{align-self:flex-start;background:#f7f8fa;border:1px solid #e5e7eb}
+
+/* Progress bar */
+.mock-progress{background:#e5e7eb;border-radius:6px;height:10px;overflow:hidden;margin:6px 0}
+.mock-progress-fill{height:100%;border-radius:6px}
+
+/* Badge */
+.badge{display:inline-block;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:600}
+.badge.blue{background:#dbeafe;color:#1d4ed8}
+.badge.green{background:#dcfce7;color:#166534}
+.badge.orange{background:#ffedd5;color:#9a3412}
+.badge.red{background:#fee2e2;color:#991b1b}
+
+/* Info box */
+.info-box{background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;padding:14px 18px;
+  margin:14px 0;font-size:.92rem}
+.info-box.warn{background:#fffbeb;border-color:#fcd34d}
+.info-box.tip{background:#f0fdf4;border-color:#86efac}
+.info-box strong{display:block;margin-bottom:4px}
+
+/* Keyboard shortcut */
+kbd{display:inline-block;background:#f5f6f8;border:1px solid #d1d5db;border-radius:4px;
+  padding:1px 6px;font-size:12px;font-family:monospace;color:#374151}
+
+/* Footer */
+.doc-footer{text-align:center;padding:32px 0;color:#6b7280;font-size:.85rem}
+
+/* Responsive */
+@media(max-width:600px){
+  .wrap{padding:16px 12px 60px}
+  header.doc-header{padding:32px 20px;border-radius:0 0 16px 16px}
+  header.doc-header h1{font-size:1.5rem}
+  section.chapter{padding:20px 16px}
+  .mock-kpi-row{grid-template-columns:1fr 1fr}
+}
+</style>
+</head>
+<body>
+
+<header class="doc-header">
+  <h1>📊 자산관리 앱 — 사용자 설명서</h1>
+  <p>개인 자산·수입·지출·부채를 종합 관리하고 미래 자산을 시뮬레이션하세요</p>
+  <p style="opacity:.65;font-size:.85rem;margin-top:8px">문서 버전 1.0 | 2025년 2월</p>
+</header>
+
+<div class="wrap">
+
+<!-- ═══════════════════════════════════════════ TOC ═══════════════════════════════════════════ -->
+<nav class="toc" id="toc">
+  <h2>📑 목차</h2>
+  <ol>
+    <li><a href="#overview">앱 개요 및 시작하기</a></li>
+    <li><a href="#home">홈 화면</a></li>
+    <li><a href="#profile">설정 (프로파일)</a></li>
+    <li><a href="#assets">자산 관리</a></li>
+    <li><a href="#pensions">연금 관리</a></li>
+    <li><a href="#incomes">수입 관리</a></li>
+    <li><a href="#expenses">지출 관리</a></li>
+    <li><a href="#liabilities">부채 관리</a></li>
+    <li><a href="#goal-funds">목적자금</a></li>
+    <li><a href="#education">자산 시뮬레이션</a></li>
+    <li><a href="#ai-advisor">AI 상담</a></li>
+    <li><a href="#dashboard">통합 대시보드</a></li>
+    <li><a href="#settlement">정산 시스템 안내</a></li>
+    <li><a href="#tips">활용 팁 & FAQ</a></li>
+  </ol>
+</nav>
+
+<!-- ═══════════════════════════════════ 1. 앱 개요 ═══════════════════════════════════ -->
+<section class="chapter" id="overview">
+  <h2>1. 앱 개요 및 시작하기</h2>
+
+  <h3>앱이 제공하는 기능</h3>
+  <ul>
+    <li><strong>자산/연금/부채</strong> 등록 및 현황 집계</li>
+    <li><strong>수입/지출</strong> 기록 및 월별 정산(마감)</li>
+    <li><strong>목적자금</strong> 저축 목표 추적 (진행률 시각화)</li>
+    <li><strong>통합 대시보드</strong> — 순자산 추이, 카테고리 비중 차트</li>
+    <li><strong>자산 시뮬레이션</strong> — 교육비·포트폴리오 기반 미래 자산 예측</li>
+    <li><strong>AI 재무 상담</strong> — 내 재무 데이터를 기반으로 맞춤 조언</li>
+  </ul>
+
+  <h3>로그인</h3>
+  <p>Microsoft 또는 GitHub 계정으로 로그인합니다. <strong>설정</strong> 페이지 상단의 로그인 버튼을 사용하세요.</p>
+
+  <div class="info-box">
+    <strong>💡 권장 시작 순서</strong>
+    ① 설정에서 프로파일 입력 → ② 자산 등록 → ③ 수입/지출 기록 → ④ 부채 등록 → ⑤ 대시보드 확인
+  </div>
+
+  <h3>네비게이션</h3>
+  <p>상단 헤더에 모든 메뉴가 표시됩니다. 오른쪽 상단의 🌙/☀️ 아이콘으로 다크 모드/라이트 모드를 전환할 수 있습니다.</p>
+
+  <!-- Nav mockup -->
+  <div class="mockup">
+    <div class="mockup-bar">
+      <span class="dot r"></span><span class="dot y"></span><span class="dot g"></span>
+      <span class="url">https://your-app.azurestaticapps.net</span>
+    </div>
+    <div class="mock-nav">
+      <span class="active">홈</span>
+      <span>대시보드</span>
+      <span>자산</span>
+      <span>연금관리</span>
+      <span>목적자금</span>
+      <span>수입</span>
+      <span>지출</span>
+      <span>부채</span>
+      <span>자산시뮬레이션</span>
+      <span>AI 상담</span>
+      <span>설정</span>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════ 2. 홈 ═══════════════════════════════════ -->
+<section class="chapter" id="home">
+  <h2>2. 홈 화면</h2>
+  <p>앱을 열면 가장 먼저 보이는 화면입니다. 한눈에 재무 현황을 파악하고 각 메뉴로 빠르게 이동할 수 있습니다.</p>
+
+  <h3>핵심 지표 카드 (KPI)</h3>
+  <div class="mockup">
+    <div class="mockup-body">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px">
+        <div>
+          <div style="font-size:1.15rem;font-weight:700">홍길동 자산관리 홈</div>
+          <div style="font-size:12px;color:#6b7280;margin-top:2px">자산/수입/지출/부채를 입력하고 순자산과 현금흐름을 바로 확인하세요.</div>
+        </div>
+        <div style="text-align:right">
+          <div style="font-size:1.8rem;font-weight:800;line-height:1">18</div>
+          <div style="font-size:12px;color:#6b7280;letter-spacing:2px">2025년 2월</div>
+        </div>
+      </div>
+      <div class="mock-kpi-row">
+        <div class="mock-kpi"><div class="label">총 자산(연금 제외)</div><div class="value">5.2억</div></div>
+        <div class="mock-kpi"><div class="label">총 자산(연금 포함)</div><div class="value">6.8억</div></div>
+        <div class="mock-kpi"><div class="label">보유현금(자유 입/출금)</div><div class="value">8,500만</div></div>
+        <div class="mock-kpi"><div class="label">주식자산(미장/국장)</div><div class="value">2.1억</div></div>
+        <div class="mock-kpi"><div class="label">총 부채</div><div class="value negative">3.2억</div></div>
+        <div class="mock-kpi"><div class="label">순자산</div><div class="value positive">3.6억</div></div>
+        <div class="mock-kpi"><div class="label">월 지출(환산)</div><div class="value">380만</div></div>
+        <div class="mock-kpi"><div class="label">월 수입(환산)</div><div class="value">720만</div></div>
+        <div class="mock-kpi"><div class="label">월 잉여자금</div><div class="value positive">340만</div></div>
+        <div class="mock-kpi"><div class="label">월 순현금흐름(정산)</div><div class="value positive">285만</div></div>
+        <div class="mock-kpi"><div class="label">월 투자이체(정산)</div><div class="value">150만</div></div>
+      </div>
+    </div>
+  </div>
+
+  <h4>카드 설명</h4>
+  <ul>
+    <li><strong>총 자산(연금 제외/포함)</strong> — 등록한 모든 자산의 합계. 연금은 별도 집계합니다.</li>
+    <li><strong>보유현금</strong> — 현금 + 예적금 카테고리 합산</li>
+    <li><strong>월 순현금흐름(정산)</strong> — 실제 월마감 기준으로 수입 - 생활지출. 기준월을 변경할 수 있습니다.</li>
+    <li><strong>월 투자이체</strong> — 투자·저축 목적으로 이체한 금액 (지출에서 "투자이체" 체크된 항목)</li>
+  </ul>
+
+  <h3>빠른 실행 & 상위 자산</h3>
+  <p>화면 하단에는 <strong>빠른 실행</strong> 카드(9개 메뉴 바로가기)와 <strong>상위 자산 TOP 5</strong> 목록이 표시됩니다.</p>
+</section>
+
+<!-- ═══════════════════════════════════ 3. 설정 ═══════════════════════════════════ -->
+<section class="chapter" id="profile">
+  <h2>3. 설정 (프로파일)</h2>
+  <p>가장 먼저 설정해야 하는 페이지입니다. 입력한 정보는 AI 상담, 시뮬레이션, 홈 화면 인사말 등에 활용됩니다.</p>
+
+  <h3>인증</h3>
+  <p>Microsoft 또는 GitHub 계정으로 로그인/로그아웃합니다.</p>
+
+  <h3>4개 탭 구조</h3>
+  <div class="mockup">
+    <div class="mockup-body">
+      <div class="mock-tabs">
+        <span class="active">본인</span>
+        <span>배우자</span>
+        <span>자녀</span>
+        <span>기본설정</span>
+      </div>
+      <div class="mock-form">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+          <div class="field"><label>이름</label><div class="input">홍길동</div></div>
+          <div class="field"><label>생년월일</label><div class="input">1985-03-15</div></div>
+          <div class="field"><label>직장명</label><div class="input">Microsoft</div></div>
+          <div class="field"><label>직무/직급</label><div class="input">Senior Software Engineer</div></div>
+          <div class="field"><label>직장 기본급(연)</label><div class="input">120,000,000</div></div>
+          <div class="field"><label>연간 보너스</label><div class="input">15,000,000</div></div>
+          <div class="field"><label>연간 RSU(원화 환산)</label><div class="input">20,000,000</div></div>
+          <div class="field"><label>은퇴 목표 연령</label><div class="input">60</div></div>
+        </div>
+        <div style="margin-top:12px"><span class="mock-btn primary">프로파일 저장</span></div>
+      </div>
+    </div>
+  </div>
+
+  <h4>본인 탭</h4>
+  <table class="mock-table">
+    <thead><tr><th>항목</th><th>설명</th></tr></thead>
+    <tbody>
+      <tr><td>이름</td><td>홈 화면 인사말에 표시됩니다</td></tr>
+      <tr><td>생년월일</td><td>은퇴 시뮬레이션에 사용</td></tr>
+      <tr><td>직장명 / 직무</td><td>AI 상담 컨텍스트에 활용</td></tr>
+      <tr><td>기본급(연) / 추가지급 / 보너스 / RSU</td><td>총 보상을 구성하는 항목들. 수입 페이지 월환산에 사용</td></tr>
+      <tr><td>RSU 주식수 / 베스팅 시가(USD) / 주기</td><td>RSU 관련 상세 정보</td></tr>
+      <tr><td>연봉 상승률(%)</td><td>미래 소득 예측에 사용</td></tr>
+      <tr><td>은퇴 목표 연령</td><td>45~90세 범위</td></tr>
+    </tbody>
+  </table>
+
+  <h4>배우자 탭</h4>
+  <p>배우자의 이름, 생년월일, 직장정보, 연소득, 은퇴목표연령을 입력합니다.</p>
+
+  <h4>자녀 탭</h4>
+  <p>자녀 2명까지의 이름, 생년월일, 예상 대학 진학년도를 입력합니다. 교육비 시뮬레이션에 자동 반영됩니다.</p>
+
+  <h4>기본설정 탭</h4>
+  <p>가구원 수와 통화(기본: KRW)를 설정합니다.</p>
+</section>
+
+<!-- ═══════════════════════════════════ 4. 자산 ═══════════════════════════════════ -->
+<section class="chapter" id="assets">
+  <h2>4. 자산 관리</h2>
+  <p>현금, 예적금, 주식(국내/미국), 자동차, 부동산 등 연금을 제외한 모든 자산을 관리합니다.</p>
+
+  <h3>자산 등록 폼</h3>
+  <div class="mockup">
+    <div class="mockup-body">
+      <div style="font-weight:700;margin-bottom:10px">▼ 자산 등록</div>
+      <div class="mock-form">
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px">
+          <span class="mock-btn subtle">현금</span>
+          <span class="mock-btn subtle">예적금</span>
+          <span class="mock-btn primary">국내주식</span>
+          <span class="mock-btn subtle">미국주식</span>
+          <span class="mock-btn subtle">자동차</span>
+          <span class="mock-btn subtle">부동산</span>
+          <span class="mock-btn subtle">기타</span>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">
+          <div class="field"><label>자산명</label><div class="input">삼성전자</div></div>
+          <div class="field"><label>수량</label><div class="input">100</div></div>
+          <div class="field"><label>단가</label><div class="input">72,000</div></div>
+          <div class="field"><label>현재가치</label><div class="input">7,200,000 (자동계산)</div></div>
+          <div class="field"><label>평가기준일</label><div class="input">2025-02-18</div></div>
+          <div class="field"><label>소유자</label>
+            <select><option>본인</option></select>
+          </div>
+        </div>
+        <div style="margin-top:12px;display:flex;gap:8px">
+          <span class="mock-btn primary">자산 저장</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <h4>카테고리별 입력 차이</h4>
+  <table class="mock-table">
+    <thead><tr><th>카테고리</th><th>추가 입력 항목</th></tr></thead>
+    <tbody>
+      <tr><td>국내주식</td><td>종목 티커, 수량, 단가 → 현재가치 자동계산</td></tr>
+      <tr><td>미국주식</td><td>티커, USD 금액, 환율(자동 조회 가능), 수량, 단가</td></tr>
+      <tr><td>자동차</td><td>연식(년도)</td></tr>
+      <tr><td>현금 / 예적금 / 부동산 / 기타</td><td>현재가치 직접 입력</td></tr>
+    </tbody>
+  </table>
+
+  <h4>빠른 프리셋</h4>
+  <p>카테고리 선택 후 <strong>프리셋 버튼</strong>을 누르면 자산명이 자동 입력됩니다. 예: 국내주식 → "삼성전자", "KODEX 200" 등</p>
+
+  <h3>카테고리별 요약 테이블</h3>
+  <div class="mockup">
+    <div class="mockup-body">
+      <table class="mock-table">
+        <thead><tr><th>카테고리</th><th class="right">건수</th><th class="right">합계</th><th class="right">비중</th></tr></thead>
+        <tbody>
+          <tr><td>🏠 부동산</td><td class="right">1</td><td class="right">4.5억</td><td class="right">62.5%</td></tr>
+          <tr><td>📈 국내주식</td><td class="right">3</td><td class="right">1.2억</td><td class="right">16.7%</td></tr>
+          <tr><td>🇺🇸 미국주식</td><td class="right">2</td><td class="right">9,000만</td><td class="right">12.5%</td></tr>
+          <tr><td>💰 현금</td><td class="right">2</td><td class="right">6,000만</td><td class="right">8.3%</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <h3>자산 트리맵 차트</h3>
+  <p>자산 규모를 면적 비례로 시각화합니다. <strong>"전체 자산"</strong>과 <strong>"주식만"</strong>(국내/미국 비교) 두 가지 뷰를 토글할 수 있습니다.</p>
+  <div class="mock-chart">📊 트리맵 차트 — 자산을 면적 비례로 시각화</div>
+
+  <h3>자산 목록 테이블</h3>
+  <p>등록된 모든 자산이 테이블로 표시됩니다. 각 행에서 <strong>수정</strong>(폼에 값이 채워짐) / <strong>삭제</strong>(확인 후 삭제)할 수 있습니다.</p>
+
+  <div class="info-box tip">
+    <strong>💡 팁: 미국주식 환율 자동 조회</strong>
+    미국주식 카테고리 선택 시 "환율 조회" 버튼을 누르면 실시간 USD→KRW 환율이 자동 입력됩니다.
+    수동으로 수정도 가능합니다.
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════ 5. 연금 ═══════════════════════════════════ -->
+<section class="chapter" id="pensions">
+  <h2>5. 연금 관리</h2>
+  <p>국민연금, 개인연금, 퇴직연금(IPA), 공무원연금 등 연금 자산을 별도로 관리합니다.</p>
+
+  <h3>연금 유형</h3>
+  <table class="mock-table">
+    <thead><tr><th>유형</th><th>설명</th></tr></thead>
+    <tbody>
+      <tr><td>국민연금</td><td>국가 기본 연금</td></tr>
+      <tr><td>개인연금</td><td>개인이 가입한 연금보험/펀드</td></tr>
+      <tr><td>퇴직연금(IPA)</td><td>기업 퇴직연금 적립금</td></tr>
+      <tr><td>공무원연금</td><td>공무원/교원 등 공적 연금</td></tr>
+    </tbody>
+  </table>
+
+  <h3>입력 항목</h3>
+  <p>연금명, 현재 평가액, 월 납입액, 수령 시작 연령(40~100세), 수령 시작 시기(월), 평가기준일, 메모, 소유자</p>
+
+  <h3>연금 현황 요약</h3>
+  <div class="mockup">
+    <div class="mockup-body">
+      <div class="mock-kpi-row">
+        <div class="mock-kpi"><div class="label">총 연금자산</div><div class="value">1.6억</div></div>
+        <div class="mock-kpi"><div class="label">국민연금</div><div class="value">4,500만 (28%)</div></div>
+        <div class="mock-kpi"><div class="label">개인연금</div><div class="value">3,200만</div></div>
+        <div class="mock-kpi"><div class="label">퇴직연금</div><div class="value">5,800만</div></div>
+        <div class="mock-kpi"><div class="label">공무원연금</div><div class="value">2,500만</div></div>
+      </div>
+      <div class="mock-chart">🍩 도넛 차트 — 연금 유형별 비중</div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════ 6. 수입 ═══════════════════════════════════ -->
+<section class="chapter" id="incomes">
+  <h2>6. 수입 관리</h2>
+  <p>월급, 부수입, 일회성 소득 등을 기록하고 월별 정산합니다.</p>
+
+  <h3>수입 등록 폼</h3>
+  <div class="mockup">
+    <div class="mockup-body">
+      <div class="mock-form">
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">
+          <div class="field"><label>수입명</label><div class="input">월급</div></div>
+          <div class="field"><label>금액</label><div class="input">5,400,000</div></div>
+          <div class="field"><label>주기</label>
+            <select><option>월</option><option>연</option><option>일회성</option></select>
+          </div>
+          <div class="field"><label>고정수입 템플릿</label><div class="input">☑ 매월 자동발생</div></div>
+          <div class="field"><label>결제일</label><div class="input">25</div></div>
+          <div class="field"><label>소유자</label>
+            <select><option>본인</option></select>
+          </div>
+        </div>
+        <div style="margin-top:12px"><span class="mock-btn primary">수입 저장</span></div>
+      </div>
+    </div>
+  </div>
+
+  <h4>주요 입력 항목</h4>
+  <table class="mock-table">
+    <thead><tr><th>항목</th><th>설명</th></tr></thead>
+    <tbody>
+      <tr><td>고정수입 템플릿</td><td>체크하면 매월 정산 시 자동으로 해당 수입이 생성됩니다</td></tr>
+      <tr><td>결제일</td><td>고정 월 수입의 입금일 (1~31일)</td></tr>
+      <tr><td>유동자산 반영</td><td>체크하면 정산 시 현금 자산에 자동 반영</td></tr>
+      <tr><td>카테고리</td><td>급여, 부수입, 투자수익 등 분류</td></tr>
+    </tbody>
+  </table>
+
+  <h3>월별 수입 집계</h3>
+  <div class="mockup">
+    <div class="mockup-body">
+      <div class="mock-kpi-row">
+        <div class="mock-kpi"><div class="label">자동등록(고정)</div><div class="value">540만</div></div>
+        <div class="mock-kpi"><div class="label">수동등록(변동)</div><div class="value">85만</div></div>
+        <div class="mock-kpi"><div class="label">이번 달 합계</div><div class="value positive">625만</div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="info-box">
+    <strong>🔄 정산 시스템</strong>
+    월마감을 하면 고정 수입 템플릿으로부터 자동으로 수입 항목이 생성됩니다.
+    자세한 내용은 <a href="#settlement">정산 시스템 안내</a>를 참고하세요.
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════ 7. 지출 ═══════════════════════════════════ -->
+<section class="chapter" id="expenses">
+  <h2>7. 지출 관리</h2>
+  <p>카드 결제, 고정/구독 지출, 일회성 비용, 투자·저축 이체를 종합 관리합니다.</p>
+
+  <h3>3가지 입력 모드</h3>
+  <div class="mockup">
+    <div class="mockup-body">
+      <div class="mock-tabs">
+        <span class="active">카드값 간편입력</span>
+        <span>일반 지출 입력</span>
+        <span>투자·저축 이체</span>
+      </div>
+    </div>
+  </div>
+
+  <h4>① 카드값 간편입력</h4>
+  <p>카드사(삼성/현대/신한/KB/롯데/우리/하나/NH/BC)를 선택하고, 결제금액과 출금일만 입력하면 됩니다.
+     카테고리가 자동으로 "카드대금"으로 설정되고 유동자산에서 자동 차감됩니다.</p>
+
+  <div class="mockup">
+    <div class="mockup-body">
+      <div class="mock-form">
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">
+          <div class="field"><label>카드사</label>
+            <select><option>삼성카드</option></select>
+          </div>
+          <div class="field"><label>결제금액</label><div class="input">1,250,000</div></div>
+          <div class="field"><label>출금일</label><div class="input">2025-02-15</div></div>
+        </div>
+        <div style="margin-top:10px"><span class="mock-btn primary">카드값 등록</span></div>
+      </div>
+    </div>
+  </div>
+
+  <h4>② 일반 지출 입력</h4>
+  <p>지출명, 금액, 유형(고정/구독/일회성), 주기, 결제일, 카드포함 여부, 카테고리, 소유자 등을 입력합니다.</p>
+
+  <h4>③ 투자·저축 이체</h4>
+  <p>투자/저축 목적의 이체를 기록합니다. 유형이 자동으로 "고정", 주기 "월"로 설정됩니다.
+     목적자금과 연동 가능하며, 투자 대상 카테고리(주식/연금/예적금 등)를 선택합니다.</p>
+
+  <h3>월별 지출 분석</h3>
+  <div class="mockup">
+    <div class="mockup-body">
+      <div class="mock-kpi-row">
+        <div class="mock-kpi"><div class="label">카드값 합계</div><div class="value">285만</div></div>
+        <div class="mock-kpi"><div class="label">자동경상(非카드)</div><div class="value">42만</div></div>
+        <div class="mock-kpi"><div class="label">수동/일회성</div><div class="value">18만</div></div>
+        <div class="mock-kpi"><div class="label">소비 합계</div><div class="value negative">345만</div></div>
+        <div class="mock-kpi"><div class="label">투자이체</div><div class="value">150만</div></div>
+      </div>
+    </div>
+  </div>
+
+  <h4>카드사별 비교 테이블</h4>
+  <p>카드사별로 이번 달 vs 지난 달 결제 금액을 비교하고 증감(△)을 확인합니다.</p>
+
+  <h3>지출 목록</h3>
+  <p>두 개의 테이블로 구분됩니다:</p>
+  <ul>
+    <li><strong>반복 지출</strong> — 고정/구독 항목 (매월 자동발생하는 것들)</li>
+    <li><strong>실적 지출</strong> — 실제 발생한 일회성 항목</li>
+  </ul>
+</section>
+
+<!-- ═══════════════════════════════════ 8. 부채 ═══════════════════════════════════ -->
+<section class="chapter" id="liabilities">
+  <h2>8. 부채 관리</h2>
+  <p>주택담보, 신용대출, 학자금, 전세보증금, 자동차할부, 카드론 등 모든 부채를 기록합니다.</p>
+
+  <h3>입력 항목</h3>
+  <div class="mockup">
+    <div class="mockup-body">
+      <div class="mock-form">
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">
+          <div class="field"><label>부채명</label><div class="input">주택담보대출</div></div>
+          <div class="field"><label>잔액</label><div class="input">320,000,000</div></div>
+          <div class="field"><label>카테고리</label>
+            <select><option>주택담보</option></select>
+          </div>
+          <div class="field"><label>금리(%)</label><div class="input">3.5</div></div>
+          <div class="field"><label>상환방식</label>
+            <select><option>원리금균등</option><option>원금균등</option><option>만기일시</option><option>거치식</option></select>
+          </div>
+          <div class="field"><label>월 상환액</label><div class="input">1,450,000</div></div>
+          <div class="field"><label>대출시작일</label><div class="input">2022-03-01</div></div>
+          <div class="field"><label>만기일</label><div class="input">2052-03-01</div></div>
+          <div class="field"><label>대출기간(개월)</label><div class="input">360</div></div>
+        </div>
+        <div style="margin-top:12px"><span class="mock-btn primary">부채 저장</span></div>
+      </div>
+    </div>
+  </div>
+
+  <h3>부채 현황 요약</h3>
+  <div class="mockup">
+    <div class="mockup-body">
+      <div class="mock-kpi-row">
+        <div class="mock-kpi"><div class="label">총 부채</div><div class="value negative">3.2억</div></div>
+        <div class="mock-kpi"><div class="label">월 상환 합계</div><div class="value">182만</div></div>
+        <div class="mock-kpi"><div class="label">가중평균 금리</div><div class="value">3.8%</div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════ 9. 목적자금 ═══════════════════════════════════ -->
+<section class="chapter" id="goal-funds">
+  <h2>9. 목적자금</h2>
+  <p>여행, 전세 대출 상환, 교육비 등 목표 금액을 세우고 진행 상황을 추적합니다.</p>
+
+  <h3>목적자금 등록</h3>
+  <table class="mock-table">
+    <thead><tr><th>항목</th><th>설명</th></tr></thead>
+    <tbody>
+      <tr><td>목적자금명</td><td>예: "유럽 여행", "전세 보증금"</td></tr>
+      <tr><td>기간구분</td><td>단기(~6개월) / 중기(6~24개월) / 장기(24개월~)</td></tr>
+      <tr><td>투자수단</td><td>적금, 정기예금, ETF, 주식, 펀드, 가상자산, 현금, 기타</td></tr>
+      <tr><td>목표금액</td><td>달성하려는 금액</td></tr>
+      <tr><td>현재금액</td><td>현재까지 모은 금액</td></tr>
+      <tr><td>월 적립액</td><td>매월 저축하는 금액</td></tr>
+      <tr><td>목표일</td><td>달성 목표 날짜</td></tr>
+      <tr><td>상태</td><td>진행중 / 일시정지 / 완료 / 취소</td></tr>
+    </tbody>
+  </table>
+
+  <h3>목적자금 카드 뷰</h3>
+  <p>기간별(단기→중기→장기)로 그룹화되어 카드 형태로 표시됩니다.</p>
+
+  <div class="mockup">
+    <div class="mockup-body">
+      <div style="display:flex;gap:8px;margin-bottom:12px">
+        <span class="mock-btn primary">전체</span>
+        <span class="mock-btn subtle">단기</span>
+        <span class="mock-btn subtle">중기</span>
+        <span class="mock-btn subtle">장기</span>
+      </div>
+      <div style="border:1px solid #e5e7eb;border-radius:10px;padding:14px;background:#fff">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+          <span style="font-weight:700">유럽 가족여행</span>
+          <span class="badge green">진행중</span>
+        </div>
+        <div class="mock-progress">
+          <div class="mock-progress-fill" style="width:65%;background:#3b82f6"></div>
+        </div>
+        <div style="display:flex;justify-content:space-between;font-size:12px;color:#6b7280;margin-top:4px">
+          <span>650만 / 1,000만</span>
+          <span>65%</span>
+        </div>
+        <div style="font-size:11px;color:#6b7280;margin-top:6px">
+          <span class="badge blue">ETF</span> · 목표일: 2025-07-01 · 월 적립: 100만
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <h4>월별 적립 기록</h4>
+  <p>각 목적자금 카드를 펼치면 월별 납입 기록을 확인하고 수동으로 추가/삭제할 수 있습니다. 
+     지출 페이지의 "투자이체"에서 목적자금을 연동하면 <span class="badge blue">지출연동</span> 표시됩니다.</p>
+</section>
+
+<!-- ═══════════════════════════════════ 10. 시뮬레이션 ═══════════════════════════════════ -->
+<section class="chapter" id="education">
+  <h2>10. 자산 시뮬레이션</h2>
+  <p>교육비 계획과 포트폴리오 수익률을 반영한 미래 자산 예측 시뮬레이터입니다.</p>
+
+  <h3>자녀 교육 정보</h3>
+  <p>설정 페이지에서 입력한 자녀 정보(이름, 생년월일, 예상 대학 진학년도)가 자동으로 반영됩니다.</p>
+
+  <h3>교육비 계획 등록</h3>
+  <div class="mockup">
+    <div class="mockup-body">
+      <div class="mock-form">
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr auto;gap:10px;align-items:end">
+          <div class="field"><label>자녀</label>
+            <select><option>자녀1</option></select>
+          </div>
+          <div class="field"><label>연간비용</label><div class="input">10,000,000</div></div>
+          <div class="field"><label>물가상승률</label><div class="input">0.03</div></div>
+          <div class="field"><label>종료연도</label><div class="input">2041</div></div>
+          <span class="mock-btn primary">계획 추가</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <h3>자산 시나리오 시뮬레이터</h3>
+  <p>현재 순자산, 월 저축/투자 금액, 포트폴리오 옵션(보수형/중립형/공격형/사용자정의)을 설정하고 시뮬레이션을 실행합니다.</p>
+
+  <h4>포트폴리오 옵션</h4>
+  <table class="mock-table">
+    <thead><tr><th>옵션</th><th>현금</th><th>채권</th><th>국내주식</th><th>미국주식</th><th>연금</th><th>예상 수익률</th></tr></thead>
+    <tbody>
+      <tr><td>보수형</td><td>25%</td><td>45%</td><td>15%</td><td>10%</td><td>5%</td><td>~3.5%</td></tr>
+      <tr><td>중립형</td><td>10%</td><td>30%</td><td>25%</td><td>25%</td><td>10%</td><td>~5.5%</td></tr>
+      <tr><td>공격형</td><td>5%</td><td>15%</td><td>35%</td><td>35%</td><td>10%</td><td>~6.7%</td></tr>
+      <tr><td>사용자 정의</td><td colspan="6">각 비중을 직접 설정 (합계 100%)</td></tr>
+    </tbody>
+  </table>
+
+  <h3>시뮬레이션 결과</h3>
+  <div class="mockup">
+    <div class="mockup-body">
+      <div class="mock-kpi-row">
+        <div class="mock-kpi"><div class="label">최종 예상 자산</div><div class="value positive">18.5억</div></div>
+        <div class="mock-kpi"><div class="label">총 납입(저축+투자)</div><div class="value">5.4억</div></div>
+        <div class="mock-kpi"><div class="label">총 교육비 반영액</div><div class="value negative">1.2억</div></div>
+        <div class="mock-kpi"><div class="label">총 투자 성장액</div><div class="value positive">7.9억</div></div>
+      </div>
+      <div style="font-size:12px;color:#6b7280;margin-top:8px">
+        연도별 계산식: (연초자산 + 연간납입 - 연간교육비) × (1 + 예상연수익률)
+      </div>
+      <table class="mock-table" style="margin-top:10px">
+        <thead><tr><th>연도</th><th class="right">연초자산</th><th class="right">연간납입</th><th class="right">교육비</th><th class="right">성장액</th><th class="right">연말자산</th></tr></thead>
+        <tbody>
+          <tr><td>2025</td><td class="right">3.6억</td><td class="right">2,880만</td><td class="right">1,000만</td><td class="right">1,804만</td><td class="right">4.1억</td></tr>
+          <tr><td>2026</td><td class="right">4.1억</td><td class="right">2,880만</td><td class="right">1,030만</td><td class="right">2,232만</td><td class="right">4.7억</td></tr>
+          <tr><td>…</td><td class="right">…</td><td class="right">…</td><td class="right">…</td><td class="right">…</td><td class="right">…</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════ 11. AI 상담 ═══════════════════════════════════ -->
+<section class="chapter" id="ai-advisor">
+  <h2>11. AI 상담 (Mr. Money)</h2>
+  <p>GPT 기반 AI 재무 상담 기능입니다. 등록한 자산, 수입, 지출, 프로파일 데이터를 자동으로 참조하여 맞춤 조언을 제공합니다.</p>
+
+  <h3>화면 구성</h3>
+  <div class="mockup">
+    <div class="mockup-body" style="display:grid;grid-template-columns:200px 1fr;gap:0;min-height:200px">
+      <!-- Sidebar -->
+      <div style="border-right:1px solid #e5e7eb;padding:10px;background:#fafbfc">
+        <div style="font-size:12px;font-weight:700;margin-bottom:8px">대화 목록</div>
+        <div style="padding:6px 8px;background:#eef1f8;border-radius:6px;font-size:11px;margin-bottom:4px;cursor:default">
+          ETF 포트폴리오 상담
+        </div>
+        <div style="padding:6px 8px;font-size:11px;color:#6b7280;margin-bottom:4px;cursor:default">
+          은퇴 자금 계획
+        </div>
+        <div style="padding:6px 8px;font-size:11px;color:#6b7280;margin-bottom:4px;cursor:default">
+          부채 상환 전략
+        </div>
+        <div style="margin-top:10px"><span class="mock-btn primary" style="width:100%;text-align:center;display:block;font-size:11px">+ 새 대화</span></div>
+      </div>
+      <!-- Chat area -->
+      <div style="padding:10px">
+        <div class="mock-chat">
+          <div class="mock-bubble assistant">
+            안녕하세요! 재무 상담사 Mr. Money입니다. 😊<br>
+            현재 순자산 3.6억, 월 잉여 340만원 기준으로 상담해 드리겠습니다.
+          </div>
+          <div class="mock-bubble user">
+            미국 주식 ETF 비중을 늘리고 싶은데 어떻게 하면 좋을까요?
+          </div>
+          <div class="mock-bubble assistant">
+            현재 미국주식 비중이 12.5%입니다. 장기 투자 관점에서 25~30%까지 확대하는 것을 고려해 볼 수 있습니다…
+          </div>
+        </div>
+        <div style="display:flex;gap:6px;margin-top:8px">
+          <div style="flex:1;border:1px solid #d1d5db;border-radius:8px;padding:8px;font-size:12px;color:#999">
+            질문을 입력하세요… (Enter 전송, Shift+Enter 줄바꿈)
+          </div>
+          <span class="mock-btn primary">전송</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <h4>사용 방법</h4>
+  <ol>
+    <li><strong>+ 새 대화</strong>를 클릭하여 새 상담을 시작합니다</li>
+    <li>질문을 입력하고 <kbd>Enter</kbd>를 누릅니다 (줄바꿈은 <kbd>Shift</kbd>+<kbd>Enter</kbd>)</li>
+    <li>AI가 내 재무 데이터를 분석하여 답변합니다</li>
+    <li>왼쪽 목록에서 이전 대화를 선택하면 이어서 상담할 수 있습니다</li>
+  </ol>
+
+  <div class="info-box warn">
+    <strong>⚠️ 참고</strong>
+    AI 상담은 참고용 정보이며, 실제 투자/재무 의사결정 시 전문가와 상의하시기 바랍니다.
+  </div>
+
+  <h4>추천 질문 예시</h4>
+  <ul>
+    <li>"현재 자산 배분이 적절한가요?"</li>
+    <li>"부채 상환 우선순위를 알려주세요"</li>
+    <li>"월 잉여자금으로 어떤 투자 전략이 좋을까요?"</li>
+    <li>"10년 뒤 자산 목표를 달성하려면?"</li>
+    <li>"교육비 준비는 충분한가요?"</li>
+  </ul>
+</section>
+
+<!-- ═══════════════════════════════════ 12. 대시보드 ═══════════════════════════════════ -->
+<section class="chapter" id="dashboard">
+  <h2>12. 통합 대시보드</h2>
+  <p>전체 재무 현황을 차트와 함께 한눈에 확인하는 페이지입니다.</p>
+
+  <h3>주요 구성</h3>
+
+  <h4>① KPI 카드</h4>
+  <p>총 자산(연금 제외), 총 부채, 순자산, 월 고정지출의 4대 핵심 지표</p>
+
+  <h4>② 연금 자산 & 환율 카드</h4>
+  <p>연금 자산 합산액과 미국주식 보유 시 가중 평균 환율(KRW/USD)을 표시합니다.</p>
+
+  <h4>③ 자산 추이 차트 (월별 스냅샷)</h4>
+  <div class="mock-chart">📈 꺾은선 차트 — 매월 말일 자동 집계된 자산 평가액 추이</div>
+  <p>매월 말일 정오에 자동으로 전체 자산 평가액이 스냅샷으로 기록됩니다.</p>
+
+  <h4>④ 자산 카테고리 비중 (파이 차트)</h4>
+  <div class="mock-chart">🍩 도넛 차트 — 현금/예적금/주식/부동산 등 비중</div>
+
+  <h4>⑤ 국내/미국 주식 비중</h4>
+  <div class="mock-chart">🍩 도넛 차트 — 국내주식 vs 미국주식</div>
+
+  <h4>⑥ 월말 자산 스냅샷 이력 테이블</h4>
+  <div class="mockup">
+    <div class="mockup-body">
+      <table class="mock-table">
+        <thead><tr><th>월</th><th>기록 일시</th><th class="right">전체 평가액</th><th class="right">전월 대비</th></tr></thead>
+        <tbody>
+          <tr><td>2025-01</td><td>2025-01-31 12:00</td><td class="right">6.5억</td><td class="right" style="color:#0d9668">+1,200만</td></tr>
+          <tr><td>2024-12</td><td>2024-12-31 12:00</td><td class="right">6.38억</td><td class="right" style="color:#0d9668">+800만</td></tr>
+          <tr><td>2024-11</td><td>2024-11-30 12:00</td><td class="right">6.3억</td><td class="right" style="color:#d63031">-200만</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════ 13. 정산 시스템 ═══════════════════════════════════ -->
+<section class="chapter" id="settlement">
+  <h2>13. 정산 시스템 안내</h2>
+  <p><strong>수입</strong>과 <strong>지출</strong> 페이지에는 <strong>월별 정산(마감)</strong> 기능이 있습니다.</p>
+
+  <h3>정산이란?</h3>
+  <p>매월 마감 시 고정 템플릿으로 등록한 항목(월급, 구독료, 투자이체 등)이 해당 월의 실적 데이터로 자동 생성됩니다.</p>
+
+  <h3>정산 흐름</h3>
+  <div class="mockup">
+    <div class="mockup-body">
+      <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+        <div style="padding:10px 16px;background:#eef1f8;border-radius:8px;font-size:13px">
+          <strong>1.</strong> 정산 월 선택<br>
+          <span style="color:#6b7280;font-size:11px">예: 2025-02</span>
+        </div>
+        <span style="font-size:18px;color:#6b7280">→</span>
+        <div style="padding:10px 16px;background:#eef1f8;border-radius:8px;font-size:13px">
+          <strong>2.</strong> "마감" 버튼 클릭<br>
+          <span style="color:#6b7280;font-size:11px">고정 항목 자동 생성</span>
+        </div>
+        <span style="font-size:18px;color:#6b7280">→</span>
+        <div style="padding:10px 16px;background:#f0fdf4;border-radius:8px;font-size:13px">
+          <strong>3.</strong> ✅ 정산 완료<br>
+          <span style="color:#6b7280;font-size:11px">유동자산 자동 반영</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <h4>수입 정산</h4>
+  <ul>
+    <li>"고정수입 템플릿" 체크된 항목이 해당 월의 수입으로 자동 생성</li>
+    <li>"유동자산 반영" 체크된 항목은 현금 자산에 자동 가산</li>
+  </ul>
+
+  <h4>지출 정산</h4>
+  <ul>
+    <li>카드 미포함 고정/구독 지출이 해당 월의 실적으로 자동 생성</li>
+    <li>투자이체 항목도 자동 생성</li>
+    <li>"유동자산 반영" 체크된 항목은 현금 자산에서 자동 차감</li>
+  </ul>
+
+  <h4>정산 취소 (롤백)</h4>
+  <p>정산된 월에는 "롤백" 버튼이 표시됩니다. 롤백 시 해당 월의 자동 생성된 항목이 삭제되고,
+     유동자산 반영분도 원복됩니다.</p>
+
+  <div class="info-box warn">
+    <strong>⚠️ 주의</strong>
+    정산 후 수동으로 추가한 항목은 롤백 시 함께 삭제되지 않습니다.
+    정산 전에 일회성/변동 항목을 먼저 수동 등록하는 것을 권장합니다.
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════ 14. 활용 팁 ═══════════════════════════════════ -->
+<section class="chapter" id="tips">
+  <h2>14. 활용 팁 & FAQ</h2>
+
+  <h3>소유자(Owner) 구분 활용</h3>
+  <p>모든 자산/수입/지출/부채에 <strong>본인 / 배우자 / 공동</strong> 소유자를 지정할 수 있어
+     부부 합산 자산 관리에 유용합니다.</p>
+
+  <h3>다크 모드</h3>
+  <p>상단 네비게이션 우측의 테마 토글로 라이트 ↔ 다크 모드를 전환합니다. 설정은 브라우저에 저장됩니다.</p>
+
+  <h3>데이터 일관성 유지</h3>
+  <ul>
+    <li><strong>자산 평가기준일</strong>을 정기적으로 업데이트하세요 (특히 주식)</li>
+    <li><strong>매월 초</strong>에 전월 정산을 실행하세요</li>
+    <li><strong>부채 잔액</strong>을 상환 시마다 업데이트하세요</li>
+  </ul>
+
+  <h3>FAQ</h3>
+
+  <h4>Q: 연금은 왜 자산 페이지에 안 보이나요?</h4>
+  <p>A: 연금은 <strong>연금관리</strong> 메뉴에서 별도 관리됩니다. 유동성이 낮아 일반 자산과 분리했습니다.
+     홈/대시보드에서는 "연금 포함" 합계로 함께 볼 수 있습니다.</p>
+
+  <h4>Q: 카드값 간편입력과 일반 지출의 차이는?</h4>
+  <p>A: 카드값 간편입력은 카드사와 결제액만 입력하면 모든 설정이 자동 완료됩니다.
+     일반 지출은 카테고리, 주기, 고정/구독 여부 등 세밀한 설정이 가능합니다.</p>
+
+  <h4>Q: AI 상담에서 내 데이터를 어떻게 활용하나요?</h4>
+  <p>A: 상담 시작 시 프로파일, 자산, 지출 요약 등을 자동으로 AI에게 전달합니다.
+     개인정보는 OpenAI API를 통해 처리되며 별도 저장되지 않습니다.</p>
+
+  <h4>Q: 자산 스냅샷은 어떻게 기록되나요?</h4>
+  <p>A: 매월 말일 정오에 Azure Functions의 타이머 트리거가 실행되어 전체 자산 평가액을 자동으로 기록합니다.
+     사용자가 별도로 실행할 필요 없습니다.</p>
+
+  <h4>Q: 목적자금과 지출은 어떻게 연동되나요?</h4>
+  <p>A: 지출 페이지의 "투자·저축 이체" 탭에서 목적자금을 연결하면, 정산 시 해당 금액이 목적자금의
+     월별 적립 기록에 자동 반영됩니다.</p>
+</section>
+
+</div><!-- .wrap -->
+
+<footer class="doc-footer">
+  <p>자산관리 앱 사용자 설명서 v1.0 — 2025년 2월</p>
+  <p><a href="#toc" style="color:#3366cc;text-decoration:none">↑ 목차로 돌아가기</a></p>
+</footer>
+
+</body>
+</html>

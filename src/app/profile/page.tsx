@@ -339,12 +339,22 @@ export default function ProfilePage() {
     <div className="py-4">
       <div className="mx-auto grid w-full max-w-[860px] gap-5">
         <section className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-5 shadow-[0_10px_24px_rgba(15,23,42,0.045)]">
-          <h1>설정</h1>
+          <div className="flex items-center justify-between gap-3">
+            <h1 className="m-0">설정</h1>
+            <a
+              href="/docs/user-guide.html"
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{ padding: '6px 16px', borderRadius: '8px', fontSize: '0.85rem', fontWeight: 600, background: 'var(--brand)', color: '#fff', textDecoration: 'none', whiteSpace: 'nowrap' }}
+            >
+              📖 사용자 설명서
+            </a>
+          </div>
           <p className="helper-text mt-2 leading-relaxed">
             로그인은 Azure Static Web Apps 인증을 사용합니다.
           </p>
 
-          <div className="mt-4 flex flex-wrap gap-2">
+          <div className="mt-4 flex flex-wrap items-center gap-2">
             {!isAuthenticated ? (
               <>
                 <a href="/.auth/login/aad" className="btn-primary no-underline">
