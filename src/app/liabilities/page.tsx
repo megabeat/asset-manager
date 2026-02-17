@@ -11,6 +11,8 @@ import { useFeedbackMessage } from '@/hooks/useFeedbackMessage';
 import { useConfirmModal } from '@/hooks/useConfirmModal';
 import { ConfirmModal } from '@/components/ui/ConfirmModal';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
+import { useAuth } from '@/hooks/useAuth';
+import { LoginPrompt } from '@/components/ui/AuthGuard';
 
 type LiabilityForm = {
   name: string;
@@ -59,6 +61,7 @@ const defaultForm: LiabilityForm = {
 };
 
 export default function LiabilitiesPage() {
+  const authStatus = useAuth();
   const [items, setItems] = useState<Liability[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -190,6 +193,9 @@ export default function LiabilitiesPage() {
     }
     setItems((prev) => prev.filter((item) => item.id !== id));
   }
+
+  if (authStatus === 'loading') return <LoadingSpinner />;
+  if (authStatus !== 'authenticated') return <LoginPrompt />;
 
   if (loading) {
     return <LoadingSpinner />;

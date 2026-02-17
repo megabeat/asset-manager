@@ -14,6 +14,8 @@ import { useConfirmModal } from '@/hooks/useConfirmModal';
 import { useSettlement } from '@/hooks/useSettlement';
 import { ConfirmModal } from '@/components/ui/ConfirmModal';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
+import { useAuth } from '@/hooks/useAuth';
+import { LoginPrompt } from '@/components/ui/AuthGuard';
 import { getCurrentMonthKey } from '@/lib/dateUtils';
 
 type NumericInput = number | '';
@@ -89,6 +91,7 @@ type CardIssuer = (typeof CARD_ISSUERS)[number];
   };
 
 export default function ExpensesPage() {
+  const authStatus = useAuth();
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -445,6 +448,9 @@ export default function ExpensesPage() {
     setErrors({});
     setForm(defaultForm);
   }
+
+  if (authStatus === 'loading') return <LoadingSpinner />;
+  if (authStatus !== 'authenticated') return <LoginPrompt />;
 
   if (loading) {
     return <LoadingSpinner />;

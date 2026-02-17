@@ -8,8 +8,12 @@ import { useFeedbackMessage } from '@/hooks/useFeedbackMessage';
 import { useConfirmModal } from '@/hooks/useConfirmModal';
 import { ConfirmModal } from '@/components/ui/ConfirmModal';
 import ReactMarkdown from 'react-markdown';
+import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
+import { useAuth } from '@/hooks/useAuth';
+import { LoginPrompt } from '@/components/ui/AuthGuard';
 
 export default function AIAdvisorPage() {
+  const authStatus = useAuth();
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [conversationId, setConversationId] = useState<string | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -166,6 +170,9 @@ export default function AIAdvisorPage() {
       sendMessage();
     }
   };
+
+  if (authStatus === 'loading') return <LoadingSpinner />;
+  if (authStatus !== 'authenticated') return <LoginPrompt />;
 
   return (
     <div className="py-4">

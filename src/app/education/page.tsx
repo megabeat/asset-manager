@@ -10,6 +10,8 @@ import { useFeedbackMessage } from '@/hooks/useFeedbackMessage';
 import { useConfirmModal } from '@/hooks/useConfirmModal';
 import { ConfirmModal } from '@/components/ui/ConfirmModal';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
+import { useAuth } from '@/hooks/useAuth';
+import { LoginPrompt } from '@/components/ui/AuthGuard';
 import { AssetScenarioSimulator } from '@/components/education/AssetScenarioSimulator';
 
 type ProfileChild = {
@@ -39,6 +41,7 @@ const defaultPlanForm: PlanForm = {
 };
 
 export default function EducationPage() {
+  const authStatus = useAuth();
   const [children, setChildren] = useState<ProfileChild[]>([]);
   const [plans, setPlans] = useState<EducationPlan[]>([]);
   const [planForm, setPlanForm] = useState<PlanForm>(defaultPlanForm);
@@ -223,6 +226,9 @@ export default function EducationPage() {
 
     setPlans((prev) => prev.filter((plan) => plan.id !== planId));
   }
+
+  if (authStatus === 'loading') return <LoadingSpinner />;
+  if (authStatus !== 'authenticated') return <LoginPrompt />;
 
   if (loading) {
     return <LoadingSpinner />;

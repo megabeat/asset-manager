@@ -4,6 +4,8 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { api } from '@/lib/api';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
+import { useAuth } from '@/hooks/useAuth';
+import { LoginPrompt } from '@/components/ui/AuthGuard';
 import { formatCompact } from '@/lib/formatCompact';
 import { isPensionCategory } from '@/lib/isPensionCategory';
 import {
@@ -63,6 +65,7 @@ type AssetItem = {
 const COLORS = ['#0b63ce', '#2e7d32', '#f57c00', '#7b1fa2', '#c2185b', '#00796b'];
 
 export default function DashboardPage() {
+  const authStatus = useAuth();
   const [summary, setSummary] = useState<Summary | null>(null);
   const [snapshots, setSnapshots] = useState<Array<{ month: string; totalValue: number; delta: number; recordedAt: string }>>([]);
   const [assets, setAssets] = useState<AssetItem[]>([]);
@@ -93,6 +96,9 @@ export default function DashboardPage() {
       }
     );
   }, []);
+
+  if (authStatus === 'loading') return <LoadingSpinner />;
+  if (authStatus !== 'authenticated') return <LoginPrompt />;
 
   if (loading) {
     return <LoadingSpinner />;

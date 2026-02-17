@@ -4,6 +4,8 @@ import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { api, Asset, Expense, Income, Profile } from '@/lib/api';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
+import { useAuth } from '@/hooks/useAuth';
+import { LoginPrompt } from '@/components/ui/AuthGuard';
 import { formatCompact } from '@/lib/formatCompact';
 import { isPensionCategory } from '@/lib/isPensionCategory';
 
@@ -27,6 +29,7 @@ const quickActions = [
 ];
 
 export default function Home() {
+  const authStatus = useAuth();
   const [summary, setSummary] = useState<Summary | null>(null);
   const [assets, setAssets] = useState<Asset[]>([]);
   const [expenses, setExpenses] = useState<Expense[]>([]);
@@ -161,6 +164,9 @@ export default function Home() {
   }, [expenses, settlementMonthKey]);
 
   const monthlyNetCashflow = monthlySettledIncome - monthlySettledExpense;
+
+  if (authStatus === 'loading') return <LoadingSpinner />;
+  if (authStatus !== 'authenticated') return <LoginPrompt />;
 
   return (
     <div className="py-4">

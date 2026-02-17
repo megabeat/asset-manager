@@ -12,6 +12,8 @@ import { DataTable } from '@/components/ui/DataTable';
 import { getAssetCategoryLabel } from '@/lib/assetCategory';
 import { isPensionCategory } from '@/lib/isPensionCategory';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
+import { useAuth } from '@/hooks/useAuth';
+import { LoginPrompt } from '@/components/ui/AuthGuard';
 import { AssetForm, AssetFormData, defaultAssetForm, categoryLabel } from '@/components/assets/AssetForm';
 import { ResponsiveContainer, Tooltip, Treemap } from 'recharts';
 
@@ -71,6 +73,7 @@ function AssetTreemapTooltip({
 
 
 export default function AssetsPage() {
+  const authStatus = useAuth();
   const [assets, setAssets] = useState<Asset[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -388,6 +391,9 @@ export default function AssetsPage() {
     setErrors({});
     resetFormWithRate(form.exchangeRate);
   }
+
+  if (authStatus === 'loading') return <LoadingSpinner />;
+  if (authStatus !== 'authenticated') return <LoginPrompt />;
 
   if (loading) {
     return <LoadingSpinner />;

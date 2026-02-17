@@ -11,6 +11,8 @@ import { CollapsibleSection } from '@/components/ui/CollapsibleSection';
 import { FormField } from '@/components/ui/FormField';
 import { DataTable } from '@/components/ui/DataTable';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
+import { useAuth } from '@/hooks/useAuth';
+import { LoginPrompt } from '@/components/ui/AuthGuard';
 import { isPensionCategory } from '@/lib/isPensionCategory';
 import { PieChart, Pie, Cell, Legend, Tooltip, ResponsiveContainer } from 'recharts';
 
@@ -58,6 +60,7 @@ function normalizePensionCategory(category?: string): PensionCategory {
 }
 
 export default function PensionsPage() {
+  const authStatus = useAuth();
   const [pensions, setPensions] = useState<Asset[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -227,6 +230,9 @@ export default function PensionsPage() {
     }
     setPensions((prev) => prev.filter((item) => item.id !== id));
   }
+
+  if (authStatus === 'loading') return <LoadingSpinner />;
+  if (authStatus !== 'authenticated') return <LoginPrompt />;
 
   if (loading) {
     return <LoadingSpinner />;

@@ -13,6 +13,8 @@ import { useConfirmModal } from '@/hooks/useConfirmModal';
 import { useSettlement } from '@/hooks/useSettlement';
 import { ConfirmModal } from '@/components/ui/ConfirmModal';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
+import { useAuth } from '@/hooks/useAuth';
+import { LoginPrompt } from '@/components/ui/AuthGuard';
 
 type NumericInput = number | '';
 
@@ -43,6 +45,7 @@ const defaultForm: IncomeForm = {
 };
 
 export default function IncomesPage() {
+  const authStatus = useAuth();
   const [incomes, setIncomes] = useState<Income[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -206,6 +209,9 @@ export default function IncomesPage() {
     setErrors({});
     setForm(defaultForm);
   }
+
+  if (authStatus === 'loading') return <LoadingSpinner />;
+  if (authStatus !== 'authenticated') return <LoginPrompt />;
 
   if (loading) {
     return <LoadingSpinner />;
