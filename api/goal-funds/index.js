@@ -145,9 +145,14 @@ async function goalFundsHandler(req, context) {
     }
     catch (error) {
         const message = error instanceof Error ? error.message : "Unknown error";
+        const stack = error instanceof Error ? error.stack : undefined;
         if (message === "UNAUTHORIZED")
             return (0, responses_1.fail)("UNAUTHORIZED", "Unauthorized", 401);
-        context.log("GoalFunds error:", message);
-        return (0, responses_1.fail)("BAD_REQUEST", message, 400);
+        context.log("GoalFunds error:", message, "stack:", stack);
+        return {
+            status: 500,
+            headers: { "content-type": "application/json; charset=utf-8" },
+            body: JSON.stringify({ error: { code: "GOAL_FUNDS_ERROR", message, stack } })
+        };
     }
 }
