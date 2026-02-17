@@ -7,6 +7,8 @@ import { SectionCard } from '@/components/ui/SectionCard';
 import { FormField } from '@/components/ui/FormField';
 import { DataTable } from '@/components/ui/DataTable';
 import { useFeedbackMessage } from '@/hooks/useFeedbackMessage';
+import { useConfirmModal } from '@/hooks/useConfirmModal';
+import { ConfirmModal } from '@/components/ui/ConfirmModal';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 
 type ProfileChild = {
@@ -149,6 +151,7 @@ export default function EducationPage() {
   const [planErrors, setPlanErrors] = useState<Record<string, string>>({});
   const [scenarioErrors, setScenarioErrors] = useState<Record<string, string>>({});
   const { message, feedback, clearMessage, setMessageText, setSuccessMessage, setErrorMessage } = useFeedbackMessage();
+  const { confirmState, confirm, onConfirm: onModalConfirm, onCancel: onModalCancel } = useConfirmModal();
 
   function getAgeFromBirthDate(birthDate?: string): number | null {
     if (!birthDate) return null;
@@ -427,7 +430,8 @@ export default function EducationPage() {
   }
 
   async function onDeletePlan(planId: string) {
-    if (!confirm('이 교육 계획을 삭제하시겠습니까?')) return;
+    const yes = await confirm('이 교육 계획을 삭제하시겠습니까?', { title: '교육 계획 삭제', confirmLabel: '삭제' });
+    if (!yes) return;
     const result = await api.deleteEducationPlan(planId);
     if (result.error) {
       setErrorMessage('삭제 실패', result.error);
@@ -835,6 +839,15 @@ export default function EducationPage() {
           />
         </SectionCard>
       )}
+      <ConfirmModal
+        open={confirmState.open}
+        title={confirmState.title}
+        message={confirmState.message}
+        confirmLabel={confirmState.confirmLabel}
+        variant="danger"
+        onConfirm={onModalConfirm}
+        onCancel={onModalCancel}
+      />
     </div>
   );
 }

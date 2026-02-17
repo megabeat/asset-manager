@@ -7,6 +7,8 @@ import { SectionCard } from '@/components/ui/SectionCard';
 import { FormField } from '@/components/ui/FormField';
 import { DataTable } from '@/components/ui/DataTable';
 import { useFeedbackMessage } from '@/hooks/useFeedbackMessage';
+import { useConfirmModal } from '@/hooks/useConfirmModal';
+import { ConfirmModal } from '@/components/ui/ConfirmModal';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 
 type LiabilityForm = {
@@ -33,6 +35,7 @@ export default function LiabilitiesPage() {
   const [form, setForm] = useState<LiabilityForm>(defaultForm);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const { message, feedback, clearMessage, setMessageText, setSuccessMessage, setErrorMessage } = useFeedbackMessage();
+  const { confirmState, confirm, onConfirm: onModalConfirm, onCancel: onModalCancel } = useConfirmModal();
 
   async function loadLiabilities() {
     const result = await api.getLiabilities();
@@ -112,7 +115,8 @@ export default function LiabilitiesPage() {
   }
 
   async function onDelete(id: string) {
-    if (!confirm('이 부채 항목을 삭제하시겠습니까?')) return;
+    const yes = await confirm('이 부채 항목을 삭제하시겠습니까?', { title: '부채 삭제', confirmLabel: '삭제' });
+    if (!yes) return;
     const result = await api.deleteLiability(id);
     if (result.error) {
       setErrorMessage('삭제 실패', result.error);
@@ -241,6 +245,15 @@ export default function LiabilitiesPage() {
           ]}
         />
       </SectionCard>
+      <ConfirmModal
+        open={confirmState.open}
+        title={confirmState.title}
+        message={confirmState.message}
+        confirmLabel={confirmState.confirmLabel}
+        variant="danger"
+        onConfirm={onModalConfirm}
+        onCancel={onModalCancel}
+      />
     </div>
   );
 }

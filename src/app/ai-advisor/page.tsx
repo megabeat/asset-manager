@@ -5,6 +5,8 @@ import { api, ChatMessage, Conversation } from '@/lib/api';
 import { SectionCard } from '@/components/ui/SectionCard';
 import { FeedbackBanner } from '@/components/ui/FeedbackBanner';
 import { useFeedbackMessage } from '@/hooks/useFeedbackMessage';
+import { useConfirmModal } from '@/hooks/useConfirmModal';
+import { ConfirmModal } from '@/components/ui/ConfirmModal';
 
 export default function AIAdvisorPage() {
   const [conversations, setConversations] = useState<Conversation[]>([]);
@@ -13,6 +15,7 @@ export default function AIAdvisorPage() {
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const { message, feedback, clearMessage, setMessageText, setSuccessMessage, setErrorMessage } = useFeedbackMessage();
+  const { confirmState, confirm, onConfirm: onModalConfirm, onCancel: onModalCancel } = useConfirmModal();
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
 
   const activeConversation = useMemo(
@@ -86,7 +89,8 @@ export default function AIAdvisorPage() {
   };
 
   const deleteConversation = async (id: string) => {
-    if (!confirm('이 대화를 삭제하시겠습니까?')) return;
+    const yes = await confirm('이 대화를 삭제하시겠습니까?', { title: '대화 삭제', confirmLabel: '삭제' });
+    if (!yes) return;
     clearMessage();
     const result = await api.deleteConversation(id);
     if (result.error) {
@@ -297,6 +301,15 @@ export default function AIAdvisorPage() {
           </div>
         </SectionCard>
       </div>
+      <ConfirmModal
+        open={confirmState.open}
+        title={confirmState.title}
+        message={confirmState.message}
+        confirmLabel={confirmState.confirmLabel}
+        variant="danger"
+        onConfirm={onModalConfirm}
+        onCancel={onModalCancel}
+      />
     </div>
   );
 }

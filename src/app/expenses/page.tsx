@@ -8,6 +8,8 @@ import { SectionCard } from '@/components/ui/SectionCard';
 import { FormField } from '@/components/ui/FormField';
 import { DataTable } from '@/components/ui/DataTable';
 import { useFeedbackMessage } from '@/hooks/useFeedbackMessage';
+import { useConfirmModal } from '@/hooks/useConfirmModal';
+import { ConfirmModal } from '@/components/ui/ConfirmModal';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 
 type NumericInput = number | '';
@@ -72,7 +74,7 @@ function getOccurredAtByBillingDay(day: number): string {
   return date.toISOString().slice(0, 10);
 }
 
-const CARD_ISSUERS = ['신한', '삼성', '현대'] as const;
+const CARD_ISSUERS = ['신한', '삼성', '현대', '국민', '롯데', '하나', 'BC', 'NH', '우리'] as const;
 type CardIssuer = (typeof CARD_ISSUERS)[number];
 
   type CardQuickForm = {
@@ -101,6 +103,7 @@ export default function ExpensesPage() {
   const [cardQuickForm, setCardQuickForm] = useState<CardQuickForm>(defaultCardQuickForm);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [goalFunds, setGoalFunds] = useState<GoalFund[]>([]);
+  const { confirmState, confirm, onConfirm: onModalConfirm, onCancel: onModalCancel } = useConfirmModal();
   const { message, feedback, clearMessage, setMessageText, setSuccessMessage, setErrorMessage } = useFeedbackMessage();
 
   async function loadExpenses() {
@@ -184,21 +187,27 @@ export default function ExpensesPage() {
 
   const previousCardAmount = useMemo(() => {
     const normalizedName = cardQuickForm.cardName.trim().toLowerCase();
-    const cardRows = expenses
+    const now = new Date();
+    const prevMonth = `${now.getFullYear()}-${String(now.getMonth()).padStart(2, '0')}`;
+    const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+    const targetMonth = prevMonth;
+
+    return expenses
       .filter((item) => {
         const name = item.name?.toLowerCase() ?? '';
         const isCardCategory = (item.category ?? '').includes('카드');
         if (!isCardCategory) return false;
+        const occurredMonth = String(item.occurredAt ?? '').slice(0, 7);
+        if (occurredMonth !== targetMonth) return false;
         if (!normalizedName) return true;
         return name.includes(normalizedName);
       })
-      .sort((a, b) => String(b.occurredAt ?? '').localeCompare(String(a.occurredAt ?? '')));
-
-    return cardRows[0]?.amount ?? 0;
+      .reduce((sum, item) => sum + Number(item.amount ?? 0), 0);
   }, [expenses, cardQuickForm.cardName]);
 
   const recentThreeMonthTransferAverage = useMemo(() => {
     const now = new Date();
+    const monthKeys = new Set<string>();
     const from = new Date(now.getFullYear(), now.getMonth() - 2, 1);
 
     const totalAmount = expenses
@@ -212,10 +221,12 @@ export default function ExpensesPage() {
         if (!occurredAt || Number.isNaN(occurredAt.getTime()) || occurredAt < from) {
           return sum;
         }
+        monthKeys.add(String(expense.occurredAt).slice(0, 7));
         return sum + Number(expense.amount ?? 0);
       }, 0);
 
-    return totalAmount / 3;
+    const monthCount = monthKeys.size;
+    return monthCount > 0 ? totalAmount / monthCount : 0;
   }, [expenses]);
 
   const cardIssuerMonthlyStats = useMemo(() => {
@@ -387,7 +398,8 @@ export default function ExpensesPage() {
   }
 
   async function onDelete(id: string) {
-    if (!confirm('이 지출 항목을 삭제하시겠습니까?')) return;
+    const yes = await confirm('이 지출 항목을 삭제하시겠습니까?', { title: '지출 삭제', confirmLabel: '삭제' });
+    if (!yes) return;
     const result = await api.deleteExpense(id);
     if (result.error) {
       setErrorMessage('삭제 실패', result.error);
@@ -432,7 +444,8 @@ export default function ExpensesPage() {
       return;
     }
 
-    if (!confirm(`${settlementMonth} 정산을 취소하시겠습니까?\n자동 생성된 지출 내역이 삭제되고 자산이 복원됩니다.`)) {
+    const yes = await confirm(`${settlementMonth} 정산을 취소하시겠습니까?\n자동 생성된 지출 내역이 삭제되고 자산이 복원됩니다.`, { title: '정산 취소', confirmLabel: '정산 취소' });
+    if (!yes) {
       return;
     }
 
@@ -1058,6 +1071,15 @@ export default function ExpensesPage() {
           ]}
         />
       </SectionCard>
+      <ConfirmModal
+        open={confirmState.open}
+        title={confirmState.title}
+        message={confirmState.message}
+        confirmLabel={confirmState.confirmLabel}
+        variant="danger"
+        onConfirm={onModalConfirm}
+        onCancel={onModalCancel}
+      />
     </div>
   );
 }

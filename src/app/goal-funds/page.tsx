@@ -6,6 +6,8 @@ import { SectionCard } from '@/components/ui/SectionCard';
 import { FormField } from '@/components/ui/FormField';
 import { FeedbackBanner } from '@/components/ui/FeedbackBanner';
 import { useFeedbackMessage } from '@/hooks/useFeedbackMessage';
+import { useConfirmModal } from '@/hooks/useConfirmModal';
+import { ConfirmModal } from '@/components/ui/ConfirmModal';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { formatCompact } from '@/lib/formatCompact';
 
@@ -83,6 +85,7 @@ export default function GoalFundsPage() {
   const [showForm, setShowForm] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const { message, feedback, clearMessage, setSuccessMessage, setErrorMessage } = useFeedbackMessage();
+  const { confirmState, confirm, onConfirm: onModalConfirm, onCancel: onModalCancel } = useConfirmModal();
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [logMonth, setLogMonth] = useState(() => {
     const d = new Date();
@@ -190,7 +193,8 @@ export default function GoalFundsPage() {
   }
 
   async function onDelete(id: string) {
-    if (!confirm('이 목적자금을 삭제하시겠습니까?')) return;
+    const yes = await confirm('이 목적자금을 삭제하시겠습니까?', { title: '목적자금 삭제', confirmLabel: '삭제' });
+    if (!yes) return;
     const res = await api.deleteGoalFund(id);
     if (res.data) {
       setFunds((prev) => prev.filter((f) => f.id !== id));
@@ -556,6 +560,15 @@ export default function GoalFundsPage() {
           </p>
         </SectionCard>
       )}
+      <ConfirmModal
+        open={confirmState.open}
+        title={confirmState.title}
+        message={confirmState.message}
+        confirmLabel={confirmState.confirmLabel}
+        variant="danger"
+        onConfirm={onModalConfirm}
+        onCancel={onModalCancel}
+      />
     </div>
   );
 }

@@ -7,6 +7,8 @@ import { SectionCard } from '@/components/ui/SectionCard';
 import { FormField } from '@/components/ui/FormField';
 import { DataTable } from '@/components/ui/DataTable';
 import { useFeedbackMessage } from '@/hooks/useFeedbackMessage';
+import { useConfirmModal } from '@/hooks/useConfirmModal';
+import { ConfirmModal } from '@/components/ui/ConfirmModal';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 
 type NumericInput = number | '';
@@ -54,6 +56,7 @@ export default function IncomesPage() {
   const [editingIncomeId, setEditingIncomeId] = useState<string | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const { message, feedback, clearMessage, setMessageText, setSuccessMessage, setErrorMessage } = useFeedbackMessage();
+  const { confirmState, confirm, onConfirm: onModalConfirm, onCancel: onModalCancel } = useConfirmModal();
 
   async function loadIncomes() {
     const result = await api.getIncomes();
@@ -161,7 +164,8 @@ export default function IncomesPage() {
   }
 
   async function onDelete(id: string) {
-    if (!confirm('이 수입 항목을 삭제하시겠습니까?')) return;
+    const yes = await confirm('이 수입 항목을 삭제하시겠습니까?', { title: '수입 삭제', confirmLabel: '삭제' });
+    if (!yes) return;
     const result = await api.deleteIncome(id);
     if (result.error) {
       setErrorMessage('삭제 실패', result.error);
@@ -235,7 +239,8 @@ export default function IncomesPage() {
       return;
     }
 
-    if (!confirm(`${settlementMonth} 정산을 취소하시겠습니까?\n자동 생성된 수입 내역이 삭제되고 자산이 복원됩니다.`)) {
+    const yes = await confirm(`${settlementMonth} 정산을 취소하시겠습니까?\n자동 생성된 수입 내역이 삭제되고 자산이 복원됩니다.`, { title: '정산 취소', confirmLabel: '정산 취소' });
+    if (!yes) {
       return;
     }
 
@@ -542,6 +547,15 @@ export default function IncomesPage() {
           ]}
         />
       </SectionCard>
+      <ConfirmModal
+        open={confirmState.open}
+        title={confirmState.title}
+        message={confirmState.message}
+        confirmLabel={confirmState.confirmLabel}
+        variant="danger"
+        onConfirm={onModalConfirm}
+        onCancel={onModalCancel}
+      />
     </div>
   );
 }
