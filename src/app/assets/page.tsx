@@ -1,6 +1,6 @@
 'use client';
 
-import { FormEvent, useEffect, useMemo, useState } from 'react';
+import { FormEvent, useEffect, useMemo, useRef, useState } from 'react';
 import { api, Asset } from '@/lib/api';
 import { FeedbackBanner } from '@/components/ui/FeedbackBanner';
 import { useFeedbackMessage } from '@/hooks/useFeedbackMessage';
@@ -450,6 +450,8 @@ export default function AssetsPage() {
     setSuccessMessage('자산을 삭제했습니다.');
   }
 
+  const formSectionRef = useRef<HTMLDivElement>(null);
+
   function onEdit(asset: Asset) {
     const quantity = Number(asset.quantity ?? 0);
     const acquiredValue = Number(asset.acquiredValue ?? 0);
@@ -488,6 +490,10 @@ export default function AssetsPage() {
       pensionReceiveStart: '',
       owner: asset.owner ?? '본인'
     });
+
+    setTimeout(() => {
+      formSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 0);
   }
 
   function onCancelEdit() {
@@ -518,7 +524,7 @@ export default function AssetsPage() {
         </SectionCard>
       </div>
 
-      <SectionCard className="mt-4">
+      <SectionCard className="mt-4" ref={formSectionRef}>
         <div className="mb-3">
           <p className="helper-text m-0">빠른 입력 템플릿</p>
           <div className="mt-2 flex flex-wrap gap-1.5">
