@@ -25,6 +25,7 @@ export type Profile = {
   spouseEmployerName?: string;
   spouseJobTitle?: string;
   spouseAnnualIncome?: number;
+  spouseRetirementTargetAge?: number;
   child1Name?: string;
   child1BirthDate?: string;
   child1TargetUniversityYear?: number;

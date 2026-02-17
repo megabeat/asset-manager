@@ -20,6 +20,7 @@ type ProfileForm = Omit<
   | 'child1TargetUniversityYear'
   | 'child2TargetUniversityYear'
   | 'spouseAnnualIncome'
+  | 'spouseRetirementTargetAge'
 > & {
   retirementTargetAge: number | '';
   baseSalaryAnnual: number | '';
@@ -32,9 +33,10 @@ type ProfileForm = Omit<
   child1TargetUniversityYear: number | '';
   child2TargetUniversityYear: number | '';
   spouseAnnualIncome: number | '';
+  spouseRetirementTargetAge: number | '';
 };
 
-type ProfileTab = 'basic' | 'income' | 'spouse' | 'family';
+type ProfileTab = 'settings' | 'self' | 'spouse' | 'children';
 
 const currentYear = new Date().getFullYear();
 
@@ -56,6 +58,7 @@ const defaultForm: ProfileForm = {
   spouseEmployerName: '',
   spouseJobTitle: '',
   spouseAnnualIncome: '',
+  spouseRetirementTargetAge: '',
   child1Name: '',
   child1BirthDate: '',
   child1TargetUniversityYear: '',
@@ -69,7 +72,7 @@ const defaultForm: ProfileForm = {
 
 export default function ProfilePage() {
   const [form, setForm] = useState<ProfileForm>(defaultForm);
-  const [activeTab, setActiveTab] = useState<ProfileTab>('basic');
+  const [activeTab, setActiveTab] = useState<ProfileTab>('self');
   const [loading, setLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
   const [saving, setSaving] = useState(false);
@@ -142,6 +145,7 @@ export default function ProfilePage() {
           spouseEmployerName: result.data.spouseEmployerName ?? '',
           spouseJobTitle: result.data.spouseJobTitle ?? '',
           spouseAnnualIncome: result.data.spouseAnnualIncome ?? '',
+          spouseRetirementTargetAge: result.data.spouseRetirementTargetAge ?? '',
           child1Name: result.data.child1Name ?? '',
           child1BirthDate: result.data.child1BirthDate ?? '',
           child1TargetUniversityYear: result.data.child1TargetUniversityYear ?? '',
@@ -187,6 +191,10 @@ export default function ProfilePage() {
         (Number.isFinite(form.retirementTargetAge) &&
           Number(form.retirementTargetAge) >= 45 &&
           Number(form.retirementTargetAge) <= 90)) &&
+      (form.spouseRetirementTargetAge === '' ||
+        (Number.isFinite(form.spouseRetirementTargetAge) &&
+          Number(form.spouseRetirementTargetAge) >= 45 &&
+          Number(form.spouseRetirementTargetAge) <= 90)) &&
       form.currency.trim().length > 0
     );
   }, [form]);
@@ -276,6 +284,15 @@ export default function ProfilePage() {
       nextErrors.retirementTargetAge = '은퇴 목표 연령은 45~90세 범위로 입력해주세요.';
     }
 
+    if (
+      form.spouseRetirementTargetAge !== '' &&
+      (!Number.isFinite(form.spouseRetirementTargetAge) ||
+        Number(form.spouseRetirementTargetAge) < 45 ||
+        Number(form.spouseRetirementTargetAge) > 90)
+    ) {
+      nextErrors.spouseRetirementTargetAge = '배우자 은퇴 목표 연령은 45~90세 범위로 입력해주세요.';
+    }
+
     if (!form.currency.trim()) nextErrors.currency = '통화를 입력해주세요.';
 
     setErrors(nextErrors);
@@ -307,6 +324,8 @@ export default function ProfilePage() {
       spouseEmployerName: form.spouseEmployerName?.trim() || undefined,
       spouseJobTitle: form.spouseJobTitle?.trim() || undefined,
       spouseAnnualIncome: form.spouseAnnualIncome === '' ? undefined : Number(form.spouseAnnualIncome),
+      spouseRetirementTargetAge:
+        form.spouseRetirementTargetAge === '' ? undefined : Number(form.spouseRetirementTargetAge),
       child1Name: form.child1Name?.trim() || undefined,
       child1BirthDate: form.child1BirthDate || undefined,
       child1TargetUniversityYear:
@@ -388,17 +407,10 @@ export default function ProfilePage() {
             <div className="flex flex-wrap gap-2 rounded-xl border border-[var(--line)] bg-[var(--surface-2)] p-1">
               <button
                 type="button"
-                className={getTabButtonClass('basic')}
-                onClick={() => setActiveTab('basic')}
+                className={getTabButtonClass('self')}
+                onClick={() => setActiveTab('self')}
               >
-                기본정보
-              </button>
-              <button
-                type="button"
-                className={getTabButtonClass('income')}
-                onClick={() => setActiveTab('income')}
-              >
-                소득정보
+                본인
               </button>
               <button
                 type="button"
@@ -409,16 +421,25 @@ export default function ProfilePage() {
               </button>
               <button
                 type="button"
-                className={getTabButtonClass('family')}
-                onClick={() => setActiveTab('family')}
+                className={getTabButtonClass('children')}
+                onClick={() => setActiveTab('children')}
               >
-                가족/은퇴
+                자녀
+              </button>
+              <button
+                type="button"
+                className={getTabButtonClass('settings')}
+                onClick={() => setActiveTab('settings')}
+              >
+                기본설정
               </button>
             </div>
 
             <div className="grid gap-4">
-              {activeTab === 'basic' ? (
+              {activeTab === 'self' ? (
                 <>
+            <h3 className="mt-0 mb-1 text-base font-semibold text-[var(--fg)]">인적사항</h3>
+
             <FormField label="이름" error={errors.fullName}>
               <input
                 value={form.fullName}
@@ -435,29 +456,8 @@ export default function ProfilePage() {
               />
             </FormField>
 
-            <FormField label="가구원 수" error={errors.householdSize}>
-              <input
-                type="number"
-                min={1}
-                value={form.householdSize}
-                onChange={(event) =>
-                  setForm((prev) => ({ ...prev, householdSize: Number(event.target.value || 1) }))
-                }
-              />
-            </FormField>
+            <h3 className="mt-3 mb-1 text-base font-semibold text-[var(--fg)]">직장 / 소득</h3>
 
-            <FormField label="통화" error={errors.currency}>
-              <input
-                value={form.currency}
-                onChange={(event) => setForm((prev) => ({ ...prev, currency: event.target.value }))}
-                placeholder="KRW"
-              />
-            </FormField>
-                </>
-              ) : null}
-
-              {activeTab === 'income' ? (
-                <>
             <FormField label="직장명">
               <input
                 value={form.employerName ?? ''}
@@ -600,11 +600,31 @@ export default function ProfilePage() {
                 placeholder="예: 5"
               />
             </FormField>
+
+            <h3 className="mt-3 mb-1 text-base font-semibold text-[var(--fg)]">은퇴 목표</h3>
+
+            <FormField label="은퇴 목표 연령" error={errors.retirementTargetAge}>
+              <input
+                type="number"
+                min={45}
+                max={90}
+                value={form.retirementTargetAge}
+                onChange={(event) =>
+                  setForm((prev) => ({
+                    ...prev,
+                    retirementTargetAge: event.target.value === '' ? '' : Number(event.target.value)
+                  }))
+                }
+                placeholder="예: 60"
+              />
+            </FormField>
                 </>
               ) : null}
 
               {activeTab === 'spouse' ? (
                 <>
+            <h3 className="mt-0 mb-1 text-base font-semibold text-[var(--fg)]">인적사항</h3>
+
             <FormField label="배우자 이름">
               <input
                 value={form.spouseName ?? ''}
@@ -620,6 +640,8 @@ export default function ProfilePage() {
                 onChange={(event) => setForm((prev) => ({ ...prev, spouseBirthDate: event.target.value }))}
               />
             </FormField>
+
+            <h3 className="mt-3 mb-1 text-base font-semibold text-[var(--fg)]">직장 / 소득</h3>
 
             <FormField label="배우자 직장명">
               <input
@@ -651,12 +673,32 @@ export default function ProfilePage() {
                 placeholder="예: 60000000"
               />
             </FormField>
+
+            <h3 className="mt-3 mb-1 text-base font-semibold text-[var(--fg)]">은퇴 목표</h3>
+
+            <FormField label="배우자 은퇴 목표 연령" error={errors.spouseRetirementTargetAge}>
+              <input
+                type="number"
+                min={45}
+                max={90}
+                value={form.spouseRetirementTargetAge}
+                onChange={(event) =>
+                  setForm((prev) => ({
+                    ...prev,
+                    spouseRetirementTargetAge: event.target.value === '' ? '' : Number(event.target.value)
+                  }))
+                }
+                placeholder="예: 60"
+              />
+            </FormField>
                 </>
               ) : null}
 
-              {activeTab === 'family' ? (
+              {activeTab === 'children' ? (
                 <>
-            <FormField label="자녀1 이름" error={errors.child1Name}>
+            <h3 className="mt-0 mb-1 text-base font-semibold text-[var(--fg)]">자녀 1</h3>
+
+            <FormField label="이름" error={errors.child1Name}>
               <input
                 value={form.child1Name ?? ''}
                 onChange={(event) => setForm((prev) => ({ ...prev, child1Name: event.target.value }))}
@@ -664,7 +706,7 @@ export default function ProfilePage() {
               />
             </FormField>
 
-            <FormField label="자녀1 생년월일" error={errors.child1BirthDate}>
+            <FormField label="생년월일" error={errors.child1BirthDate}>
               <input
                 type="date"
                 value={form.child1BirthDate ?? ''}
@@ -672,7 +714,7 @@ export default function ProfilePage() {
               />
             </FormField>
 
-            <FormField label="자녀1 예상 대학 진학년도" error={errors.child1TargetUniversityYear}>
+            <FormField label="예상 대학 진학년도" error={errors.child1TargetUniversityYear}>
               <input
                 type="number"
                 min={currentYear}
@@ -688,7 +730,9 @@ export default function ProfilePage() {
               />
             </FormField>
 
-            <FormField label="자녀2 이름" error={errors.child2Name}>
+            <h3 className="mt-3 mb-1 text-base font-semibold text-[var(--fg)]">자녀 2</h3>
+
+            <FormField label="이름" error={errors.child2Name}>
               <input
                 value={form.child2Name ?? ''}
                 onChange={(event) => setForm((prev) => ({ ...prev, child2Name: event.target.value }))}
@@ -696,7 +740,7 @@ export default function ProfilePage() {
               />
             </FormField>
 
-            <FormField label="자녀2 생년월일" error={errors.child2BirthDate}>
+            <FormField label="생년월일" error={errors.child2BirthDate}>
               <input
                 type="date"
                 value={form.child2BirthDate ?? ''}
@@ -704,7 +748,7 @@ export default function ProfilePage() {
               />
             </FormField>
 
-            <FormField label="자녀2 예상 대학 진학년도" error={errors.child2TargetUniversityYear}>
+            <FormField label="예상 대학 진학년도" error={errors.child2TargetUniversityYear}>
               <input
                 type="number"
                 min={currentYear}
@@ -719,20 +763,27 @@ export default function ProfilePage() {
                 placeholder={`예: ${currentYear + 14}`}
               />
             </FormField>
+                </>
+              ) : null}
 
-            <FormField label="은퇴 목표 연령" error={errors.retirementTargetAge}>
+              {activeTab === 'settings' ? (
+                <>
+            <FormField label="가구원 수" error={errors.householdSize}>
               <input
                 type="number"
-                min={45}
-                max={90}
-                value={form.retirementTargetAge}
+                min={1}
+                value={form.householdSize}
                 onChange={(event) =>
-                  setForm((prev) => ({
-                    ...prev,
-                    retirementTargetAge: event.target.value === '' ? '' : Number(event.target.value)
-                  }))
+                  setForm((prev) => ({ ...prev, householdSize: Number(event.target.value || 1) }))
                 }
-                placeholder="예: 60"
+              />
+            </FormField>
+
+            <FormField label="통화" error={errors.currency}>
+              <input
+                value={form.currency}
+                onChange={(event) => setForm((prev) => ({ ...prev, currency: event.target.value }))}
+                placeholder="KRW"
               />
             </FormField>
                 </>

@@ -34,6 +34,7 @@ type ProfileContext = {
   spouseEmployerName?: string;
   spouseJobTitle?: string;
   spouseAnnualIncome?: number;
+  spouseRetirementTargetAge?: number;
 };
 
 type UserContext = {
@@ -411,6 +412,11 @@ export async function aiMessagesHandler(context: InvocationContext, req: HttpReq
               if (profile.spouseEmployerName) lines.push(`- 배우자 직장: ${profile.spouseEmployerName}`);
               if (profile.spouseJobTitle) lines.push(`- 배우자 직무: ${profile.spouseJobTitle}`);
               if (profile.spouseAnnualIncome && profile.spouseAnnualIncome > 0) lines.push(`- 배우자 연수입: ${profile.spouseAnnualIncome.toLocaleString()}원`);
+              if (typeof profile.spouseRetirementTargetAge === "number") {
+                const spouseAge = getAgeFromBirthDate(profile.spouseBirthDate);
+                lines.push(`- 배우자 은퇴 목표 연령: ${profile.spouseRetirementTargetAge}세`);
+                if (typeof spouseAge === "number") lines.push(`- 배우자 은퇴까지 남은 기간: ${profile.spouseRetirementTargetAge - spouseAge}년`);
+              }
             }
             profileContextText = lines.join("\n");
           }
