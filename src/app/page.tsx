@@ -8,6 +8,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { LoginPrompt } from '@/components/ui/AuthGuard';
 import { formatCompact } from '@/lib/formatCompact';
 import { isPensionCategory } from '@/lib/isPensionCategory';
+import { CollapsibleSection } from '@/components/ui/CollapsibleSection';
 
 type Summary = {
   totalAssets: number;
@@ -29,6 +30,7 @@ const quickActions = [
 ];
 
 export default function Home() {
+  const [quickActionsOpen, setQuickActionsOpen] = useState(false);
   const authStatus = useAuth();
   const [summary, setSummary] = useState<Summary | null>(null);
   const [assets, setAssets] = useState<Asset[]>([]);
@@ -272,19 +274,20 @@ export default function Home() {
 
       <section className="mt-4 grid gap-4 md:grid-cols-[2fr_1fr]">
         <div className="rounded-xl border border-[var(--line)] bg-[var(--surface)] p-4">
-          <h2 className="mb-3 mt-0 text-[1.05rem]">빠른 실행</h2>
-          <div className="grid gap-2.5 [grid-template-columns:repeat(auto-fit,minmax(220px,1fr))]">
-            {quickActions.map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                className="rounded-lg border border-[var(--line)] p-3 no-underline transition-colors hover:bg-[var(--table-stripe)]"
-              >
-                <strong className="mb-1 block">{item.label}</strong>
-                <span className="text-[0.88rem] text-[var(--muted)]">{item.desc}</span>
-              </Link>
-            ))}
-          </div>
+          <CollapsibleSection title="빠른 실행" open={quickActionsOpen} onToggle={() => setQuickActionsOpen(v => !v)}>
+            <div className="grid gap-2.5 [grid-template-columns:repeat(auto-fit,minmax(220px,1fr))]">
+              {quickActions.map((item) => (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className="rounded-lg border border-[var(--line)] p-3 no-underline transition-colors hover:bg-[var(--table-stripe)]"
+                >
+                  <strong className="mb-1 block">{item.label}</strong>
+                  <span className="text-[0.88rem] text-[var(--muted)]">{item.desc}</span>
+                </Link>
+              ))}
+            </div>
+          </CollapsibleSection>
         </div>
 
         <div className="rounded-xl border border-[var(--line)] bg-[var(--surface)] p-4">
