@@ -1,0 +1,39 @@
+name: Daily Price Update
+
+on:
+  schedule:
+    # Run at 22:30 UTC (07:30 KST next day) on weekdays (Mon-Fri)
+    # This captures US market close (4PM ET = ~6-7AM KST)
+    - cron: '30 22 * * 1-5'
+  workflow_dispatch:
+
+jobs:
+  update-prices:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate required secret
+        run: |
+          if [ -z "${{ secrets.SWA_APP_BASE_URL }}" ]; then
+            echo "SWA_APP_BASE_URL secret is not set"
+            exit 1
+          fi
+
+      - name: Trigger price update endpoint
+        env:
+          BASE_URL: ${{ secrets.SWA_APP_BASE_URL }}
+        run: |
+          URL="${BASE_URL%/}/api/price-updater"
+
+          echo "Calling: $URL"
+          HTTP_CODE=$(curl -sS -o response.json -w "%{http_code}" -X POST "$URL" \
+            -H "Content-Type: application/json" \
+            --max-time 120)
+          cat response.json
+
+          if [ "$HTTP_CODE" -lt 200 ] || [ "$HTTP_CODE" -ge 300 ]; then
+            echo "Request failed with HTTP $HTTP_CODE"
+            exit 1
+          fi
+
+          echo ""
+          echo "Price update completed successfully (HTTP $HTTP_CODE)"

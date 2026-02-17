@@ -1,0 +1,18 @@
+{
+  "scriptFile": "index.js",
+  "entryPoint": "priceUpdater",
+  "bindings": [
+    {
+      "name": "req",
+      "type": "httpTrigger",
+      "direction": "in",
+      "methods": ["post"],
+      "route": "price-updater"
+    },
+    {
+      "name": "res",
+      "type": "http",
+      "direction": "out"
+    }
+  ]
+}
