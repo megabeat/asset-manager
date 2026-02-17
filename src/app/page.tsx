@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { api, Asset, Expense, Income, Profile } from '@/lib/api';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { formatCompact } from '@/lib/formatCompact';
+import { isPensionCategory } from '@/lib/isPensionCategory';
 
 type Summary = {
   totalAssets: number;
@@ -12,16 +13,6 @@ type Summary = {
   netWorth: number;
   monthlyFixedExpense: number;
 };
-
-function isPensionCategory(category?: string): boolean {
-  return (
-    category === 'pension' ||
-    category === 'pension_national' ||
-    category === 'pension_personal' ||
-    category === 'pension_retirement' ||
-    category === 'pension_government'
-  );
-}
 
 const quickActions = [
   { href: '/profile', label: '설정', desc: '기본 정보와 로그인 설정 확인' },

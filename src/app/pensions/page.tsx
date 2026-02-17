@@ -8,6 +8,7 @@ import { SectionCard } from '@/components/ui/SectionCard';
 import { FormField } from '@/components/ui/FormField';
 import { DataTable } from '@/components/ui/DataTable';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
+import { isPensionCategory } from '@/lib/isPensionCategory';
 import { PieChart, Pie, Cell, Legend, Tooltip, ResponsiveContainer } from 'recharts';
 
 type NumericInput = number | '';
@@ -45,16 +46,6 @@ const defaultForm: PensionForm = {
 };
 
 const COLORS = ['#0b63ce', '#2e7d32', '#f57c00', '#8e24aa'];
-
-function isPensionCategory(category?: string): boolean {
-  return (
-    category === 'pension' ||
-    category === 'pension_national' ||
-    category === 'pension_personal' ||
-    category === 'pension_retirement' ||
-    category === 'pension_government'
-  );
-}
 
 function normalizePensionCategory(category?: string): PensionCategory {
   if (category === 'pension_personal') return 'pension_personal';

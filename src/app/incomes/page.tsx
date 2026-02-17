@@ -51,6 +51,7 @@ export default function IncomesPage() {
   const [isMonthSettled, setIsMonthSettled] = useState(false);
   const [settlementMonth, setSettlementMonth] = useState(getCurrentMonthKey());
   const [form, setForm] = useState<IncomeForm>(defaultForm);
+  const [editingIncomeId, setEditingIncomeId] = useState<string | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const { message, feedback, clearMessage, setMessageText, setSuccessMessage, setErrorMessage } = useFeedbackMessage();
 
@@ -131,7 +132,7 @@ export default function IncomesPage() {
     }
 
     setSaving(true);
-    const result = await api.createIncome({
+    const payload = {
       name: form.name.trim(),
       amount: amountValue,
       cycle: form.cycle,
@@ -142,13 +143,18 @@ export default function IncomesPage() {
       category: form.category.trim(),
       note: form.note.trim(),
       owner: form.owner
-    });
+    };
+
+    const result = editingIncomeId
+      ? await api.updateIncome(editingIncomeId, payload)
+      : await api.createIncome(payload);
 
     if (result.error) {
-      setErrorMessage('저장 실패', result.error);
+      setErrorMessage(editingIncomeId ? '수정 실패' : '저장 실패', result.error);
     } else {
+      setEditingIncomeId(null);
       setForm(defaultForm);
-      setSuccessMessage('수입이 저장되었습니다.');
+      setSuccessMessage(editingIncomeId ? '수입이 수정되었습니다.' : '수입이 저장되었습니다.');
       await loadIncomes();
     }
     setSaving(false);
@@ -162,6 +168,35 @@ export default function IncomesPage() {
       return;
     }
     setIncomes((prev) => prev.filter((item) => item.id !== id));
+  }
+
+  function onEdit(income: Income) {
+    setEditingIncomeId(income.id);
+    setErrors({});
+    clearMessage();
+    setForm({
+      name: income.name ?? '',
+      amount: Number(income.amount ?? 0),
+      cycle: (income.cycle as 'monthly' | 'yearly' | 'one_time') ?? 'monthly',
+      billingDay:
+        income.billingDay && income.billingDay >= 1 && income.billingDay <= 31
+          ? income.billingDay
+          : income.occurredAt
+            ? new Date(income.occurredAt).getDate()
+            : new Date().getDate(),
+      isFixedIncome: Boolean(income.isFixedIncome),
+      occurredAt: income.occurredAt?.slice(0, 10) ?? new Date().toISOString().slice(0, 10),
+      reflectToLiquidAsset: Boolean(income.reflectToLiquidAsset),
+      category: income.category ?? '',
+      note: income.note ?? '',
+      owner: income.owner ?? '본인'
+    });
+  }
+
+  function onCancelEdit() {
+    setEditingIncomeId(null);
+    setErrors({});
+    setForm(defaultForm);
   }
 
   async function onSettleMonth() {
@@ -429,8 +464,17 @@ export default function IncomesPage() {
             disabled={saving}
             className="btn-primary w-[140px] self-end"
           >
-            {saving ? '저장 중...' : '수입 추가'}
+            {saving ? '저장 중...' : editingIncomeId ? '수입 수정' : '수입 추가'}
           </button>
+          {editingIncomeId ? (
+            <button
+              type="button"
+              className="btn-danger-outline w-[140px] self-end"
+              onClick={onCancelEdit}
+            >
+              수정 취소
+            </button>
+          ) : null}
         </form>
       </SectionCard>
 
@@ -476,9 +520,14 @@ export default function IncomesPage() {
               header: '관리',
               align: 'center',
               render: (income) => (
-                <button className="btn-danger-outline" onClick={() => onDelete(income.id)}>
-                  삭제
-                </button>
+                <div className="flex gap-1 justify-center">
+                  <button className="btn-primary" onClick={() => onEdit(income)}>
+                    수정
+                  </button>
+                  <button className="btn-danger-outline" onClick={() => onDelete(income.id)}>
+                    삭제
+                  </button>
+                </div>
               ),
             },
             {

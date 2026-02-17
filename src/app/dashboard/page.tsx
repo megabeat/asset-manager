@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { api } from '@/lib/api';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { formatCompact } from '@/lib/formatCompact';
+import { isPensionCategory } from '@/lib/isPensionCategory';
 import {
   LineChart,
   Line,
@@ -35,16 +36,6 @@ type AssetItem = {
   usdAmount?: number;
   exchangeRate?: number;
 };
-
-function isPensionCategory(category?: string): boolean {
-  return (
-    category === 'pension' ||
-    category === 'pension_national' ||
-    category === 'pension_personal' ||
-    category === 'pension_retirement' ||
-    category === 'pension_government'
-  );
-}
 
 const COLORS = ['#0b63ce', '#2e7d32', '#f57c00', '#7b1fa2', '#c2185b', '#00796b'];
 

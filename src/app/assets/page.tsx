@@ -8,6 +8,7 @@ import { SectionCard } from '@/components/ui/SectionCard';
 import { FormField } from '@/components/ui/FormField';
 import { DataTable } from '@/components/ui/DataTable';
 import { getAssetCategoryLabel } from '@/lib/assetCategory';
+import { isPensionCategory } from '@/lib/isPensionCategory';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { ResponsiveContainer, Tooltip, Treemap } from 'recharts';
 
@@ -169,16 +170,6 @@ export default function AssetsPage() {
   const [fxLoading, setFxLoading] = useState(false);
   const [fxManualOverride, setFxManualOverride] = useState(false);
   const [treemapView, setTreemapView] = useState<'all' | 'stock'>('all');
-
-  function isPensionCategory(category?: string) {
-    return (
-      category === 'pension' ||
-      category === 'pension_national' ||
-      category === 'pension_personal' ||
-      category === 'pension_retirement' ||
-      category === 'pension_government'
-    );
-  }
 
   async function loadAssets() {
     const result = await api.getAssets();

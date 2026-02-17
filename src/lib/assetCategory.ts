@@ -13,7 +13,8 @@ export const ASSET_CATEGORY_LABELS: Record<string, string> = {
   pension: '연금',
   pension_national: '국민연금',
   pension_personal: '개인연금',
-  pension_retirement: '퇴직연금(IPA)'
+  pension_retirement: '퇴직연금(IPA)',
+  pension_government: '공무원연금'
 };
 
 export function getAssetCategoryLabel(category?: string): string {
