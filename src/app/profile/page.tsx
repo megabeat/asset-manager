@@ -19,6 +19,7 @@ type ProfileForm = Omit<
   | 'rsuVestingPriceUsd'
   | 'child1TargetUniversityYear'
   | 'child2TargetUniversityYear'
+  | 'spouseAnnualIncome'
 > & {
   retirementTargetAge: number | '';
   baseSalaryAnnual: number | '';
@@ -30,9 +31,10 @@ type ProfileForm = Omit<
   rsuVestingPriceUsd: number | '';
   child1TargetUniversityYear: number | '';
   child2TargetUniversityYear: number | '';
+  spouseAnnualIncome: number | '';
 };
 
-type ProfileTab = 'basic' | 'income' | 'family';
+type ProfileTab = 'basic' | 'income' | 'spouse' | 'family';
 
 const currentYear = new Date().getFullYear();
 
@@ -49,6 +51,11 @@ const defaultForm: ProfileForm = {
   rsuShares: '',
   rsuVestingPriceUsd: '',
   rsuVestingCycle: 'quarterly',
+  spouseName: '',
+  spouseBirthDate: '',
+  spouseEmployerName: '',
+  spouseJobTitle: '',
+  spouseAnnualIncome: '',
   child1Name: '',
   child1BirthDate: '',
   child1TargetUniversityYear: '',
@@ -130,6 +137,11 @@ export default function ProfilePage() {
           rsuShares: result.data.rsuShares ?? '',
           rsuVestingPriceUsd: result.data.rsuVestingPriceUsd ?? '',
           rsuVestingCycle: result.data.rsuVestingCycle ?? 'quarterly',
+          spouseName: result.data.spouseName ?? '',
+          spouseBirthDate: result.data.spouseBirthDate ?? '',
+          spouseEmployerName: result.data.spouseEmployerName ?? '',
+          spouseJobTitle: result.data.spouseJobTitle ?? '',
+          spouseAnnualIncome: result.data.spouseAnnualIncome ?? '',
           child1Name: result.data.child1Name ?? '',
           child1BirthDate: result.data.child1BirthDate ?? '',
           child1TargetUniversityYear: result.data.child1TargetUniversityYear ?? '',
@@ -290,6 +302,11 @@ export default function ProfilePage() {
       rsuVestingCycle: form.rsuVestingCycle || undefined,
       annualRaiseRatePct:
         form.annualRaiseRatePct === '' ? undefined : Number(form.annualRaiseRatePct),
+      spouseName: form.spouseName?.trim() || undefined,
+      spouseBirthDate: form.spouseBirthDate || undefined,
+      spouseEmployerName: form.spouseEmployerName?.trim() || undefined,
+      spouseJobTitle: form.spouseJobTitle?.trim() || undefined,
+      spouseAnnualIncome: form.spouseAnnualIncome === '' ? undefined : Number(form.spouseAnnualIncome),
       child1Name: form.child1Name?.trim() || undefined,
       child1BirthDate: form.child1BirthDate || undefined,
       child1TargetUniversityYear:
@@ -382,6 +399,13 @@ export default function ProfilePage() {
                 onClick={() => setActiveTab('income')}
               >
                 소득정보
+              </button>
+              <button
+                type="button"
+                className={getTabButtonClass('spouse')}
+                onClick={() => setActiveTab('spouse')}
+              >
+                배우자
               </button>
               <button
                 type="button"
@@ -574,6 +598,57 @@ export default function ProfilePage() {
                   }))
                 }
                 placeholder="예: 5"
+              />
+            </FormField>
+                </>
+              ) : null}
+
+              {activeTab === 'spouse' ? (
+                <>
+            <FormField label="배우자 이름">
+              <input
+                value={form.spouseName ?? ''}
+                onChange={(event) => setForm((prev) => ({ ...prev, spouseName: event.target.value }))}
+                placeholder="예: 홍길순"
+              />
+            </FormField>
+
+            <FormField label="배우자 생년월일">
+              <input
+                type="date"
+                value={form.spouseBirthDate ?? ''}
+                onChange={(event) => setForm((prev) => ({ ...prev, spouseBirthDate: event.target.value }))}
+              />
+            </FormField>
+
+            <FormField label="배우자 직장명">
+              <input
+                value={form.spouseEmployerName ?? ''}
+                onChange={(event) => setForm((prev) => ({ ...prev, spouseEmployerName: event.target.value }))}
+                placeholder="예: OO초등학교"
+              />
+            </FormField>
+
+            <FormField label="배우자 직무/직급">
+              <input
+                value={form.spouseJobTitle ?? ''}
+                onChange={(event) => setForm((prev) => ({ ...prev, spouseJobTitle: event.target.value }))}
+                placeholder="예: 초등학교 교사"
+              />
+            </FormField>
+
+            <FormField label="배우자 연 소득(세전)">
+              <input
+                type="number"
+                min={0}
+                value={form.spouseAnnualIncome}
+                onChange={(event) =>
+                  setForm((prev) => ({
+                    ...prev,
+                    spouseAnnualIncome: event.target.value === '' ? '' : Number(event.target.value)
+                  }))
+                }
+                placeholder="예: 60000000"
               />
             </FormField>
                 </>

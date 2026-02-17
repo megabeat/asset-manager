@@ -29,6 +29,11 @@ type ProfileContext = {
   child2BirthDate?: string;
   child2TargetUniversityYear?: number;
   retirementTargetAge?: number;
+  spouseName?: string;
+  spouseBirthDate?: string;
+  spouseEmployerName?: string;
+  spouseJobTitle?: string;
+  spouseAnnualIncome?: number;
 };
 
 type UserContext = {
@@ -398,7 +403,15 @@ export async function aiMessagesHandler(context: InvocationContext, req: HttpReq
               `- 자녀1: ${profile.child1Name ?? "미설정"} / ${typeof child1Age === "number" ? `${child1Age}세` : "나이 미설정"} / 예상 대학 진학년도: ${typeof profile.child1TargetUniversityYear === "number" ? `${profile.child1TargetUniversityYear}년` : "미설정"}`,
               `- 자녀2: ${profile.child2Name ?? "미설정"} / ${typeof child2Age === "number" ? `${child2Age}세` : "나이 미설정"} / 예상 대학 진학년도: ${typeof profile.child2TargetUniversityYear === "number" ? `${profile.child2TargetUniversityYear}년` : "미설정"}`
             ];
-
+            // Spouse info
+            if (profile.spouseName) {
+              const spouseAge = getAgeFromBirthDate(profile.spouseBirthDate);
+              lines.push(`- 배우자: ${profile.spouseName}`);
+              if (typeof spouseAge === "number") lines.push(`- 배우자 나이: ${spouseAge}세`);
+              if (profile.spouseEmployerName) lines.push(`- 배우자 직장: ${profile.spouseEmployerName}`);
+              if (profile.spouseJobTitle) lines.push(`- 배우자 직무: ${profile.spouseJobTitle}`);
+              if (profile.spouseAnnualIncome && profile.spouseAnnualIncome > 0) lines.push(`- 배우자 연수입: ${profile.spouseAnnualIncome.toLocaleString()}원`);
+            }
             profileContextText = lines.join("\n");
           }
         } catch (profileError: unknown) {
@@ -408,9 +421,9 @@ export async function aiMessagesHandler(context: InvocationContext, req: HttpReq
         profileContextText = clampText(profileContextText, 2200);
 
         // --- Fetch detailed asset, expense, income, children, education, goal fund data ---
-        type AssetDetail = { name: string; category: string; currentValue: number; acquiredValue?: number; quantity?: number; symbol?: string; note?: string; pensionMonthlyContribution?: number; pensionReceiveAge?: number; autoUpdate?: boolean };
-        type ExpenseDetail = { name: string; amount: number; cycle: string; expenseType: string; billingDay?: number; isInvestmentTransfer?: boolean; investmentTargetCategory?: string; category?: string };
-        type IncomeDetail = { name: string; amount: number; cycle: string; isFixedIncome?: boolean; category?: string; note?: string };
+        type AssetDetail = { name: string; category: string; currentValue: number; acquiredValue?: number; quantity?: number; symbol?: string; note?: string; pensionMonthlyContribution?: number; pensionReceiveAge?: number; autoUpdate?: boolean; owner?: string };
+        type ExpenseDetail = { name: string; amount: number; cycle: string; expenseType: string; billingDay?: number; isInvestmentTransfer?: boolean; investmentTargetCategory?: string; category?: string; owner?: string };
+        type IncomeDetail = { name: string; amount: number; cycle: string; isFixedIncome?: boolean; category?: string; note?: string; owner?: string };
         type ChildDetail = { name: string; birthYear: number; grade: string; targetUniversityYear: number };
         type EduPlanDetail = { childId: string; annualCost: number; inflationRate: number; startYear: number; endYear: number };
         type GoalFundDetail = { name: string; horizon: string; vehicle: string; targetAmount: number; currentAmount: number; monthlyContribution: number; targetDate?: string; status: string; note?: string };
@@ -425,15 +438,15 @@ export async function aiMessagesHandler(context: InvocationContext, req: HttpReq
         try {
           const [assetsRes, expensesRes, incomesRes, childrenRes, eduRes, goalRes] = await Promise.all([
             getContainer("assets").items.query({
-              query: "SELECT c.name, c.category, c.currentValue, c.acquiredValue, c.quantity, c.symbol, c.note, c.pensionMonthlyContribution, c.pensionReceiveAge, c.autoUpdate FROM c WHERE c.userId = @userId AND c.type = 'Asset'",
+              query: "SELECT c.name, c.category, c.currentValue, c.acquiredValue, c.quantity, c.symbol, c.note, c.pensionMonthlyContribution, c.pensionReceiveAge, c.autoUpdate, c.owner FROM c WHERE c.userId = @userId AND c.type = 'Asset'",
               parameters: [{ name: "@userId", value: userId }]
             }).fetchAll(),
             getContainer("expenses").items.query({
-              query: "SELECT c.name, c.amount, c.cycle, c.expenseType, c.billingDay, c.isInvestmentTransfer, c.investmentTargetCategory, c.category FROM c WHERE c.userId = @userId AND c.type = 'Expense' AND c.entrySource != 'auto_settlement'",
+              query: "SELECT c.name, c.amount, c.cycle, c.expenseType, c.billingDay, c.isInvestmentTransfer, c.investmentTargetCategory, c.category, c.owner FROM c WHERE c.userId = @userId AND c.type = 'Expense' AND c.entrySource != 'auto_settlement'",
               parameters: [{ name: "@userId", value: userId }]
             }).fetchAll(),
             getContainer("incomes").items.query({
-              query: "SELECT c.name, c.amount, c.cycle, c.isFixedIncome, c.category, c.note FROM c WHERE c.userId = @userId AND c.type = 'Income' AND c.entrySource != 'auto_settlement'",
+              query: "SELECT c.name, c.amount, c.cycle, c.isFixedIncome, c.category, c.note, c.owner FROM c WHERE c.userId = @userId AND c.type = 'Income' AND c.entrySource != 'auto_settlement'",
               parameters: [{ name: "@userId", value: userId }]
             }).fetchAll(),
             getContainer("children").items.query({
@@ -476,6 +489,7 @@ export async function aiMessagesHandler(context: InvocationContext, req: HttpReq
           if (assets.length === 0) return "등록된 자산 없음";
           return assets.map((a, i) => {
             const parts = [`${i + 1}. ${a.name} (${categoryLabels[a.category] ?? a.category}): 현재가치 ${a.currentValue.toLocaleString()}원`];
+            if (a.owner && a.owner !== '본인') parts.push(`소유: ${a.owner}`);
             if (a.acquiredValue) parts.push(`매입가 ${a.acquiredValue.toLocaleString()}원`);
             if (a.quantity) parts.push(`수량 ${a.quantity}`);
             if (a.symbol) parts.push(`종목코드 ${a.symbol}`);
@@ -495,6 +509,7 @@ export async function aiMessagesHandler(context: InvocationContext, req: HttpReq
             if (e.billingDay) parts.push(`결제일 ${e.billingDay}일`);
             if (e.isInvestmentTransfer) parts.push(`[투자이체→${categoryLabels[e.investmentTargetCategory ?? ""] ?? e.investmentTargetCategory ?? "미지정"}]`);
             if (e.category) parts.push(`분류: ${e.category}`);
+            if (e.owner && e.owner !== '본인') parts.push(`소유: ${e.owner}`);
             return parts.join(" / ");
           }).join("\n");
         };
@@ -506,6 +521,7 @@ export async function aiMessagesHandler(context: InvocationContext, req: HttpReq
             if (inc.isFixedIncome) parts.push("[고정수입]");
             if (inc.category) parts.push(`분류: ${inc.category}`);
             if (inc.note) parts.push(`메모: ${inc.note}`);
+            if (inc.owner && inc.owner !== '본인') parts.push(`소유: ${inc.owner}`);
             return parts.join(" / ");
           }).join("\n");
         };

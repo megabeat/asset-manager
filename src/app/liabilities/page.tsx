@@ -14,13 +14,15 @@ type LiabilityForm = {
   amount: number;
   category: string;
   note: string;
+  owner: string;
 };
 
 const defaultForm: LiabilityForm = {
   name: '',
   amount: 0,
   category: '',
-  note: ''
+  note: '',
+  owner: '본인'
 };
 
 export default function LiabilitiesPage() {
@@ -72,7 +74,8 @@ export default function LiabilitiesPage() {
       name: form.name.trim(),
       amount: Number(form.amount),
       category: form.category.trim(),
-      note: form.note.trim()
+      note: form.note.trim(),
+      owner: form.owner
     };
 
     const result = editingLiabilityId
@@ -97,7 +100,8 @@ export default function LiabilitiesPage() {
       name: liability.name,
       amount: liability.amount,
       category: liability.category ?? '',
-      note: liability.note ?? ''
+      note: liability.note ?? '',
+      owner: liability.owner ?? '본인'
     });
   }
 
@@ -163,6 +167,17 @@ export default function LiabilitiesPage() {
             />
           </FormField>
 
+          <FormField label="소유자">
+            <select
+              value={form.owner}
+              onChange={(event) => setForm((prev) => ({ ...prev, owner: event.target.value }))}
+            >
+              <option value="본인">본인</option>
+              <option value="배우자">배우자</option>
+              <option value="공동">공동</option>
+            </select>
+          </FormField>
+
           <button
             type="submit"
             disabled={saving}
@@ -201,6 +216,12 @@ export default function LiabilitiesPage() {
               header: '금액',
               align: 'right',
               render: (liability) => `${liability.amount.toLocaleString()}원`,
+            },
+            {
+              key: 'owner',
+              header: '소유자',
+              align: 'center',
+              render: (liability) => liability.owner ?? '본인',
             },
             {
               key: 'actions',

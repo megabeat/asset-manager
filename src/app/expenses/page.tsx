@@ -25,6 +25,7 @@ type ExpenseForm = {
   isCardIncluded: boolean;
   category: string;
   goalFundId: string;
+  owner: string;
 };
 
 const defaultForm: ExpenseForm = {
@@ -39,7 +40,8 @@ const defaultForm: ExpenseForm = {
   investmentTargetCategory: 'stock_kr',
   isCardIncluded: false,
   category: '',
-  goalFundId: ''
+  goalFundId: '',
+  owner: '본인'
 };
 
 const INVESTMENT_TARGET_OPTIONS = [
@@ -328,7 +330,8 @@ export default function ExpensesPage() {
             ? form.isCardIncluded
             : false,
       category: form.category.trim(),
-      goalFundId: normalizedIsInvestmentTransfer ? form.goalFundId : ''
+      goalFundId: normalizedIsInvestmentTransfer ? form.goalFundId : '',
+      owner: form.owner
     };
 
     const result = editingExpenseId
@@ -472,7 +475,8 @@ export default function ExpensesPage() {
       investmentTargetCategory: expense.investmentTargetCategory ?? 'stock_kr',
       isCardIncluded: Boolean(expense.isCardIncluded),
       category: expense.category ?? '',
-      goalFundId: expense.goalFundId ?? ''
+      goalFundId: expense.goalFundId ?? '',
+      owner: expense.owner ?? '본인'
     });
   }
 
@@ -790,6 +794,17 @@ export default function ExpensesPage() {
             />
           </FormField>
 
+          <FormField label="소유자">
+            <select
+              value={form.owner}
+              onChange={(event) => setForm((prev) => ({ ...prev, owner: event.target.value }))}
+            >
+              <option value="본인">본인</option>
+              <option value="배우자">배우자</option>
+              <option value="공동">공동</option>
+            </select>
+          </FormField>
+
           <button
             type="submit"
             disabled={saving}
@@ -940,6 +955,12 @@ export default function ExpensesPage() {
               render: (expense) => `${expense.amount.toLocaleString()}원`,
             },
             {
+              key: 'owner',
+              header: '소유자',
+              align: 'center',
+              render: (expense) => expense.owner ?? '본인',
+            },
+            {
               key: 'reflect',
               header: '자산차감',
               align: 'right',
@@ -1003,6 +1024,12 @@ export default function ExpensesPage() {
               header: '금액',
               align: 'right',
               render: (expense) => `${expense.amount.toLocaleString()}원`,
+            },
+            {
+              key: 'owner',
+              header: '소유자',
+              align: 'center',
+              render: (expense) => expense.owner ?? '본인',
             },
             {
               key: 'reflect',

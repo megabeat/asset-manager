@@ -76,6 +76,7 @@ export async function liabilitiesHandler(
           amount: ensureNumberInRange(body.amount, "amount", 0, Number.MAX_SAFE_INTEGER),
           category: ensureOptionalString(body.category, "category") ?? "",
           note: ensureOptionalString(body.note, "note") ?? "",
+          owner: ensureOptionalString(body.owner, "owner") ?? "본인",
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString()
         };
@@ -116,6 +117,7 @@ export async function liabilitiesHandler(
             resource.amount,
           category: ensureOptionalString(body.category, "category") ?? resource.category,
           note: ensureOptionalString(body.note, "note") ?? resource.note,
+          owner: ensureOptionalString(body.owner, "owner") ?? resource.owner ?? "본인",
           updatedAt: new Date().toISOString()
         };
 

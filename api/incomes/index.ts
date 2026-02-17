@@ -444,6 +444,7 @@ export async function incomesHandler(
           reflectedAt: "",
           category: ensureOptionalString(body.category, "category") ?? "",
           note: ensureOptionalString(body.note, "note") ?? "",
+          owner: ensureOptionalString(body.owner, "owner") ?? "본인",
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString()
         };
@@ -561,6 +562,7 @@ export async function incomesHandler(
           reflectedAt,
           category: ensureOptionalString(body.category, "category") ?? existing.category,
           note: ensureOptionalString(body.note, "note") ?? existing.note,
+          owner: ensureOptionalString(body.owner, "owner") ?? existing.owner ?? "본인",
           updatedAt: new Date().toISOString()
         };
 

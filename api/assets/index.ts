@@ -229,6 +229,7 @@ export async function assetsHandler(context: InvocationContext, req: HttpRequest
           priceSource: ensureOptionalString(body.priceSource, "priceSource") ?? "",
           autoUpdate: ensureOptionalBoolean(body.autoUpdate, "autoUpdate") ?? false,
           note: ensureOptionalString(body.note, "note") ?? "",
+          owner: ensureOptionalString(body.owner, "owner") ?? "본인",
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString()
         };
@@ -294,6 +295,7 @@ export async function assetsHandler(context: InvocationContext, req: HttpRequest
           priceSource: ensureOptionalString(body.priceSource, "priceSource") ?? resource.priceSource,
           autoUpdate: ensureOptionalBoolean(body.autoUpdate, "autoUpdate") ?? resource.autoUpdate,
           note: ensureOptionalString(body.note, "note") ?? resource.note,
+          owner: ensureOptionalString(body.owner, "owner") ?? resource.owner ?? "본인",
           updatedAt: new Date().toISOString()
         };
 

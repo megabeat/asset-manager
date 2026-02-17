@@ -20,6 +20,11 @@ export type Profile = {
   rsuShares?: number;
   rsuVestingPriceUsd?: number;
   rsuVestingCycle?: 'monthly' | 'quarterly' | 'yearly' | 'irregular';
+  spouseName?: string;
+  spouseBirthDate?: string;
+  spouseEmployerName?: string;
+  spouseJobTitle?: string;
+  spouseAnnualIncome?: number;
   child1Name?: string;
   child1BirthDate?: string;
   child1TargetUniversityYear?: number;
@@ -47,6 +52,7 @@ export type Asset = {
   pensionReceiveAge?: number;
   carYear?: number;
   note?: string;
+  owner?: string;
 };
 
 export type Expense = {
@@ -71,6 +77,7 @@ export type Expense = {
   reflectedAt?: string;
   billingDay?: number | null;
   category?: string;
+  owner?: string;
   expenseTypeLabel?: string;
   cycleLabel?: string;
 };
@@ -92,6 +99,7 @@ export type Income = {
   reflectedAt?: string;
   category?: string;
   note?: string;
+  owner?: string;
   cycleLabel?: string;
 };
 
@@ -101,6 +109,7 @@ export type Liability = {
   amount: number;
   category?: string;
   note?: string;
+  owner?: string;
 };
 
 export type Child = {

@@ -94,6 +94,11 @@ export async function profileHandler(context: InvocationContext, req: HttpReques
             -20,
             100
           ),
+          spouseName: ensureOptionalString(body.spouseName, "spouseName"),
+          spouseBirthDate: ensureOptionalString(body.spouseBirthDate, "spouseBirthDate"),
+          spouseEmployerName: ensureOptionalString(body.spouseEmployerName, "spouseEmployerName"),
+          spouseJobTitle: ensureOptionalString(body.spouseJobTitle, "spouseJobTitle"),
+          spouseAnnualIncome: ensureOptionalNumber(body.spouseAnnualIncome, "spouseAnnualIncome"),
           child1Name: ensureOptionalString(body.child1Name, "child1Name"),
           child1BirthDate: ensureOptionalString(body.child1BirthDate, "child1BirthDate"),
           child1TargetUniversityYear: ensureOptionalNumberInRange(
@@ -177,6 +182,11 @@ export async function profileHandler(context: InvocationContext, req: HttpReques
           annualRaiseRatePct:
             ensureOptionalNumberInRange(body.annualRaiseRatePct, "annualRaiseRatePct", -20, 100) ??
             resource.annualRaiseRatePct,
+          spouseName: ensureOptionalString(body.spouseName, "spouseName") ?? resource.spouseName,
+          spouseBirthDate: ensureOptionalString(body.spouseBirthDate, "spouseBirthDate") ?? resource.spouseBirthDate,
+          spouseEmployerName: ensureOptionalString(body.spouseEmployerName, "spouseEmployerName") ?? resource.spouseEmployerName,
+          spouseJobTitle: ensureOptionalString(body.spouseJobTitle, "spouseJobTitle") ?? resource.spouseJobTitle,
+          spouseAnnualIncome: ensureOptionalNumber(body.spouseAnnualIncome, "spouseAnnualIncome") ?? resource.spouseAnnualIncome,
           child1Name: ensureOptionalString(body.child1Name, "child1Name") ?? resource.child1Name,
           child1BirthDate:
             ensureOptionalString(body.child1BirthDate, "child1BirthDate") ?? resource.child1BirthDate,

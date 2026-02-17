@@ -22,6 +22,7 @@ type PensionForm = {
   pensionReceiveAge: NumericInput;
   pensionReceiveStart: string;
   note: string;
+  owner: string;
 };
 
 const pensionCategoryLabel: Record<PensionCategory, string> = {
@@ -39,7 +40,8 @@ const defaultForm: PensionForm = {
   pensionMonthlyContribution: '',
   pensionReceiveAge: 60,
   pensionReceiveStart: '',
-  note: ''
+  note: '',
+  owner: '본인'
 };
 
 const COLORS = ['#0b63ce', '#2e7d32', '#f57c00', '#8e24aa'];
@@ -167,7 +169,8 @@ export default function PensionsPage() {
       note: form.note.trim(),
       pensionMonthlyContribution: monthlyContribution,
       pensionReceiveAge: receiveAge,
-      pensionReceiveStart: form.pensionReceiveStart
+      pensionReceiveStart: form.pensionReceiveStart,
+      owner: form.owner
     };
 
     const result = editingAssetId
@@ -198,7 +201,8 @@ export default function PensionsPage() {
       pensionMonthlyContribution: Number(asset.pensionMonthlyContribution ?? 0),
       pensionReceiveAge: Number(asset.pensionReceiveAge ?? 60),
       pensionReceiveStart: asset.pensionReceiveStart ?? '',
-      note: asset.note ?? ''
+      note: asset.note ?? '',
+      owner: asset.owner ?? '본인'
     });
   }
 
@@ -355,6 +359,17 @@ export default function PensionsPage() {
             />
           </FormField>
 
+          <FormField label="소유자">
+            <select
+              value={form.owner}
+              onChange={(event) => setForm((prev) => ({ ...prev, owner: event.target.value }))}
+            >
+              <option value="본인">본인</option>
+              <option value="배우자">배우자</option>
+              <option value="공동">공동</option>
+            </select>
+          </FormField>
+
           <div className="flex items-end gap-2">
             <button type="submit" disabled={saving} className="btn-primary w-[180px]">
               {saving ? '저장 중...' : editingAssetId ? '연금 수정' : '연금 추가'}
@@ -399,6 +414,12 @@ export default function PensionsPage() {
               header: '현재가치',
               align: 'right',
               render: (asset) => `${Number(asset.currentValue ?? 0).toLocaleString()}원`,
+            },
+            {
+              key: 'owner',
+              header: '소유자',
+              align: 'center',
+              render: (asset) => asset.owner ?? '본인',
             },
             {
               key: 'actions',

@@ -29,6 +29,7 @@ type AssetForm = {
   pensionMonthlyContribution: NumericInput;
   pensionReceiveAge: NumericInput;
   pensionReceiveStart: string;
+  owner: string;
 };
 
 type QuickPreset = {
@@ -77,7 +78,8 @@ const defaultForm: AssetForm = {
   exchangeRate: '',
   pensionMonthlyContribution: '',
   pensionReceiveAge: 60,
-  pensionReceiveStart: ''
+  pensionReceiveStart: '',
+  owner: '본인'
 };
 
 const categoryLabel: Record<AssetCategory, string> = {
@@ -420,7 +422,8 @@ export default function AssetsPage() {
       carYear: form.category === 'car' ? Number(form.carYear) : null,
       pensionMonthlyContribution: null,
       pensionReceiveAge: null,
-      pensionReceiveStart: null
+      pensionReceiveStart: null,
+      owner: form.owner
     };
 
     const result = editingAssetId
@@ -487,7 +490,8 @@ export default function AssetsPage() {
       exchangeRate: Number(asset.exchangeRate ?? form.exchangeRate ?? 0),
       pensionMonthlyContribution: '',
       pensionReceiveAge: '',
-      pensionReceiveStart: ''
+      pensionReceiveStart: '',
+      owner: asset.owner ?? '본인'
     });
   }
 
@@ -708,6 +712,17 @@ export default function AssetsPage() {
             />
           </FormField>
 
+          <FormField label="소유자">
+            <select
+              value={form.owner}
+              onChange={(event) => setForm((prev) => ({ ...prev, owner: event.target.value }))}
+            >
+              <option value="본인">본인</option>
+              <option value="배우자">배우자</option>
+              <option value="공동">공동</option>
+            </select>
+          </FormField>
+
           <div className="flex items-end gap-2">
             <button type="submit" disabled={saving} className="btn-primary w-[180px]">
               {saving ? '저장 중...' : editingAssetId ? '자산 수정' : '자산 추가'}
@@ -841,6 +856,12 @@ export default function AssetsPage() {
               header: '현재가치',
               align: 'right',
               render: (asset) => `${(asset.currentValue ?? 0).toLocaleString()}원`,
+            },
+            {
+              key: 'owner',
+              header: '소유자',
+              align: 'center',
+              render: (asset) => asset.owner ?? '본인',
             },
             {
               key: 'actions',

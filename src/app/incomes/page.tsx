@@ -21,6 +21,7 @@ type IncomeForm = {
   reflectToLiquidAsset: boolean;
   category: string;
   note: string;
+  owner: string;
 };
 
 const defaultForm: IncomeForm = {
@@ -32,7 +33,8 @@ const defaultForm: IncomeForm = {
   occurredAt: new Date().toISOString().slice(0, 10),
   reflectToLiquidAsset: false,
   category: '',
-  note: ''
+  note: '',
+  owner: '본인'
 };
 
 function getCurrentMonthKey(): string {
@@ -138,7 +140,8 @@ export default function IncomesPage() {
       occurredAt: form.occurredAt,
       reflectToLiquidAsset: form.reflectToLiquidAsset,
       category: form.category.trim(),
-      note: form.note.trim()
+      note: form.note.trim(),
+      owner: form.owner
     });
 
     if (result.error) {
@@ -410,6 +413,17 @@ export default function IncomesPage() {
             />
           </FormField>
 
+          <FormField label="소유자">
+            <select
+              value={form.owner}
+              onChange={(event) => setForm((prev) => ({ ...prev, owner: event.target.value }))}
+            >
+              <option value="본인">본인</option>
+              <option value="배우자">배우자</option>
+              <option value="공동">공동</option>
+            </select>
+          </FormField>
+
           <button
             type="submit"
             disabled={saving}
@@ -450,6 +464,12 @@ export default function IncomesPage() {
               header: '금액',
               align: 'right',
               render: (income) => `${income.amount.toLocaleString()}원`,
+            },
+            {
+              key: 'owner',
+              header: '소유자',
+              align: 'center',
+              render: (income) => income.owner ?? '본인',
             },
             {
               key: 'actions',

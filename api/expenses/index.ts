@@ -677,6 +677,7 @@ export async function expensesHandler(context: InvocationContext, req: HttpReque
           sourceExpenseId: "",
           settledMonth: "",
           category: ensureOptionalString(body.category, "category") ?? "",
+          owner: ensureOptionalString(body.owner, "owner") ?? "본인",
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString()
         };
@@ -858,6 +859,7 @@ export async function expensesHandler(context: InvocationContext, req: HttpReque
           reflectedAt,
           category: ensureOptionalString(body.category, "category") ?? existing.category,
           goalFundId: ensureOptionalString(body.goalFundId, "goalFundId") ?? String(existing.goalFundId ?? ""),
+          owner: ensureOptionalString(body.owner, "owner") ?? existing.owner ?? "본인",
           updatedAt: new Date().toISOString()
         };
 
