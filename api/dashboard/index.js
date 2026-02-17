@@ -139,7 +139,7 @@ async function dashboardHandler(context, req) {
                     return (0, responses_1.ok)([]);
                 }
                 const query = {
-                    query: "SELECT c.recordedAt, c.value, c.assetId FROM c WHERE c.userId = @userId AND c.type = 'AssetHistory' AND c.recordedAt >= @from AND c.recordedAt <= @to AND (NOT IS_DEFINED(c.isWindowRecord) OR c.isWindowRecord = false) AND ARRAY_CONTAINS(@assetIds, c.assetId)",
+                    query: "SELECT c.recordedAt, c[\"value\"], c.assetId FROM c WHERE c.userId = @userId AND c.type = 'AssetHistory' AND c.recordedAt >= @from AND c.recordedAt <= @to AND (NOT IS_DEFINED(c.isWindowRecord) OR c.isWindowRecord = false) AND ARRAY_CONTAINS(@assetIds, c.assetId)",
                     parameters: [
                         { name: "@userId", value: userId },
                         { name: "@from", value: range.from },
@@ -164,9 +164,8 @@ async function dashboardHandler(context, req) {
                 return (0, responses_1.ok)(points);
             }
             catch (error) {
-                context.log("asset-trend error:", error);
-                const msg = error instanceof Error ? error.message : String(error);
-                return (0, responses_1.fail)("SERVER_ERROR", `Failed to build asset trend: ${msg}`, 500);
+                context.log(error);
+                return (0, responses_1.fail)("SERVER_ERROR", "Failed to build asset trend", 500);
             }
         }
         case "monthly-change": {
@@ -184,7 +183,7 @@ async function dashboardHandler(context, req) {
                     return (0, responses_1.ok)([]);
                 }
                 const query = {
-                    query: "SELECT c.assetId, c.windowMonth, c.value, c.monthlyDelta, c.recordedAt FROM c WHERE c.userId = @userId AND c.type = 'AssetHistory' AND c.isWindowRecord = true AND ARRAY_CONTAINS(@assetIds, c.assetId)",
+                    query: "SELECT c.assetId, c.windowMonth, c[\"value\"], c.monthlyDelta, c.recordedAt FROM c WHERE c.userId = @userId AND c.type = 'AssetHistory' AND c.isWindowRecord = true AND ARRAY_CONTAINS(@assetIds, c.assetId)",
                     parameters: [
                         { name: "@userId", value: userId },
                         { name: "@assetIds", value: assetIds }
@@ -234,7 +233,7 @@ async function dashboardHandler(context, req) {
                     return (0, responses_1.fail)("SERVER_ERROR", "Cosmos DB configuration error", 500);
                 }
                 const query = {
-                    query: "SELECT c.windowMonth, c.value, c.monthlyDelta, c.recordedAt FROM c WHERE c.userId = @userId AND c.type = 'AssetHistory' AND c.isMonthlySnapshot = true ORDER BY c.windowMonth ASC",
+                    query: "SELECT c.windowMonth, c[\"value\"], c.monthlyDelta, c.recordedAt FROM c WHERE c.userId = @userId AND c.type = 'AssetHistory' AND c.isMonthlySnapshot = true ORDER BY c.windowMonth ASC",
                     parameters: [
                         { name: "@userId", value: userId }
                     ]

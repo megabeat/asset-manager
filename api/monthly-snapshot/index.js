@@ -44,7 +44,7 @@ async function monthlySnapshot(req, context) {
         let prevTotal = 0;
         try {
             const prevQuery = {
-                query: "SELECT c.value FROM c WHERE c.userId = @userId AND c.type = 'AssetHistory' AND c.isWindowRecord = true AND c.isMonthlySnapshot = true AND c.windowMonth = @prevMonth",
+                query: "SELECT c[\"value\"] FROM c WHERE c.userId = @userId AND c.type = 'AssetHistory' AND c.isWindowRecord = true AND c.isMonthlySnapshot = true AND c.windowMonth = @prevMonth",
                 parameters: [
                     { name: "@userId", value: userId },
                     { name: "@prevMonth", value: prevMonth }

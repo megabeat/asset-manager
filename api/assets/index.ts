@@ -74,7 +74,7 @@ async function createMonthEndHistorySnapshot(
 
   const previousSnapshotQuery = {
     query:
-      "SELECT TOP 1 c.value FROM c WHERE c.userId = @userId AND c.assetId = @assetId AND c.type = 'AssetHistory' AND c.isWindowRecord = true AND c.recordedAt < @monthStart ORDER BY c.recordedAt DESC",
+      "SELECT TOP 1 c[\"value\"] FROM c WHERE c.userId = @userId AND c.assetId = @assetId AND c.type = 'AssetHistory' AND c.isWindowRecord = true AND c.recordedAt < @monthStart ORDER BY c.recordedAt DESC",
     parameters: [
       { name: "@userId", value: userId },
       { name: "@assetId", value: asset.id },

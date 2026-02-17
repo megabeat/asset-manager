@@ -65,7 +65,7 @@ export async function monthlySnapshot(req: HttpRequest, context: InvocationConte
     try {
       const prevQuery = {
         query:
-          "SELECT c.value FROM c WHERE c.userId = @userId AND c.type = 'AssetHistory' AND c.isWindowRecord = true AND c.isMonthlySnapshot = true AND c.windowMonth = @prevMonth",
+          "SELECT c[\"value\"] FROM c WHERE c.userId = @userId AND c.type = 'AssetHistory' AND c.isWindowRecord = true AND c.isMonthlySnapshot = true AND c.windowMonth = @prevMonth",
         parameters: [
           { name: "@userId", value: userId },
           { name: "@prevMonth", value: prevMonth }
