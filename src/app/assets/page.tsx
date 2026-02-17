@@ -7,40 +7,16 @@ import { useFeedbackMessage } from '@/hooks/useFeedbackMessage';
 import { useConfirmModal } from '@/hooks/useConfirmModal';
 import { ConfirmModal } from '@/components/ui/ConfirmModal';
 import { SectionCard } from '@/components/ui/SectionCard';
-import { FormField } from '@/components/ui/FormField';
+import { CollapsibleSection } from '@/components/ui/CollapsibleSection';
 import { DataTable } from '@/components/ui/DataTable';
 import { getAssetCategoryLabel } from '@/lib/assetCategory';
 import { isPensionCategory } from '@/lib/isPensionCategory';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
+import { AssetForm, AssetFormData, defaultAssetForm, categoryLabel } from '@/components/assets/AssetForm';
 import { ResponsiveContainer, Tooltip, Treemap } from 'recharts';
 
 type AssetCategory = 'cash' | 'deposit' | 'stock_kr' | 'stock_us' | 'car' | 'real_estate' | 'etc';
 type NumericInput = number | '';
-
-type AssetForm = {
-  category: AssetCategory;
-  name: string;
-  currentValue: NumericInput;
-  quantity: NumericInput;
-  acquiredValue: NumericInput;
-  valuationDate: string;
-  note: string;
-  carYear: NumericInput;
-  symbol: string;
-  usdAmount: NumericInput;
-  exchangeRate: NumericInput;
-  pensionMonthlyContribution: NumericInput;
-  pensionReceiveAge: NumericInput;
-  pensionReceiveStart: string;
-  owner: string;
-};
-
-type QuickPreset = {
-  id: string;
-  label: string;
-  category: AssetCategory;
-  values: Partial<AssetForm>;
-};
 
 type CategoryGroup = {
   category: string;
@@ -66,73 +42,6 @@ type TreemapItem = {
   category?: string;
   fill: string;
 };
-
-const defaultForm: AssetForm = {
-  category: 'cash',
-  name: '',
-  currentValue: '',
-  quantity: '',
-  acquiredValue: '',
-  valuationDate: new Date().toISOString().slice(0, 10),
-  note: '',
-  carYear: '',
-  symbol: '',
-  usdAmount: '',
-  exchangeRate: '',
-  pensionMonthlyContribution: '',
-  pensionReceiveAge: 60,
-  pensionReceiveStart: '',
-  owner: '본인'
-};
-
-const categoryLabel: Record<AssetCategory, string> = {
-  cash: '현금',
-  deposit: '예금',
-  stock_kr: '국내주식',
-  stock_us: '미국주식',
-  car: '자동차',
-  real_estate: '부동산',
-  etc: '기타'
-};
-
-const quickPresets: QuickPreset[] = [
-  {
-    id: 'cash-wallet',
-    label: '현금-지갑',
-    category: 'cash',
-    values: { name: '생활비 현금' }
-  },
-  {
-    id: 'deposit-cma',
-    label: '예금-CMA',
-    category: 'deposit',
-    values: { name: 'CMA 통장' }
-  },
-  {
-    id: 'stock-kr',
-    label: '국내주식',
-    category: 'stock_kr',
-    values: { name: '국내주식', symbol: '005930', quantity: 1 }
-  },
-  {
-    id: 'stock-us',
-    label: '미국주식',
-    category: 'stock_us',
-    values: { name: '미국주식', symbol: 'AAPL', quantity: 1 }
-  },
-  {
-    id: 'car-auto',
-    label: '자동차',
-    category: 'car',
-    values: { name: '자동차', carYear: new Date().getFullYear() - 3 }
-  },
-  {
-    id: 'real-estate',
-    label: '부동산',
-    category: 'real_estate',
-    values: { name: '아파트' }
-  }
-];
 
 const TREEMAP_COLORS = ['#0b63ce', '#2e7d32', '#f57c00', '#7b1fa2', '#c2185b', '#00796b', '#4f46e5'];
 
@@ -165,7 +74,7 @@ export default function AssetsPage() {
   const [assets, setAssets] = useState<Asset[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [form, setForm] = useState<AssetForm>(defaultForm);
+  const [form, setForm] = useState<AssetFormData>(defaultAssetForm);
   const [editingAssetId, setEditingAssetId] = useState<string | null>(null);
   const [formOpen, setFormOpen] = useState(false);
   const { message, feedback, clearMessage, setMessageText, setSuccessMessage, setErrorMessage } = useFeedbackMessage();
@@ -212,36 +121,10 @@ export default function AssetsPage() {
 
   function resetFormWithRate(rate: NumericInput) {
     setForm({
-      ...defaultForm,
+      ...defaultAssetForm,
       exchangeRate: rate,
       valuationDate: new Date().toISOString().slice(0, 10)
     });
-  }
-
-  function applyPreset(preset: QuickPreset) {
-    const preservedRate = form.exchangeRate;
-    setEditingAssetId(null);
-    setErrors({});
-    clearMessage();
-    setForm({
-      ...defaultForm,
-      exchangeRate: preservedRate,
-      valuationDate: new Date().toISOString().slice(0, 10),
-      category: preset.category,
-      ...preset.values
-    });
-  }
-
-  function changeCategory(category: AssetCategory) {
-    const preservedRate = form.exchangeRate;
-    setForm((prev) => ({
-      ...defaultForm,
-      exchangeRate: preservedRate,
-      valuationDate: prev.valuationDate,
-      category,
-      name: prev.category === category ? prev.name : ''
-    }));
-    setErrors({});
   }
 
   const effectiveUsdAmount = useMemo(() => {
@@ -528,218 +411,35 @@ export default function AssetsPage() {
         </SectionCard>
       </div>
 
-      <SectionCard className="mt-4" ref={formSectionRef}>
-        <button
-          type="button"
-          onClick={() => setFormOpen((prev) => !prev)}
-          className="flex w-full items-center justify-between bg-transparent border-0 cursor-pointer p-0 text-left"
-        >
-          <h3 className="m-0 text-base font-semibold">
-            {editingAssetId ? '✘ 자산 수정' : '✘ 자산 입력'}
-          </h3>
-          <span className={`text-[var(--color-text-muted)] transition-transform duration-200 ${formOpen ? 'rotate-180' : ''}`}>
-            ▼
-          </span>
-        </button>
-
-        {formOpen && <form onSubmit={onSubmit} className="form-grid mt-3">
-          <FormField label="카테고리" fullWidth>
-            <div className="flex flex-wrap gap-1.5">
-              {(Object.keys(categoryLabel) as AssetCategory[]).map((category) => {
-                const preset = quickPresets.find((p) => p.category === category);
-                return (
-                  <button
-                    key={category}
-                    type="button"
-                    onClick={() => preset ? applyPreset(preset) : changeCategory(category)}
-                    className={`${form.category === category ? 'btn-primary' : 'btn-danger-outline'} min-w-[92px]`}
-                  >
-                    {categoryLabel[category]}
-                  </button>
-                );
-              })}
-            </div>
-          </FormField>
-
-          <FormField label="자산명" error={errors.name}>
-            <input
-              value={form.name}
-              onChange={(event) => setForm((prev) => ({ ...prev, name: event.target.value }))}
-              placeholder={'예: CMA 통장'}
-            />
-          </FormField>
-
-          {isStockCategory ? (
-            <>
-              <FormField label="종목코드" error={errors.symbol}>
-                <input
-                  value={form.symbol}
-                  onChange={(event) => setForm((prev) => ({ ...prev, symbol: event.target.value.toUpperCase() }))}
-                  placeholder="예: AAPL"
-                />
-              </FormField>
-              <FormField label="수량" error={errors.quantity}>
-                <input
-                  type="number"
-                  min={0}
-                  step="0.0001"
-                  value={form.quantity}
-                  onChange={(event) =>
-                    setForm((prev) => ({
-                      ...prev,
-                      quantity: event.target.value === '' ? '' : Number(event.target.value)
-                    }))
-                  }
-                />
-              </FormField>
-              <FormField
-                label={form.category === 'stock_us' ? '단가(USD)' : '단가(원)'}
-                error={errors.acquiredValue}
-              >
-                <input
-                  type="number"
-                  min={0}
-                  step="0.01"
-                  value={form.acquiredValue}
-                  onChange={(event) =>
-                    setForm((prev) => ({
-                      ...prev,
-                      acquiredValue: event.target.value === '' ? '' : Number(event.target.value)
-                    }))
-                  }
-                />
-              </FormField>
-
-              {form.category === 'stock_us' ? (
-                <>
-                  <FormField label={`환율(USD/KRW)${fxLoading ? ' - 조회중' : fxManualOverride ? '' : ' - 자동'}`} error={errors.exchangeRate}>
-                    <div className="flex items-center gap-2">
-                      <input
-                        type="number"
-                        min={0}
-                        step="0.01"
-                        value={form.exchangeRate}
-                        readOnly={!fxManualOverride}
-                        className={!fxManualOverride ? 'opacity-70' : ''}
-                        onChange={(event) =>
-                          setForm((prev) => ({
-                            ...prev,
-                            exchangeRate: event.target.value === '' ? '' : Number(event.target.value)
-                          }))
-                        }
-                      />
-                      <button
-                        type="button"
-                        className="btn-subtle shrink-0 whitespace-nowrap text-xs"
-                        onClick={() => {
-                          if (fxManualOverride) {
-                            loadUsdKrwRate();
-                          }
-                          setFxManualOverride(!fxManualOverride);
-                        }}
-                      >
-                        {fxManualOverride ? '자동' : '수동입력'}
-                      </button>
-                    </div>
-                  </FormField>
-                  <FormField label="USD 평가액(자동 계산)">
-                    <input value={effectiveUsdAmount.toLocaleString()} readOnly />
-                  </FormField>
-                  <FormField label="원화 평가액(자동 계산)">
-                    <input value={effectiveCurrentValue.toLocaleString()} readOnly />
-                  </FormField>
-                  <FormField label="계산식" fullWidth>
-                    <input value={`${form.quantity || 0}주 × ${form.acquiredValue || 0} USD × ${form.exchangeRate || 0} = ${effectiveCurrentValue.toLocaleString()}원`} readOnly />
-                  </FormField>
-                </>
-              ) : (
-                <>
-                  <FormField label="현재가치(원, 자동 계산)">
-                    <input value={effectiveCurrentValue.toLocaleString()} readOnly />
-                  </FormField>
-                  <FormField label="계산식" fullWidth>
-                    <input value={`${form.quantity || 0}주 × ${form.acquiredValue || 0}원 = ${effectiveCurrentValue.toLocaleString()}원`} readOnly />
-                  </FormField>
-                </>
-              )}
-            </>
-          ) : (
-            <>
-              {form.category === 'car' ? (
-                <FormField label="년식" error={errors.carYear}>
-                  <input
-                    type="number"
-                    min={1980}
-                    max={new Date().getFullYear() + 1}
-                    value={form.carYear}
-                    onChange={(event) =>
-                      setForm((prev) => ({
-                        ...prev,
-                        carYear: event.target.value === '' ? '' : Number(event.target.value)
-                      }))
-                    }
-                  />
-                </FormField>
-              ) : null}
-              <FormField label={form.category === 'car' ? '현재 중고시세(원)' : '현재가치(원)'} error={errors.currentValue}>
-                <input
-                  type="number"
-                  min={0}
-                  value={form.currentValue}
-                  onChange={(event) =>
-                    setForm((prev) => ({
-                      ...prev,
-                      currentValue: event.target.value === '' ? '' : Number(event.target.value)
-                    }))
-                  }
-                />
-              </FormField>
-            </>
-          )}
-
-          <FormField label="평가일" error={errors.valuationDate}>
-            <input
-              type="date"
-              value={form.valuationDate}
-              onChange={(event) => setForm((prev) => ({ ...prev, valuationDate: event.target.value }))}
-            />
-          </FormField>
-
-          <FormField label="메모" fullWidth>
-            <input
-              value={form.note}
-              onChange={(event) => setForm((prev) => ({ ...prev, note: event.target.value }))}
-              placeholder={
-                isStockCategory
-                    ? '예: 분할매수 2차'
-                    : '선택 입력'
-              }
-            />
-          </FormField>
-
-          <FormField label="소유자">
-            <select
-              value={form.owner}
-              onChange={(event) => setForm((prev) => ({ ...prev, owner: event.target.value }))}
-            >
-              <option value="본인">본인</option>
-              <option value="배우자">배우자</option>
-              <option value="공동">공동</option>
-            </select>
-          </FormField>
-
-          <div className="flex items-end gap-2">
-            <button type="submit" disabled={saving} className="btn-primary w-[180px]">
-              {saving ? '저장 중...' : editingAssetId ? '자산 수정' : '자산 추가'}
-            </button>
-            {editingAssetId ? (
-              <button type="button" onClick={onCancelEdit} className="btn-danger-outline w-[120px]">
-                취소
-              </button>
-            ) : null}
-          </div>
-        </form>}
-      </SectionCard>
+      <CollapsibleSection
+        className="mt-4"
+        ref={formSectionRef}
+        open={formOpen}
+        onToggle={() => setFormOpen((prev) => !prev)}
+        title="✘ 자산 입력"
+        editTitle="✘ 자산 수정"
+        isEditing={!!editingAssetId}
+      >
+        <AssetForm
+          form={form}
+          setForm={setForm}
+          errors={errors}
+          setErrors={setErrors}
+          saving={saving}
+          editingAssetId={editingAssetId}
+          setEditingAssetId={setEditingAssetId}
+          fxLoading={fxLoading}
+          fxManualOverride={fxManualOverride}
+          setFxManualOverride={setFxManualOverride}
+          effectiveUsdAmount={effectiveUsdAmount}
+          effectiveCurrentValue={effectiveCurrentValue}
+          isStockCategory={isStockCategory}
+          onSubmit={onSubmit}
+          onCancelEdit={onCancelEdit}
+          loadUsdKrwRate={loadUsdKrwRate}
+          clearMessage={clearMessage}
+        />
+      </CollapsibleSection>
 
       <FeedbackBanner feedback={feedback} />
 

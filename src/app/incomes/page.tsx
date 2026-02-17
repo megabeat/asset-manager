@@ -4,10 +4,13 @@ import { FormEvent, useEffect, useMemo, useRef, useState } from 'react';
 import { api, Income } from '@/lib/api';
 import { FeedbackBanner } from '@/components/ui/FeedbackBanner';
 import { SectionCard } from '@/components/ui/SectionCard';
+import { CollapsibleSection } from '@/components/ui/CollapsibleSection';
+import SettlementSection from '@/components/ui/SettlementSection';
 import { FormField } from '@/components/ui/FormField';
 import { DataTable } from '@/components/ui/DataTable';
 import { useFeedbackMessage } from '@/hooks/useFeedbackMessage';
 import { useConfirmModal } from '@/hooks/useConfirmModal';
+import { useSettlement } from '@/hooks/useSettlement';
 import { ConfirmModal } from '@/components/ui/ConfirmModal';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 
@@ -39,19 +42,10 @@ const defaultForm: IncomeForm = {
   owner: '본인'
 };
 
-function getCurrentMonthKey(): string {
-  const now = new Date();
-  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-}
-
 export default function IncomesPage() {
   const [incomes, setIncomes] = useState<Income[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [settling, setSettling] = useState(false);
-  const [rollingBack, setRollingBack] = useState(false);
-  const [isMonthSettled, setIsMonthSettled] = useState(false);
-  const [settlementMonth, setSettlementMonth] = useState(getCurrentMonthKey());
   const [form, setForm] = useState<IncomeForm>(defaultForm);
   const [editingIncomeId, setEditingIncomeId] = useState<string | null>(null);
   const [formOpen, setFormOpen] = useState(false);
@@ -70,20 +64,21 @@ export default function IncomesPage() {
     }
   }
 
-  async function checkSettledStatus(month: string) {
-    const result = await api.checkIncomeSettled(month);
-    setIsMonthSettled(result.data?.settled ?? false);
-  }
+  const settlement = useSettlement({
+    checkSettled: api.checkIncomeSettled,
+    settle: api.settleIncomeMonth,
+    rollback: api.rollbackIncomeMonth,
+    reload: loadIncomes,
+    confirm,
+    entityLabel: '수입',
+    guideText: '고정 월수입 템플릿만 입금일 기준으로 자동 생성/현금 반영됩니다.',
+    clearMessage, setMessageText, setSuccessMessage, setErrorMessage,
+    deps: [incomes],
+  });
 
   useEffect(() => {
     loadIncomes().finally(() => setLoading(false));
   }, []);
-
-  useEffect(() => {
-    if (/^\d{4}-\d{2}$/.test(settlementMonth)) {
-      checkSettledStatus(settlementMonth);
-    }
-  }, [settlementMonth, incomes]);
 
   const monthlyIncome = useMemo(() => {
     return incomes.reduce((sum, income) => {
@@ -94,7 +89,7 @@ export default function IncomesPage() {
   }, [incomes]);
 
   const monthlyIncomeSummary = useMemo(() => {
-    const inMonth = (income: Income) => String(income.occurredAt ?? '').slice(0, 7) === settlementMonth;
+    const inMonth = (income: Income) => String(income.occurredAt ?? '').slice(0, 7) === settlement.settlementMonth;
     const monthlyRows = incomes.filter(inMonth);
 
     const autoAmount = monthlyRows
@@ -110,7 +105,7 @@ export default function IncomesPage() {
       manualAmount,
       totalAmount: autoAmount + manualAmount
     };
-  }, [incomes, settlementMonth]);
+  }, [incomes, settlement.settlementMonth]);
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -212,64 +207,6 @@ export default function IncomesPage() {
     setForm(defaultForm);
   }
 
-  async function onSettleMonth() {
-    clearMessage();
-    if (!/^\d{4}-\d{2}$/.test(settlementMonth)) {
-      setMessageText('정산월 형식이 올바르지 않습니다. (YYYY-MM)');
-      return;
-    }
-
-    if (isMonthSettled) {
-      setMessageText('이미 정산이 완료된 월입니다. 재정산하려면 먼저 정산 취소를 해주세요.');
-      return;
-    }
-
-    setSettling(true);
-    const result = await api.settleIncomeMonth(settlementMonth);
-
-    if (result.error) {
-      setErrorMessage('월마감 자동 반영 실패', result.error);
-      setSettling(false);
-      return;
-    }
-
-    const summary = result.data;
-    setSuccessMessage(
-      `${summary?.targetMonth ?? settlementMonth} 자동반영 완료: 생성 ${summary?.createdCount ?? 0}건, 중복건너뜀 ${summary?.skippedCount ?? 0}건, 총 ${Math.round(summary?.totalSettledAmount ?? 0).toLocaleString()}원`
-    );
-    await loadIncomes();
-    setSettling(false);
-  }
-
-  async function onRollbackMonth() {
-    clearMessage();
-    if (!/^\d{4}-\d{2}$/.test(settlementMonth)) {
-      setMessageText('정산월 형식이 올바르지 않습니다. (YYYY-MM)');
-      return;
-    }
-
-    const yes = await confirm(`${settlementMonth} 정산을 취소하시겠습니까?\n자동 생성된 수입 내역이 삭제되고 자산이 복원됩니다.`, { title: '정산 취소', confirmLabel: '정산 취소' });
-    if (!yes) {
-      return;
-    }
-
-    setRollingBack(true);
-    const result = await api.rollbackIncomeMonth(settlementMonth);
-
-    if (result.error) {
-      setErrorMessage('정산 취소 실패', result.error);
-      setRollingBack(false);
-      return;
-    }
-
-    const summary = result.data;
-    setSuccessMessage(
-      `${summary?.targetMonth ?? settlementMonth} 정산 취소 완료: 삭제 ${summary?.deletedCount ?? 0}건, 복원금액 ${Math.round(summary?.reversedAmount ?? 0).toLocaleString()}원`
-    );
-    await loadIncomes();
-    setRollingBack(false);
-  }
-
   if (loading) {
     return <LoadingSpinner />;
   }
@@ -278,49 +215,10 @@ export default function IncomesPage() {
     <div className="py-4">
       <h1>수입 관리</h1>
 
-      <SectionCard className="mt-5 max-w-[980px]">
-        <h3 className="mb-3 mt-0">월마감 정산</h3>
-        <div className="form-grid [grid-template-columns:repeat(auto-fit,minmax(180px,1fr))]">
-          <FormField label="정산월">
-            <input
-              type="month"
-              value={settlementMonth}
-              onChange={(event) => setSettlementMonth(event.target.value)}
-            />
-          </FormField>
-          <div className="flex items-end gap-2">
-            <button
-              type="button"
-              className="btn-primary w-[180px]"
-              onClick={onSettleMonth}
-              disabled={settling || isMonthSettled}
-            >
-              {settling ? '월마감 반영 중...' : isMonthSettled ? '정산 완료됨' : '월마감 실행'}
-            </button>
-            {isMonthSettled && (
-              <button
-                type="button"
-                className="btn-danger-outline w-[180px]"
-                onClick={onRollbackMonth}
-                disabled={rollingBack}
-              >
-                {rollingBack ? '취소 중...' : '정산 취소'}
-              </button>
-            )}
-          </div>
-          <FormField label="안내" fullWidth>
-            <input
-              value={isMonthSettled
-                ? `${settlementMonth} 정산이 이미 완료되었습니다. 재정산하려면 정산 취소 후 다시 실행하세요.`
-                : "고정 월수입 템플릿만 입금일 기준으로 자동 생성/현금 반영됩니다."}
-              readOnly
-            />
-          </FormField>
-        </div>
-      </SectionCard>
+      <SettlementSection {...settlement} />
 
       <SectionCard className="mt-4 max-w-[980px]">
-        <h3 className="mb-3 mt-0">{settlementMonth} 수입 요약</h3>
+        <h3 className="mb-3 mt-0">{settlement.settlementMonth} 수입 요약</h3>
         <div className="grid gap-3 [grid-template-columns:repeat(auto-fit,minmax(180px,1fr))]">
           <div className="rounded-xl border border-[var(--line)] p-3">
             <p className="helper-text m-0">자동반영(고정수입)</p>
@@ -337,21 +235,16 @@ export default function IncomesPage() {
         </div>
       </SectionCard>
 
-      <SectionCard className="mt-4 max-w-[980px]" ref={formSectionRef}>
-        <button
-          type="button"
-          onClick={() => setFormOpen((prev) => !prev)}
-          className="flex w-full items-center justify-between bg-transparent border-0 cursor-pointer p-0 text-left"
-        >
-          <h3 className="m-0 text-base font-semibold">
-            {editingIncomeId ? '✘ 수입 수정' : '✘ 수입 입력'}
-          </h3>
-          <span className={`text-[var(--color-text-muted)] transition-transform duration-200 ${formOpen ? 'rotate-180' : ''}`}>
-            ▼
-          </span>
-        </button>
-
-        {formOpen && <form onSubmit={onSubmit} className="form-grid mt-3">
+      <CollapsibleSection
+        className="mt-4 max-w-[980px]"
+        ref={formSectionRef}
+        open={formOpen}
+        onToggle={() => setFormOpen((prev) => !prev)}
+        title="✘ 수입 입력"
+        editTitle="✘ 수입 수정"
+        isEditing={!!editingIncomeId}
+      >
+        <form onSubmit={onSubmit} className="form-grid">
           <FormField label="수입명" error={errors.name}>
             <input
               placeholder="수입명"
@@ -502,8 +395,8 @@ export default function IncomesPage() {
               수정 취소
             </button>
           ) : null}
-        </form>}
-      </SectionCard>
+        </form>
+      </CollapsibleSection>
 
       <p className="mt-4 font-semibold">
         월 환산 수입: {Math.round(monthlyIncome).toLocaleString()}원

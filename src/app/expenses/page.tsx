@@ -5,12 +5,16 @@ import { api, Expense, GoalFund } from '@/lib/api';
 import { FeedbackBanner } from '@/components/ui/FeedbackBanner';
 import { getAssetCategoryLabel } from '@/lib/assetCategory';
 import { SectionCard } from '@/components/ui/SectionCard';
+import { CollapsibleSection } from '@/components/ui/CollapsibleSection';
+import SettlementSection from '@/components/ui/SettlementSection';
 import { FormField } from '@/components/ui/FormField';
 import { DataTable } from '@/components/ui/DataTable';
 import { useFeedbackMessage } from '@/hooks/useFeedbackMessage';
 import { useConfirmModal } from '@/hooks/useConfirmModal';
+import { useSettlement } from '@/hooks/useSettlement';
 import { ConfirmModal } from '@/components/ui/ConfirmModal';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
+import { getCurrentMonthKey } from '@/lib/dateUtils';
 
 type NumericInput = number | '';
 
@@ -57,11 +61,6 @@ const INVESTMENT_TARGET_OPTIONS = [
   { value: 'pension_government', label: '공무원연금' }
 ] as const;
 
-function getCurrentMonthKey(): string {
-  const now = new Date();
-  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-}
-
 function getOccurredAtByBillingDay(day: number): string {
   const safeDay = Math.min(31, Math.max(1, Math.trunc(day)));
   const now = new Date();
@@ -93,10 +92,6 @@ export default function ExpensesPage() {
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [settling, setSettling] = useState(false);
-  const [rollingBack, setRollingBack] = useState(false);
-  const [isMonthSettled, setIsMonthSettled] = useState(false);
-  const [settlementMonth, setSettlementMonth] = useState(getCurrentMonthKey());
   const [editingExpenseId, setEditingExpenseId] = useState<string | null>(null);
   const [formOpen, setFormOpen] = useState(false);
   const formSectionRef = useRef<HTMLElement>(null);
@@ -118,10 +113,17 @@ export default function ExpensesPage() {
     }
   }
 
-  async function checkSettledStatus(month: string) {
-    const result = await api.checkExpenseSettled(month);
-    setIsMonthSettled(result.data?.settled ?? false);
-  }
+  const settlement = useSettlement({
+    checkSettled: api.checkExpenseSettled,
+    settle: api.settleExpenseMonth,
+    rollback: api.rollbackExpenseMonth,
+    reload: loadExpenses,
+    confirm,
+    entityLabel: '지출',
+    guideText: '비카드 정기지출과 투자이체 템플릿이 결제일 기준으로 월마감 자동 반영됩니다.',
+    clearMessage, setMessageText, setSuccessMessage, setErrorMessage,
+    deps: [expenses],
+  });
 
   useEffect(() => {
     loadExpenses().finally(() => {
@@ -131,12 +133,6 @@ export default function ExpensesPage() {
       if (res.data) setGoalFunds(res.data.filter((f) => f.status === 'active'));
     });
   }, []);
-
-  useEffect(() => {
-    if (/^\d{4}-\d{2}$/.test(settlementMonth)) {
-      checkSettledStatus(settlementMonth);
-    }
-  }, [settlementMonth, expenses]);
 
   const totalMonthly = useMemo(() => {
     return expenses.reduce((sum, item) => {
@@ -154,7 +150,7 @@ export default function ExpensesPage() {
   }, [expenses]);
 
   const monthlySpendSummary = useMemo(() => {
-    const inMonth = (expense: Expense) => String(expense.occurredAt ?? '').slice(0, 7) === settlementMonth;
+    const inMonth = (expense: Expense) => String(expense.occurredAt ?? '').slice(0, 7) === settlement.settlementMonth;
     const monthlyRows = expenses.filter(inMonth);
 
     const cardAmount = monthlyRows
@@ -185,7 +181,7 @@ export default function ExpensesPage() {
       investmentTransferAmount,
       totalAmount: cardAmount + autoRecurringAmount + manualAmount
     };
-  }, [expenses, settlementMonth]);
+  }, [expenses, settlement.settlementMonth]);
 
   const previousCardAmount = useMemo(() => {
     const normalizedName = cardQuickForm.cardName.trim().toLowerCase();
@@ -411,64 +407,6 @@ export default function ExpensesPage() {
     setExpenses((prev) => prev.filter((item) => item.id !== id));
   }
 
-  async function onSettleMonth() {
-    clearMessage();
-    if (!/^\d{4}-\d{2}$/.test(settlementMonth)) {
-      setMessageText('정산월 형식이 올바르지 않습니다. (YYYY-MM)');
-      return;
-    }
-
-    if (isMonthSettled) {
-      setMessageText('이미 정산이 완료된 월입니다. 재정산하려면 먼저 정산 취소를 해주세요.');
-      return;
-    }
-
-    setSettling(true);
-    const result = await api.settleExpenseMonth(settlementMonth);
-
-    if (result.error) {
-      setErrorMessage('월마감 자동 반영 실패', result.error);
-      setSettling(false);
-      return;
-    }
-
-    const summary = result.data;
-    setSuccessMessage(
-      `${summary?.targetMonth ?? settlementMonth} 자동반영 완료: 생성 ${summary?.createdCount ?? 0}건, 중복건너뜀 ${summary?.skippedCount ?? 0}건, 총 ${Math.round(summary?.totalSettledAmount ?? 0).toLocaleString()}원`
-    );
-    await loadExpenses();
-    setSettling(false);
-  }
-
-  async function onRollbackMonth() {
-    clearMessage();
-    if (!/^\d{4}-\d{2}$/.test(settlementMonth)) {
-      setMessageText('정산월 형식이 올바르지 않습니다. (YYYY-MM)');
-      return;
-    }
-
-    const yes = await confirm(`${settlementMonth} 정산을 취소하시겠습니까?\n자동 생성된 지출 내역이 삭제되고 자산이 복원됩니다.`, { title: '정산 취소', confirmLabel: '정산 취소' });
-    if (!yes) {
-      return;
-    }
-
-    setRollingBack(true);
-    const result = await api.rollbackExpenseMonth(settlementMonth);
-
-    if (result.error) {
-      setErrorMessage('정산 취소 실패', result.error);
-      setRollingBack(false);
-      return;
-    }
-
-    const summary = result.data;
-    setSuccessMessage(
-      `${summary?.targetMonth ?? settlementMonth} 정산 취소 완료: 삭제 ${summary?.deletedCount ?? 0}건, 복원금액 ${Math.round(summary?.reversedAmount ?? 0).toLocaleString()}원`
-    );
-    await loadExpenses();
-    setRollingBack(false);
-  }
-
   function onEdit(expense: Expense) {
     setEntryMode(expense.isInvestmentTransfer ? 'investment' : 'general');
     setEditingExpenseId(expense.id);
@@ -516,49 +454,10 @@ export default function ExpensesPage() {
     <div className="py-4">
       <h1>지출 관리</h1>
 
-      <SectionCard className="mt-5 max-w-[980px]">
-        <h3 className="mb-3 mt-0">월마감 정산</h3>
-        <div className="form-grid [grid-template-columns:repeat(auto-fit,minmax(180px,1fr))]">
-          <FormField label="정산월">
-            <input
-              type="month"
-              value={settlementMonth}
-              onChange={(event) => setSettlementMonth(event.target.value)}
-            />
-          </FormField>
-          <div className="flex items-end gap-2">
-            <button
-              type="button"
-              className="btn-primary w-[180px]"
-              onClick={onSettleMonth}
-              disabled={settling || isMonthSettled}
-            >
-              {settling ? '월마감 반영 중...' : isMonthSettled ? '정산 완료됨' : '월마감 실행'}
-            </button>
-            {isMonthSettled && (
-              <button
-                type="button"
-                className="btn-danger-outline w-[180px]"
-                onClick={onRollbackMonth}
-                disabled={rollingBack}
-              >
-                {rollingBack ? '취소 중...' : '정산 취소'}
-              </button>
-            )}
-          </div>
-          <FormField label="안내" fullWidth>
-            <input
-              value={isMonthSettled
-                ? `${settlementMonth} 정산이 이미 완료되었습니다. 재정산하려면 정산 취소 후 다시 실행하세요.`
-                : "비카드 정기지출과 투자이체 템플릿이 결제일 기준으로 월마감 자동 반영됩니다."}
-              readOnly
-            />
-          </FormField>
-        </div>
-      </SectionCard>
+      <SettlementSection {...settlement} />
 
       <SectionCard className="mt-4 max-w-[980px]">
-        <h3 className="mb-3 mt-0">{settlementMonth} 소비 요약</h3>
+        <h3 className="mb-3 mt-0">{settlement.settlementMonth} 소비 요약</h3>
         <div className="grid gap-3 [grid-template-columns:repeat(auto-fit,minmax(180px,1fr))]">
           <div className="rounded-xl border border-[var(--line)] p-3">
             <p className="helper-text m-0">카드대금</p>
@@ -583,22 +482,16 @@ export default function ExpensesPage() {
         </div>
       </SectionCard>
 
-      <SectionCard className="mt-5 max-w-[980px]" ref={formSectionRef}>
-        <button
-          type="button"
-          onClick={() => setFormOpen((prev) => !prev)}
-          className="flex w-full items-center justify-between bg-transparent border-0 cursor-pointer p-0 text-left"
-        >
-          <h3 className="m-0 text-base font-semibold">
-            {editingExpenseId ? '✘ 지출 수정' : '✘ 지출 입력'}
-          </h3>
-          <span className={`text-[var(--color-text-muted)] transition-transform duration-200 ${formOpen ? 'rotate-180' : ''}`}>
-            ▼
-          </span>
-        </button>
-
-        {formOpen && <>
-        <div className="mb-3 mt-3 flex flex-wrap gap-2">
+      <CollapsibleSection
+        className="mt-5 max-w-[980px]"
+        ref={formSectionRef}
+        open={formOpen}
+        onToggle={() => setFormOpen((prev) => !prev)}
+        title="✘ 지출 입력"
+        editTitle="✘ 지출 수정"
+        isEditing={!!editingExpenseId}
+      >
+        <div className="mb-3 flex flex-wrap gap-2">
           <button
             type="button"
             className={entryMode === 'card' ? 'btn-primary' : 'btn-danger-outline'}
@@ -900,8 +793,7 @@ export default function ExpensesPage() {
             </FormField>
           </div>
         )}
-        </>}
-      </SectionCard>
+      </CollapsibleSection>
 
       <SectionCard className="mt-4 max-w-[980px]">
         <p className="helper-text mb-0">

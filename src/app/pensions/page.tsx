@@ -7,6 +7,7 @@ import { useFeedbackMessage } from '@/hooks/useFeedbackMessage';
 import { useConfirmModal } from '@/hooks/useConfirmModal';
 import { ConfirmModal } from '@/components/ui/ConfirmModal';
 import { SectionCard } from '@/components/ui/SectionCard';
+import { CollapsibleSection } from '@/components/ui/CollapsibleSection';
 import { FormField } from '@/components/ui/FormField';
 import { DataTable } from '@/components/ui/DataTable';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
@@ -266,21 +267,16 @@ export default function PensionsPage() {
         </SectionCard>
       </div>
 
-      <SectionCard className="mt-4" ref={formSectionRef}>
-        <button
-          type="button"
-          onClick={() => setFormOpen((prev) => !prev)}
-          className="flex w-full items-center justify-between bg-transparent border-0 cursor-pointer p-0 text-left"
-        >
-          <h3 className="m-0 text-base font-semibold">
-            {editingAssetId ? '✘ 연금 자산 수정' : '✘ 연금 자산 입력'}
-          </h3>
-          <span className={`text-[var(--color-text-muted)] transition-transform duration-200 ${formOpen ? 'rotate-180' : ''}`}>
-            ▼
-          </span>
-        </button>
-
-        {formOpen && <form onSubmit={onSubmit} className="form-grid mt-3">
+      <CollapsibleSection
+        className="mt-4"
+        ref={formSectionRef}
+        open={formOpen}
+        onToggle={() => setFormOpen((prev) => !prev)}
+        title="✘ 연금 자산 입력"
+        editTitle="✘ 연금 자산 수정"
+        isEditing={!!editingAssetId}
+      >
+        <form onSubmit={onSubmit} className="form-grid">
           <FormField label="연금 유형">
             <select
               value={form.category}
@@ -396,8 +392,8 @@ export default function PensionsPage() {
               </button>
             ) : null}
           </div>
-        </form>}
-      </SectionCard>
+        </form>
+      </CollapsibleSection>
 
       <FeedbackBanner feedback={feedback} />
 
