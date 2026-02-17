@@ -462,7 +462,7 @@ export async function aiMessagesHandler(context: InvocationContext, req: HttpReq
 
         const categoryLabels: Record<string, string> = {
           deposit: "예적금", savings: "저축", stock_kr: "한국주식", stock_us: "미국주식",
-          etf: "ETF", bond: "채권", fund: "펀드", crypto: "암호화폐", pension: "연금",
+          etf: "ETF", bond: "채권", fund: "펀드", crypto: "암호화폐", pension: "연금", pension_national: "국민연금", pension_personal: "개인연금", pension_retirement: "퇴직연금", pension_government: "공무원연금",
           insurance: "보험", real_estate: "부동산", cash: "현금", car: "자동차", other: "기타"
         };
         const cycleLabelsMap: Record<string, string> = { monthly: "매월", yearly: "매년", one_time: "일회성" };

@@ -173,7 +173,8 @@ export default function AssetsPage() {
       category === 'pension' ||
       category === 'pension_national' ||
       category === 'pension_personal' ||
-      category === 'pension_retirement'
+      category === 'pension_retirement' ||
+      category === 'pension_government'
     );
   }
 

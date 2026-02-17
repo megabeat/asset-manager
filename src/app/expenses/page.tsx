@@ -49,7 +49,8 @@ const INVESTMENT_TARGET_OPTIONS = [
   { value: 'stock_us', label: '미국주식' },
   { value: 'deposit', label: '예금' },
   { value: 'cash', label: '현금' },
-  { value: 'pension_retirement', label: '퇴직연금' }
+  { value: 'pension_retirement', label: '퇴직연금' },
+  { value: 'pension_government', label: '공무원연금' }
 ] as const;
 
 function getCurrentMonthKey(): string {

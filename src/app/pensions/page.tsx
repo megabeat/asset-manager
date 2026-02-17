@@ -11,7 +11,7 @@ import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { PieChart, Pie, Cell, Legend, Tooltip, ResponsiveContainer } from 'recharts';
 
 type NumericInput = number | '';
-type PensionCategory = 'pension_national' | 'pension_personal' | 'pension_retirement';
+type PensionCategory = 'pension_national' | 'pension_personal' | 'pension_retirement' | 'pension_government';
 
 type PensionForm = {
   category: PensionCategory;
@@ -27,7 +27,8 @@ type PensionForm = {
 const pensionCategoryLabel: Record<PensionCategory, string> = {
   pension_national: '국민연금',
   pension_personal: '개인연금',
-  pension_retirement: '퇴직연금(IPA)'
+  pension_retirement: '퇴직연금(IPA)',
+  pension_government: '공무원연금'
 };
 
 const defaultForm: PensionForm = {
@@ -41,20 +42,22 @@ const defaultForm: PensionForm = {
   note: ''
 };
 
-const COLORS = ['#0b63ce', '#2e7d32', '#f57c00'];
+const COLORS = ['#0b63ce', '#2e7d32', '#f57c00', '#8e24aa'];
 
 function isPensionCategory(category?: string): boolean {
   return (
     category === 'pension' ||
     category === 'pension_national' ||
     category === 'pension_personal' ||
-    category === 'pension_retirement'
+    category === 'pension_retirement' ||
+    category === 'pension_government'
   );
 }
 
 function normalizePensionCategory(category?: string): PensionCategory {
   if (category === 'pension_personal') return 'pension_personal';
   if (category === 'pension_retirement') return 'pension_retirement';
+  if (category === 'pension_government') return 'pension_government';
   return 'pension_national';
 }
 
@@ -110,17 +113,27 @@ export default function PensionsPage() {
     [pensions]
   );
 
+  const governmentPensionValue = useMemo(
+    () =>
+      pensions
+        .filter((item) => normalizePensionCategory(item.category) === 'pension_government')
+        .reduce((sum, item) => sum + Number(item.currentValue ?? 0), 0),
+    [pensions]
+  );
+
   const nationalPensionRatio = totalPensionValue > 0 ? (nationalPensionValue / totalPensionValue) * 100 : 0;
   const personalPensionRatio = totalPensionValue > 0 ? (personalPensionValue / totalPensionValue) * 100 : 0;
   const retirementPensionRatio = totalPensionValue > 0 ? (retirementPensionValue / totalPensionValue) * 100 : 0;
+  const governmentPensionRatio = totalPensionValue > 0 ? (governmentPensionValue / totalPensionValue) * 100 : 0;
 
   const pensionSplitData = useMemo(
     () => [
       { name: '국민연금', value: nationalPensionValue },
       { name: '개인연금', value: personalPensionValue },
-      { name: '퇴직연금(IPA)', value: retirementPensionValue }
+      { name: '퇴직연금(IPA)', value: retirementPensionValue },
+      { name: '공무원연금', value: governmentPensionValue }
     ].filter((item) => item.value > 0),
-    [nationalPensionValue, personalPensionValue, retirementPensionValue]
+    [nationalPensionValue, personalPensionValue, retirementPensionValue, governmentPensionValue]
   );
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
@@ -214,14 +227,14 @@ export default function PensionsPage() {
     <div className="py-4">
       <h1>연금관리</h1>
       <p className="helper-text mt-1.5">
-        국민연금 / 개인연금 / 퇴직연금(IPA)을 분리 관리하고, 총액과 비중을 한 화면에서 확인합니다.
+        국민연금 / 개인연금 / 퇴직연금(IPA) / 공무원연금을 분리 관리하고, 총액과 비중을 한 화면에서 확인합니다.
       </p>
 
       <div className="form-grid mt-4">
         <SectionCard>
           <p className="helper-text">전체 연금 자산</p>
           <h2 className="m-0">{totalPensionValue.toLocaleString()}원</h2>
-          <p className="helper-text mt-1.5">연금 3유형 합산</p>
+          <p className="helper-text mt-1.5">연금 4유형 합산</p>
         </SectionCard>
         <SectionCard>
           <p className="helper-text">국민연금</p>
@@ -237,6 +250,11 @@ export default function PensionsPage() {
           <p className="helper-text">퇴직연금(IPA)</p>
           <h2 className="m-0">{retirementPensionValue.toLocaleString()}원</h2>
           <p className="helper-text mt-1.5">{retirementPensionRatio.toFixed(1)}%</p>
+        </SectionCard>
+        <SectionCard>
+          <p className="helper-text">공무원연금</p>
+          <h2 className="m-0">{governmentPensionValue.toLocaleString()}원</h2>
+          <p className="helper-text mt-1.5">{governmentPensionRatio.toFixed(1)}%</p>
         </SectionCard>
       </div>
 
@@ -258,6 +276,7 @@ export default function PensionsPage() {
               <option value="pension_national">국민연금</option>
               <option value="pension_personal">개인연금</option>
               <option value="pension_retirement">퇴직연금(IPA)</option>
+              <option value="pension_government">공무원연금</option>
             </select>
           </FormField>
 
