@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { api, MonthlySnapshot } from '@/lib/api';
+import { api } from '@/lib/api';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { formatCompact } from '@/lib/formatCompact';
 import {
@@ -27,11 +27,6 @@ type Summary = {
   monthlyFixedExpense: number;
 };
 
-type TrendPoint = {
-  time: string;
-  value: number;
-};
-
 type AssetItem = {
   id: string;
   name: string;
@@ -54,21 +49,16 @@ const COLORS = ['#0b63ce', '#2e7d32', '#f57c00', '#7b1fa2', '#c2185b', '#00796b'
 
 export default function DashboardPage() {
   const [summary, setSummary] = useState<Summary | null>(null);
-  const [trend, setTrend] = useState<TrendPoint[]>([]);
-  const [snapshots, setSnapshots] = useState<MonthlySnapshot[]>([]);
+  const [snapshots, setSnapshots] = useState<Array<{ month: string; totalValue: number; delta: number; recordedAt: string }>>([]);
   const [assets, setAssets] = useState<AssetItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    Promise.all([api.getDashboardSummary(), api.getAssetTrend('30d'), api.getAssets(), api.getSnapshots()]).then(
-      ([summaryResult, trendResult, assetsResult, snapshotsResult]) => {
+    Promise.all([api.getDashboardSummary(), api.getAssets(), api.getSnapshots()]).then(
+      ([summaryResult, assetsResult, snapshotsResult]) => {
         if (summaryResult.data) {
           setSummary(summaryResult.data);
-        }
-
-        if (trendResult.data) {
-          setTrend(trendResult.data);
         }
 
         if (assetsResult.data) {
@@ -79,7 +69,7 @@ export default function DashboardPage() {
           setSnapshots(snapshotsResult.data);
         }
 
-        const firstError = summaryResult.error ?? trendResult.error ?? assetsResult.error;
+        const firstError = summaryResult.error ?? assetsResult.error;
         if (firstError) {
           setError(firstError.message);
         }
@@ -207,18 +197,18 @@ export default function DashboardPage() {
 
       <div className="mt-8 grid gap-4 md:grid-cols-[2fr_1fr]">
         <SectionCard>
-          <h3 className="mt-0">자산 추이 (30일)</h3>
-          {trend.length === 0 ? (
-            <p>추이 데이터가 없습니다.</p>
+          <h3 className="mt-0">자산 추이 (월별 스냅샷)</h3>
+          {snapshots.length === 0 ? (
+            <p>스냅샷 데이터가 없습니다. 매월 말일 자동 생성됩니다.</p>
           ) : (
             <div className="h-[260px] w-full sm:h-[320px]">
               <ResponsiveContainer>
-                <LineChart data={trend.map((point) => ({ ...point, label: point.time.slice(5, 10) }))}>
+                <LineChart data={snapshots.map((s) => ({ label: s.month, value: s.totalValue }))}>
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="label" />
                   <YAxis tickFormatter={(value) => `${Math.round(value / 10000)}만`} />
                   <Tooltip formatter={(value: number) => `${Number(value).toLocaleString()}원`} />
-                  <Line type="monotone" dataKey="value" stroke="#0b63ce" strokeWidth={2} dot={false} />
+                  <Line type="monotone" dataKey="value" stroke="#0b63ce" strokeWidth={2} dot={{ r: 4 }} />
                 </LineChart>
               </ResponsiveContainer>
             </div>
