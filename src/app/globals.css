@@ -4,36 +4,36 @@
 
 :root {
   color-scheme: light;
-  --bg: #f4f7fb;
-  --text: #0f172a;
-  --muted: #475569;
-  --line: #e2e8f0;
+  --bg: #f5f6f8;
+  --text: #1c1f26;
+  --muted: #6b7280;
+  --line: #e5e7eb;
   --surface: #ffffff;
-  --surface-2: #fbfdff;
-  --brand: #0b63ce;
-  --brand-strong: #084ca0;
+  --surface-2: #fafbfc;
+  --brand: #3366cc;
+  --brand-strong: #2952a3;
   --input-bg: #ffffff;
-  --input-border: #cfd8e3;
-  --subtle-border: #d0d9e6;
-  --header-bg: rgba(255, 255, 255, 0.9);
-  --nav-link: #215491;
-  --nav-hover-bg: #eff6ff;
-  --nav-hover-border: #dbeafe;
-  --table-stripe: #fcfdff;
-  --table-head-text: #334155;
-  --table-cell-text: #0f172a;
-  --table-border: #e2e8f0;
-  --table-head-border: #dbe3ef;
+  --input-border: #d1d5db;
+  --subtle-border: #d4d7de;
+  --header-bg: rgba(245, 246, 248, 0.92);
+  --nav-link: #4b5563;
+  --nav-hover-bg: #f0f1f3;
+  --nav-hover-border: #e0e2e6;
+  --table-stripe: #fafbfc;
+  --table-head-text: #4b5563;
+  --table-cell-text: #1c1f26;
+  --table-border: #e5e7eb;
+  --table-head-border: #d6d9e0;
   --table-row-even: #ffffff;
-  --table-row-odd: #f8fbff;
-  --delta-positive: #15803d;
-  --delta-negative: #b91c1c;
-  --danger-soft: #fff5f5;
-  --chat-user-bg: #e8f1ff;
-  --chat-user-border: #bfdbfe;
-  --chat-assistant-bg: #f8fafc;
-  --chat-assistant-border: #e2e8f0;
-  --chat-meta: #475569;
+  --table-row-odd: #f8f9fa;
+  --delta-positive: #0d9668;
+  --delta-negative: #d63031;
+  --danger-soft: #fef5f5;
+  --chat-user-bg: #eef1f8;
+  --chat-user-border: #c9d1e3;
+  --chat-assistant-bg: #f7f8fa;
+  --chat-assistant-border: #e5e7eb;
+  --chat-meta: #6b7280;
 }
 
 [data-theme='dark'] {
@@ -83,8 +83,8 @@ body {
 body {
   font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
   background:
-    radial-gradient(circle at 15% -5%, rgba(11, 99, 206, 0.09), transparent 35%),
-    radial-gradient(circle at 90% -10%, rgba(37, 99, 235, 0.08), transparent 30%),
+    radial-gradient(circle at 15% -5%, rgba(51, 102, 204, 0.05), transparent 40%),
+    radial-gradient(circle at 90% -10%, rgba(51, 102, 204, 0.04), transparent 35%),
     var(--bg);
   color: var(--text);
   letter-spacing: -0.01em;
@@ -148,7 +148,7 @@ table {
   background: var(--surface);
   border: 1px solid var(--line);
   border-radius: 12px;
-  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.05);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.03);
 }
 
 .section-card {
@@ -156,7 +156,7 @@ table {
   border: 1px solid var(--line);
   border-radius: 12px;
   padding: 1rem;
-  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.045);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.03);
 }
 
 .form-grid {
@@ -175,14 +175,14 @@ table {
 
 @layer components {
   .btn-primary {
-    @apply inline-flex items-center justify-center rounded-xl border px-4 py-2 font-semibold text-white shadow-[0_10px_24px_rgba(11,99,206,0.28)] transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 focus-visible:ring-offset-2;
+    @apply inline-flex items-center justify-center rounded-xl border px-4 py-2 font-semibold text-white shadow-[0_4px_12px_rgba(51,102,204,0.22)] transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 focus-visible:ring-offset-2;
     border-color: var(--brand);
-    background: linear-gradient(180deg, #1d74dd 0%, var(--brand) 100%);
+    background: linear-gradient(180deg, #4477d4 0%, var(--brand) 100%);
   }
 
   .btn-primary:hover:not(:disabled) {
-    background: linear-gradient(180deg, #1665c2 0%, var(--brand-strong) 100%);
-    @apply -translate-y-px shadow-[0_12px_26px_rgba(11,99,206,0.32)];
+    background: linear-gradient(180deg, #3366c0 0%, var(--brand-strong) 100%);
+    @apply -translate-y-px shadow-[0_6px_16px_rgba(51,102,204,0.28)];
   }
 
   .btn-primary:disabled {
@@ -365,7 +365,7 @@ table {
 .kpi-card {
   background: linear-gradient(180deg, var(--surface) 0%, var(--surface-2) 100%);
   border: 1px solid var(--line);
-  @apply rounded-2xl p-4 shadow-[0_10px_26px_rgba(15,23,42,0.045)];
+  @apply rounded-2xl p-4 shadow-[0_2px_8px_rgba(0,0,0,0.04)];
 }
 
 @layer components {
@@ -459,11 +459,11 @@ table {
 }
 
 .kpi-value.kpi-negative {
-  color: #c62828;
+  color: var(--delta-negative);
 }
 
 .kpi-value.kpi-positive {
-  color: #2e7d32;
+  color: var(--delta-positive);
 }
 
 /* --- Feedback banner --- */
