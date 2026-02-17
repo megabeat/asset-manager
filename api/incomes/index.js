@@ -338,6 +338,7 @@ async function incomesHandler(context, req) {
                     reflectedAt: "",
                     category: (0, validators_1.ensureOptionalString)(body.category, "category") ?? "",
                     note: (0, validators_1.ensureOptionalString)(body.note, "note") ?? "",
+                    owner: (0, validators_1.ensureOptionalString)(body.owner, "owner") ?? "본인",
                     createdAt: new Date().toISOString(),
                     updatedAt: new Date().toISOString()
                 };
@@ -431,6 +432,7 @@ async function incomesHandler(context, req) {
                     reflectedAt,
                     category: (0, validators_1.ensureOptionalString)(body.category, "category") ?? existing.category,
                     note: (0, validators_1.ensureOptionalString)(body.note, "note") ?? existing.note,
+                    owner: (0, validators_1.ensureOptionalString)(body.owner, "owner") ?? existing.owner ?? "본인",
                     updatedAt: new Date().toISOString()
                 };
                 const { resource: saved } = await container.item(incomeId, userId).replace(updated);

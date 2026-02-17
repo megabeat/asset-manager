@@ -301,6 +301,25 @@ async function aiMessagesHandler(context, req) {
                             `- 자녀1: ${profile.child1Name ?? "미설정"} / ${typeof child1Age === "number" ? `${child1Age}세` : "나이 미설정"} / 예상 대학 진학년도: ${typeof profile.child1TargetUniversityYear === "number" ? `${profile.child1TargetUniversityYear}년` : "미설정"}`,
                             `- 자녀2: ${profile.child2Name ?? "미설정"} / ${typeof child2Age === "number" ? `${child2Age}세` : "나이 미설정"} / 예상 대학 진학년도: ${typeof profile.child2TargetUniversityYear === "number" ? `${profile.child2TargetUniversityYear}년` : "미설정"}`
                         ];
+                        // Spouse info
+                        if (profile.spouseName) {
+                            const spouseAge = getAgeFromBirthDate(profile.spouseBirthDate);
+                            lines.push(`- 배우자: ${profile.spouseName}`);
+                            if (typeof spouseAge === "number")
+                                lines.push(`- 배우자 나이: ${spouseAge}세`);
+                            if (profile.spouseEmployerName)
+                                lines.push(`- 배우자 직장: ${profile.spouseEmployerName}`);
+                            if (profile.spouseJobTitle)
+                                lines.push(`- 배우자 직무: ${profile.spouseJobTitle}`);
+                            if (profile.spouseAnnualIncome && profile.spouseAnnualIncome > 0)
+                                lines.push(`- 배우자 연수입: ${profile.spouseAnnualIncome.toLocaleString()}원`);
+                            if (typeof profile.spouseRetirementTargetAge === "number") {
+                                const spouseAge = getAgeFromBirthDate(profile.spouseBirthDate);
+                                lines.push(`- 배우자 은퇴 목표 연령: ${profile.spouseRetirementTargetAge}세`);
+                                if (typeof spouseAge === "number")
+                                    lines.push(`- 배우자 은퇴까지 남은 기간: ${profile.spouseRetirementTargetAge - spouseAge}년`);
+                            }
+                        }
                         profileContextText = lines.join("\n");
                     }
                 }
@@ -308,6 +327,149 @@ async function aiMessagesHandler(context, req) {
                     context.log("Profile context read error:", profileError);
                 }
                 profileContextText = clampText(profileContextText, 2200);
+                let assetDetails = [];
+                let expenseDetails = [];
+                let incomeDetails = [];
+                let childDetails = [];
+                let eduPlanDetails = [];
+                let goalFundDetails = [];
+                try {
+                    const [assetsRes, expensesRes, incomesRes, childrenRes, eduRes, goalRes] = await Promise.all([
+                        (0, cosmosClient_1.getContainer)("assets").items.query({
+                            query: "SELECT c.name, c.category, c.currentValue, c.acquiredValue, c.quantity, c.symbol, c.note, c.pensionMonthlyContribution, c.pensionReceiveAge, c.autoUpdate, c.owner FROM c WHERE c.userId = @userId AND c.type = 'Asset'",
+                            parameters: [{ name: "@userId", value: userId }]
+                        }).fetchAll(),
+                        (0, cosmosClient_1.getContainer)("expenses").items.query({
+                            query: "SELECT c.name, c.amount, c.cycle, c.expenseType, c.billingDay, c.isInvestmentTransfer, c.investmentTargetCategory, c.category, c.owner FROM c WHERE c.userId = @userId AND c.type = 'Expense' AND c.entrySource != 'auto_settlement'",
+                            parameters: [{ name: "@userId", value: userId }]
+                        }).fetchAll(),
+                        (0, cosmosClient_1.getContainer)("incomes").items.query({
+                            query: "SELECT c.name, c.amount, c.cycle, c.isFixedIncome, c.category, c.note, c.owner FROM c WHERE c.userId = @userId AND c.type = 'Income' AND c.entrySource != 'auto_settlement'",
+                            parameters: [{ name: "@userId", value: userId }]
+                        }).fetchAll(),
+                        (0, cosmosClient_1.getContainer)("children").items.query({
+                            query: "SELECT c.id, c.name, c.birthYear, c.grade, c.targetUniversityYear FROM c WHERE c.userId = @userId AND c.type = 'Child'",
+                            parameters: [{ name: "@userId", value: userId }]
+                        }).fetchAll(),
+                        (0, cosmosClient_1.getContainer)("educationPlans").items.query({
+                            query: "SELECT c.childId, c.annualCost, c.inflationRate, c.startYear, c.endYear FROM c WHERE c.userId = @userId AND c.type = 'EducationPlan'",
+                            parameters: [{ name: "@userId", value: userId }]
+                        }).fetchAll(),
+                        (0, cosmosClient_1.getContainer)("goalFunds").items.query({
+                            query: "SELECT c.name, c.horizon, c.vehicle, c.targetAmount, c.currentAmount, c.monthlyContribution, c.targetDate, c.status, c.note FROM c WHERE c.userId = @userId AND c.type = 'GoalFund'",
+                            parameters: [{ name: "@userId", value: userId }]
+                        }).fetchAll()
+                    ]);
+                    assetDetails = assetsRes.resources;
+                    expenseDetails = expensesRes.resources;
+                    incomeDetails = incomesRes.resources;
+                    childDetails = childrenRes.resources;
+                    eduPlanDetails = eduRes.resources;
+                    goalFundDetails = goalRes.resources;
+                }
+                catch (detailError) {
+                    context.log("Detail context fetch error:", detailError);
+                }
+                const categoryLabels = {
+                    deposit: "예적금", savings: "저축", stock_kr: "한국주식", stock_us: "미국주식",
+                    etf: "ETF", bond: "채권", fund: "펀드", crypto: "암호화폐", pension: "연금", pension_national: "국민연금", pension_personal: "개인연금", pension_retirement: "퇴직연금", pension_government: "공무원연금",
+                    insurance: "보험", real_estate: "부동산", cash: "현금", car: "자동차", other: "기타"
+                };
+                const cycleLabelsMap = { monthly: "매월", yearly: "매년", one_time: "일회성" };
+                const horizonLabels = { short: "단기", mid: "중기", long: "장기" };
+                const vehicleLabels = {
+                    savings: "저축", deposit: "예금", etf: "ETF", stock: "주식",
+                    fund: "펀드", crypto: "암호화폐", cash: "현금", other: "기타"
+                };
+                const formatAssetList = (assets) => {
+                    if (assets.length === 0)
+                        return "등록된 자산 없음";
+                    return assets.map((a, i) => {
+                        const parts = [`${i + 1}. ${a.name} (${categoryLabels[a.category] ?? a.category}): 현재가치 ${a.currentValue.toLocaleString()}원`];
+                        if (a.owner && a.owner !== '본인')
+                            parts.push(`소유: ${a.owner}`);
+                        if (a.acquiredValue)
+                            parts.push(`매입가 ${a.acquiredValue.toLocaleString()}원`);
+                        if (a.quantity)
+                            parts.push(`수량 ${a.quantity}`);
+                        if (a.symbol)
+                            parts.push(`종목코드 ${a.symbol}`);
+                        if (a.pensionMonthlyContribution)
+                            parts.push(`월 납입 ${a.pensionMonthlyContribution.toLocaleString()}원`);
+                        if (a.pensionReceiveAge)
+                            parts.push(`수령 시작 ${a.pensionReceiveAge}세`);
+                        if (a.note)
+                            parts.push(`메모: ${a.note}`);
+                        return parts.join(" / ");
+                    }).join("\n");
+                };
+                const formatExpenseList = (expenses) => {
+                    if (expenses.length === 0)
+                        return "등록된 지출 없음";
+                    const sorted = [...expenses].sort((a, b) => b.amount - a.amount);
+                    return sorted.map((e, i) => {
+                        const typeLabel = e.expenseType === "fixed" ? "고정" : e.expenseType === "subscription" ? "구독" : "일회성";
+                        const parts = [`${i + 1}. ${e.name}: ${e.amount.toLocaleString()}원 (${typeLabel}, ${cycleLabelsMap[e.cycle] ?? e.cycle})`];
+                        if (e.billingDay)
+                            parts.push(`결제일 ${e.billingDay}일`);
+                        if (e.isInvestmentTransfer)
+                            parts.push(`[투자이체→${categoryLabels[e.investmentTargetCategory ?? ""] ?? e.investmentTargetCategory ?? "미지정"}]`);
+                        if (e.category)
+                            parts.push(`분류: ${e.category}`);
+                        if (e.owner && e.owner !== '본인')
+                            parts.push(`소유: ${e.owner}`);
+                        return parts.join(" / ");
+                    }).join("\n");
+                };
+                const formatIncomeList = (incomes) => {
+                    if (incomes.length === 0)
+                        return "등록된 수입 없음";
+                    return incomes.map((inc, i) => {
+                        const parts = [`${i + 1}. ${inc.name}: ${inc.amount.toLocaleString()}원 (${cycleLabelsMap[inc.cycle] ?? inc.cycle})`];
+                        if (inc.isFixedIncome)
+                            parts.push("[고정수입]");
+                        if (inc.category)
+                            parts.push(`분류: ${inc.category}`);
+                        if (inc.note)
+                            parts.push(`메모: ${inc.note}`);
+                        if (inc.owner && inc.owner !== '본인')
+                            parts.push(`소유: ${inc.owner}`);
+                        return parts.join(" / ");
+                    }).join("\n");
+                };
+                const formatChildAndEdu = (children, eduPlans) => {
+                    if (children.length === 0)
+                        return "등록된 자녀 정보 없음";
+                    return children.map((child, i) => {
+                        const age = new Date().getFullYear() - child.birthYear;
+                        const plans = eduPlans.filter(p => p.childId === child.id);
+                        const planText = plans.length > 0
+                            ? plans.map(p => `교육비 연 ${p.annualCost.toLocaleString()}원 (${p.startYear}~${p.endYear}년, 물가상승률 ${(p.inflationRate * 100).toFixed(1)}%)`).join("; ")
+                            : "교육 플랜 미설정";
+                        return `${i + 1}. ${child.name} (${age}세, ${child.grade}) / 대학 진학 ${child.targetUniversityYear}년 / ${planText}`;
+                    }).join("\n");
+                };
+                const formatGoalFunds = (goals) => {
+                    if (goals.length === 0)
+                        return "등록된 목표자금 없음";
+                    const statusLabels = { active: "진행중", paused: "일시정지", completed: "완료", cancelled: "취소" };
+                    return goals.map((g, i) => {
+                        const progress = g.targetAmount > 0 ? ((g.currentAmount / g.targetAmount) * 100).toFixed(1) : "0";
+                        const parts = [`${i + 1}. ${g.name} (${horizonLabels[g.horizon] ?? g.horizon}, ${vehicleLabels[g.vehicle] ?? g.vehicle}, ${statusLabels[g.status] ?? g.status})`];
+                        parts.push(`목표 ${g.targetAmount.toLocaleString()}원 / 현재 ${g.currentAmount.toLocaleString()}원 (${progress}%)`);
+                        parts.push(`월 납입 ${g.monthlyContribution.toLocaleString()}원`);
+                        if (g.targetDate)
+                            parts.push(`목표일 ${g.targetDate}`);
+                        if (g.note)
+                            parts.push(`메모: ${g.note}`);
+                        return parts.join(" / ");
+                    }).join("\n");
+                };
+                const detailedAssetsText = clampText(formatAssetList(assetDetails), 3000);
+                const detailedExpensesText = clampText(formatExpenseList(expenseDetails), 2000);
+                const detailedIncomesText = clampText(formatIncomeList(incomeDetails), 1000);
+                const detailedChildEduText = clampText(formatChildAndEdu(childDetails, eduPlanDetails), 1000);
+                const detailedGoalFundsText = clampText(formatGoalFunds(goalFundDetails), 1500);
                 let webSearchContext = "웹 검색 결과 없음";
                 try {
                     const webResults = await withTimeout((0, webSearch_1.searchWeb)(content, 4), 5000, "Web search timeout");
@@ -356,23 +518,33 @@ async function aiMessagesHandler(context, req) {
 - 월 고정지출: ${userContext.monthlyExpenses.toLocaleString()}원
 - 월 수입: ${userContext.monthlyIncome.toLocaleString()}원
 
-자산 구성:
+자산 구성(카테고리별 합계):
 ${(userContext.assetBreakdown.length > 0 ? userContext.assetBreakdown : [{ category: "기타", value: 0 }])
                     .map((a) => `- ${a.category}: ${a.value.toLocaleString()}원`)
                     .join("\n")}
 
-주요 지출:
-${(userContext.topExpenses.length > 0 ? userContext.topExpenses : [{ name: "데이터 없음", amount: 0 }])
-                    .map((e) => `- ${e.name}: ${e.amount.toLocaleString()}원`)
-                    .join("\n")}
+보유 자산 개별 상세:
+${detailedAssetsText}
+
+전체 지출 내역:
+${detailedExpensesText}
+
+전체 수입 내역:
+${detailedIncomesText}
 
 사용자 프로필/가족/은퇴 정보:
 ${profileContextText}
 
+자녀 및 교육 플랜 상세:
+${detailedChildEduText}
+
+목표 자금(Goal Funds):
+${detailedGoalFundsText}
+
 웹 검색 결과(최신 정보 참고용):
 ${webSearchContext}
 
-사용자 질문에 대해 구체적이고 실용적인 조언을 제공하세요.`;
+중요: 위 데이터는 사용자가 직접 등록한 실제 자산/지출/수입/가족 정보입니다. 상담 시 이 구체적인 데이터를 적극 활용하여 맞춤형 조언을 제공하세요. 각 자산의 이름, 금액, 카테고리를 정확히 언급하며, 사용자의 전체 재무 그림을 기반으로 답변하세요.`;
                 // Fetch conversation history
                 let history = [];
                 try {

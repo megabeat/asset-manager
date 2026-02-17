@@ -515,6 +515,7 @@ async function expensesHandler(context, req) {
                     sourceExpenseId: "",
                     settledMonth: "",
                     category: (0, validators_1.ensureOptionalString)(body.category, "category") ?? "",
+                    owner: (0, validators_1.ensureOptionalString)(body.owner, "owner") ?? "본인",
                     createdAt: new Date().toISOString(),
                     updatedAt: new Date().toISOString()
                 };
@@ -649,6 +650,7 @@ async function expensesHandler(context, req) {
                     reflectedAt,
                     category: (0, validators_1.ensureOptionalString)(body.category, "category") ?? existing.category,
                     goalFundId: (0, validators_1.ensureOptionalString)(body.goalFundId, "goalFundId") ?? String(existing.goalFundId ?? ""),
+                    owner: (0, validators_1.ensureOptionalString)(body.owner, "owner") ?? existing.owner ?? "본인",
                     updatedAt: new Date().toISOString()
                 };
                 const { resource: saved } = await container.item(expenseId, userId).replace(updated);

@@ -109,6 +109,12 @@ export type Liability = {
   name: string;
   amount: number;
   category?: string;
+  interestRate?: number;
+  repaymentMethod?: string;
+  maturityDate?: string;
+  monthlyPayment?: number;
+  startDate?: string;
+  loanTerm?: number;
   note?: string;
   owner?: string;
 };

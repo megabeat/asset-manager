@@ -75,6 +75,12 @@ export async function liabilitiesHandler(
           name: ensureString(body.name, "name"),
           amount: ensureNumberInRange(body.amount, "amount", 0, Number.MAX_SAFE_INTEGER),
           category: ensureOptionalString(body.category, "category") ?? "",
+          interestRate: ensureOptionalNumberInRange(body.interestRate, "interestRate", 0, 100) ?? null,
+          repaymentMethod: ensureOptionalString(body.repaymentMethod, "repaymentMethod") ?? "",
+          maturityDate: ensureOptionalString(body.maturityDate, "maturityDate") ?? "",
+          monthlyPayment: ensureOptionalNumberInRange(body.monthlyPayment, "monthlyPayment", 0, Number.MAX_SAFE_INTEGER) ?? null,
+          startDate: ensureOptionalString(body.startDate, "startDate") ?? "",
+          loanTerm: ensureOptionalNumberInRange(body.loanTerm, "loanTerm", 0, 600) ?? null,
           note: ensureOptionalString(body.note, "note") ?? "",
           owner: ensureOptionalString(body.owner, "owner") ?? "본인",
           createdAt: new Date().toISOString(),
@@ -116,6 +122,24 @@ export async function liabilitiesHandler(
             ensureOptionalNumberInRange(body.amount, "amount", 0, Number.MAX_SAFE_INTEGER) ??
             resource.amount,
           category: ensureOptionalString(body.category, "category") ?? resource.category,
+          interestRate: body.interestRate !== undefined
+            ? ensureOptionalNumberInRange(body.interestRate, "interestRate", 0, 100) ?? null
+            : resource.interestRate ?? null,
+          repaymentMethod: body.repaymentMethod !== undefined
+            ? ensureOptionalString(body.repaymentMethod, "repaymentMethod") ?? ""
+            : resource.repaymentMethod ?? "",
+          maturityDate: body.maturityDate !== undefined
+            ? ensureOptionalString(body.maturityDate, "maturityDate") ?? ""
+            : resource.maturityDate ?? "",
+          monthlyPayment: body.monthlyPayment !== undefined
+            ? ensureOptionalNumberInRange(body.monthlyPayment, "monthlyPayment", 0, Number.MAX_SAFE_INTEGER) ?? null
+            : resource.monthlyPayment ?? null,
+          startDate: body.startDate !== undefined
+            ? ensureOptionalString(body.startDate, "startDate") ?? ""
+            : resource.startDate ?? "",
+          loanTerm: body.loanTerm !== undefined
+            ? ensureOptionalNumberInRange(body.loanTerm, "loanTerm", 0, 600) ?? null
+            : resource.loanTerm ?? null,
           note: ensureOptionalString(body.note, "note") ?? resource.note,
           owner: ensureOptionalString(body.owner, "owner") ?? resource.owner ?? "본인",
           updatedAt: new Date().toISOString()

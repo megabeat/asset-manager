@@ -15,14 +15,44 @@ type LiabilityForm = {
   name: string;
   amount: number;
   category: string;
+  interestRate: number | '';
+  repaymentMethod: string;
+  maturityDate: string;
+  monthlyPayment: number | '';
+  startDate: string;
+  loanTerm: number | '';
   note: string;
   owner: string;
 };
 
+const CATEGORIES = [
+  { value: '주택담보대출', label: '주택담보대출' },
+  { value: '신용대출', label: '신용대출' },
+  { value: '학자금대출', label: '학자금대출' },
+  { value: '전세대출', label: '전세대출' },
+  { value: '자동차할부', label: '자동차할부' },
+  { value: '카드론', label: '카드론' },
+  { value: '기타', label: '기타' }
+] as const;
+
+const REPAYMENT_METHODS = [
+  { value: '', label: '선택안함' },
+  { value: '원리금균등', label: '원리금균등' },
+  { value: '원금균등', label: '원금균등' },
+  { value: '만기일시', label: '만기일시' },
+  { value: '거치식', label: '거치식' }
+] as const;
+
 const defaultForm: LiabilityForm = {
   name: '',
   amount: 0,
-  category: '',
+  category: '기타',
+  interestRate: '',
+  repaymentMethod: '',
+  maturityDate: '',
+  monthlyPayment: '',
+  startDate: '',
+  loanTerm: '',
   note: '',
   owner: '본인'
 };
@@ -56,6 +86,20 @@ export default function LiabilitiesPage() {
     [items]
   );
 
+  const totalMonthlyPayment = useMemo(
+    () => items.reduce((sum, item) => sum + (item.monthlyPayment ?? 0), 0),
+    [items]
+  );
+
+  const weightedAvgRate = useMemo(() => {
+    const withRate = items.filter((item) => item.interestRate != null && item.interestRate > 0);
+    if (withRate.length === 0) return null;
+    const totalAmount = withRate.reduce((sum, item) => sum + item.amount, 0);
+    if (totalAmount === 0) return null;
+    const weighted = withRate.reduce((sum, item) => sum + item.amount * (item.interestRate ?? 0), 0);
+    return Math.round((weighted / totalAmount) * 100) / 100;
+  }, [items]);
+
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     clearMessage();
@@ -77,6 +121,12 @@ export default function LiabilitiesPage() {
       name: form.name.trim(),
       amount: Number(form.amount),
       category: form.category.trim(),
+      interestRate: form.interestRate === '' ? null : Number(form.interestRate),
+      repaymentMethod: form.repaymentMethod,
+      maturityDate: form.maturityDate,
+      monthlyPayment: form.monthlyPayment === '' ? null : Number(form.monthlyPayment),
+      startDate: form.startDate,
+      loanTerm: form.loanTerm === '' ? null : Number(form.loanTerm),
       note: form.note.trim(),
       owner: form.owner
     };
@@ -102,7 +152,13 @@ export default function LiabilitiesPage() {
     setForm({
       name: liability.name,
       amount: liability.amount,
-      category: liability.category ?? '',
+      category: liability.category ?? '기타',
+      interestRate: liability.interestRate ?? '',
+      repaymentMethod: liability.repaymentMethod ?? '',
+      maturityDate: liability.maturityDate ?? '',
+      monthlyPayment: liability.monthlyPayment ?? '',
+      startDate: liability.startDate ?? '',
+      loanTerm: liability.loanTerm ?? '',
       note: liability.note ?? '',
       owner: liability.owner ?? '본인'
     });
@@ -156,10 +212,88 @@ export default function LiabilitiesPage() {
           </FormField>
 
           <FormField label="카테고리">
-            <input
-              placeholder="카테고리"
+            <select
               value={form.category}
               onChange={(event) => setForm((prev) => ({ ...prev, category: event.target.value }))}
+            >
+              {CATEGORIES.map((cat) => (
+                <option key={cat.value} value={cat.value}>{cat.label}</option>
+              ))}
+            </select>
+          </FormField>
+
+          <FormField label="연이자율(%)">
+            <input
+              type="number"
+              min={0}
+              max={100}
+              step={0.01}
+              placeholder="예: 3.5"
+              value={form.interestRate}
+              onChange={(event) =>
+                setForm((prev) => ({
+                  ...prev,
+                  interestRate: event.target.value === '' ? '' : Number(event.target.value)
+                }))
+              }
+            />
+          </FormField>
+
+          <FormField label="상환방식">
+            <select
+              value={form.repaymentMethod}
+              onChange={(event) => setForm((prev) => ({ ...prev, repaymentMethod: event.target.value }))}
+            >
+              {REPAYMENT_METHODS.map((method) => (
+                <option key={method.value} value={method.value}>{method.label}</option>
+              ))}
+            </select>
+          </FormField>
+
+          <FormField label="월 상환액">
+            <input
+              type="number"
+              min={0}
+              placeholder="월 상환액"
+              value={form.monthlyPayment}
+              onChange={(event) =>
+                setForm((prev) => ({
+                  ...prev,
+                  monthlyPayment: event.target.value === '' ? '' : Number(event.target.value)
+                }))
+              }
+            />
+          </FormField>
+
+          <FormField label="대출 시작일">
+            <input
+              type="date"
+              value={form.startDate}
+              onChange={(event) => setForm((prev) => ({ ...prev, startDate: event.target.value }))}
+            />
+          </FormField>
+
+          <FormField label="만기일">
+            <input
+              type="date"
+              value={form.maturityDate}
+              onChange={(event) => setForm((prev) => ({ ...prev, maturityDate: event.target.value }))}
+            />
+          </FormField>
+
+          <FormField label="대출기간(개월)">
+            <input
+              type="number"
+              min={0}
+              max={600}
+              placeholder="예: 360"
+              value={form.loanTerm}
+              onChange={(event) =>
+                setForm((prev) => ({
+                  ...prev,
+                  loanTerm: event.target.value === '' ? '' : Number(event.target.value)
+                }))
+              }
             />
           </FormField>
 
@@ -201,9 +335,22 @@ export default function LiabilitiesPage() {
         </form>
       </SectionCard>
 
-      <p className="mt-4 font-semibold">
-        총 부채: {totalLiabilities.toLocaleString()}원
-      </p>
+      <div className="mt-4 grid gap-3 [grid-template-columns:repeat(auto-fit,minmax(180px,1fr))] max-w-[980px]">
+        <div className="rounded-xl border border-[var(--line)] p-3">
+          <p className="helper-text m-0">총 부채</p>
+          <p className="m-0 mt-1 text-[1.1rem] font-bold">{totalLiabilities.toLocaleString()}원</p>
+        </div>
+        <div className="rounded-xl border border-[var(--line)] p-3">
+          <p className="helper-text m-0">월 상환 합계</p>
+          <p className="m-0 mt-1 text-[1.1rem] font-bold">{totalMonthlyPayment.toLocaleString()}원</p>
+        </div>
+        {weightedAvgRate !== null && (
+          <div className="rounded-xl border border-[var(--line)] p-3">
+            <p className="helper-text m-0">가중 평균 이자율</p>
+            <p className="m-0 mt-1 text-[1.1rem] font-bold">{weightedAvgRate}%</p>
+          </div>
+        )}
+      </div>
 
       <FeedbackBanner feedback={feedback} />
 
@@ -217,9 +364,33 @@ export default function LiabilitiesPage() {
             { key: 'category', header: '카테고리', render: (liability) => liability.category || '-' },
             {
               key: 'amount',
-              header: '금액',
+              header: '잔액',
               align: 'right',
               render: (liability) => `${liability.amount.toLocaleString()}원`,
+            },
+            {
+              key: 'interestRate',
+              header: '이자율',
+              align: 'right',
+              render: (liability) =>
+                liability.interestRate != null ? `${liability.interestRate}%` : '-',
+            },
+            {
+              key: 'repaymentMethod',
+              header: '상환방식',
+              render: (liability) => liability.repaymentMethod || '-',
+            },
+            {
+              key: 'monthlyPayment',
+              header: '월 상환액',
+              align: 'right',
+              render: (liability) =>
+                liability.monthlyPayment ? `${liability.monthlyPayment.toLocaleString()}원` : '-',
+            },
+            {
+              key: 'maturityDate',
+              header: '만기일',
+              render: (liability) => liability.maturityDate || '-',
             },
             {
               key: 'owner',

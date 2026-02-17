@@ -65,7 +65,14 @@ async function liabilitiesHandler(context, req) {
                     name: (0, validators_1.ensureString)(body.name, "name"),
                     amount: (0, validators_1.ensureNumberInRange)(body.amount, "amount", 0, Number.MAX_SAFE_INTEGER),
                     category: (0, validators_1.ensureOptionalString)(body.category, "category") ?? "",
+                    interestRate: (0, validators_1.ensureOptionalNumberInRange)(body.interestRate, "interestRate", 0, 100) ?? null,
+                    repaymentMethod: (0, validators_1.ensureOptionalString)(body.repaymentMethod, "repaymentMethod") ?? "",
+                    maturityDate: (0, validators_1.ensureOptionalString)(body.maturityDate, "maturityDate") ?? "",
+                    monthlyPayment: (0, validators_1.ensureOptionalNumberInRange)(body.monthlyPayment, "monthlyPayment", 0, Number.MAX_SAFE_INTEGER) ?? null,
+                    startDate: (0, validators_1.ensureOptionalString)(body.startDate, "startDate") ?? "",
+                    loanTerm: (0, validators_1.ensureOptionalNumberInRange)(body.loanTerm, "loanTerm", 0, 600) ?? null,
                     note: (0, validators_1.ensureOptionalString)(body.note, "note") ?? "",
+                    owner: (0, validators_1.ensureOptionalString)(body.owner, "owner") ?? "본인",
                     createdAt: new Date().toISOString(),
                     updatedAt: new Date().toISOString()
                 };
@@ -102,7 +109,26 @@ async function liabilitiesHandler(context, req) {
                     amount: (0, validators_1.ensureOptionalNumberInRange)(body.amount, "amount", 0, Number.MAX_SAFE_INTEGER) ??
                         resource.amount,
                     category: (0, validators_1.ensureOptionalString)(body.category, "category") ?? resource.category,
+                    interestRate: body.interestRate !== undefined
+                        ? (0, validators_1.ensureOptionalNumberInRange)(body.interestRate, "interestRate", 0, 100) ?? null
+                        : resource.interestRate ?? null,
+                    repaymentMethod: body.repaymentMethod !== undefined
+                        ? (0, validators_1.ensureOptionalString)(body.repaymentMethod, "repaymentMethod") ?? ""
+                        : resource.repaymentMethod ?? "",
+                    maturityDate: body.maturityDate !== undefined
+                        ? (0, validators_1.ensureOptionalString)(body.maturityDate, "maturityDate") ?? ""
+                        : resource.maturityDate ?? "",
+                    monthlyPayment: body.monthlyPayment !== undefined
+                        ? (0, validators_1.ensureOptionalNumberInRange)(body.monthlyPayment, "monthlyPayment", 0, Number.MAX_SAFE_INTEGER) ?? null
+                        : resource.monthlyPayment ?? null,
+                    startDate: body.startDate !== undefined
+                        ? (0, validators_1.ensureOptionalString)(body.startDate, "startDate") ?? ""
+                        : resource.startDate ?? "",
+                    loanTerm: body.loanTerm !== undefined
+                        ? (0, validators_1.ensureOptionalNumberInRange)(body.loanTerm, "loanTerm", 0, 600) ?? null
+                        : resource.loanTerm ?? null,
                     note: (0, validators_1.ensureOptionalString)(body.note, "note") ?? resource.note,
+                    owner: (0, validators_1.ensureOptionalString)(body.owner, "owner") ?? resource.owner ?? "본인",
                     updatedAt: new Date().toISOString()
                 };
                 const { resource: saved } = await container.item(liabilityId, userId).replace(updated);

@@ -189,6 +189,7 @@ async function assetsHandler(context, req) {
                     priceSource: (0, validators_1.ensureOptionalString)(body.priceSource, "priceSource") ?? "",
                     autoUpdate: (0, validators_1.ensureOptionalBoolean)(body.autoUpdate, "autoUpdate") ?? false,
                     note: (0, validators_1.ensureOptionalString)(body.note, "note") ?? "",
+                    owner: (0, validators_1.ensureOptionalString)(body.owner, "owner") ?? "본인",
                     createdAt: new Date().toISOString(),
                     updatedAt: new Date().toISOString()
                 };
@@ -248,6 +249,7 @@ async function assetsHandler(context, req) {
                     priceSource: (0, validators_1.ensureOptionalString)(body.priceSource, "priceSource") ?? resource.priceSource,
                     autoUpdate: (0, validators_1.ensureOptionalBoolean)(body.autoUpdate, "autoUpdate") ?? resource.autoUpdate,
                     note: (0, validators_1.ensureOptionalString)(body.note, "note") ?? resource.note,
+                    owner: (0, validators_1.ensureOptionalString)(body.owner, "owner") ?? resource.owner ?? "본인",
                     updatedAt: new Date().toISOString()
                 };
                 const { resource: saved } = await container.item(assetId, userId).replace(updated);

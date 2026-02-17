@@ -81,6 +81,12 @@ async function profileHandler(context, req) {
                         "irregular"
                     ]),
                     annualRaiseRatePct: (0, validators_1.ensureOptionalNumberInRange)(body.annualRaiseRatePct, "annualRaiseRatePct", -20, 100),
+                    spouseName: (0, validators_1.ensureOptionalString)(body.spouseName, "spouseName"),
+                    spouseBirthDate: (0, validators_1.ensureOptionalString)(body.spouseBirthDate, "spouseBirthDate"),
+                    spouseEmployerName: (0, validators_1.ensureOptionalString)(body.spouseEmployerName, "spouseEmployerName"),
+                    spouseJobTitle: (0, validators_1.ensureOptionalString)(body.spouseJobTitle, "spouseJobTitle"),
+                    spouseAnnualIncome: (0, validators_1.ensureOptionalNumber)(body.spouseAnnualIncome, "spouseAnnualIncome"),
+                    spouseRetirementTargetAge: (0, validators_1.ensureOptionalNumberInRange)(body.spouseRetirementTargetAge, "spouseRetirementTargetAge", 45, 90),
                     child1Name: (0, validators_1.ensureOptionalString)(body.child1Name, "child1Name"),
                     child1BirthDate: (0, validators_1.ensureOptionalString)(body.child1BirthDate, "child1BirthDate"),
                     child1TargetUniversityYear: (0, validators_1.ensureOptionalNumberInRange)(body.child1TargetUniversityYear, "child1TargetUniversityYear", 2000, 2200),
@@ -143,6 +149,13 @@ async function profileHandler(context, req) {
                     ]) ?? resource.rsuVestingCycle,
                     annualRaiseRatePct: (0, validators_1.ensureOptionalNumberInRange)(body.annualRaiseRatePct, "annualRaiseRatePct", -20, 100) ??
                         resource.annualRaiseRatePct,
+                    spouseName: (0, validators_1.ensureOptionalString)(body.spouseName, "spouseName") ?? resource.spouseName,
+                    spouseBirthDate: (0, validators_1.ensureOptionalString)(body.spouseBirthDate, "spouseBirthDate") ?? resource.spouseBirthDate,
+                    spouseEmployerName: (0, validators_1.ensureOptionalString)(body.spouseEmployerName, "spouseEmployerName") ?? resource.spouseEmployerName,
+                    spouseJobTitle: (0, validators_1.ensureOptionalString)(body.spouseJobTitle, "spouseJobTitle") ?? resource.spouseJobTitle,
+                    spouseAnnualIncome: (0, validators_1.ensureOptionalNumber)(body.spouseAnnualIncome, "spouseAnnualIncome") ?? resource.spouseAnnualIncome,
+                    spouseRetirementTargetAge: (0, validators_1.ensureOptionalNumberInRange)(body.spouseRetirementTargetAge, "spouseRetirementTargetAge", 45, 90) ??
+                        resource.spouseRetirementTargetAge,
                     child1Name: (0, validators_1.ensureOptionalString)(body.child1Name, "child1Name") ?? resource.child1Name,
                     child1BirthDate: (0, validators_1.ensureOptionalString)(body.child1BirthDate, "child1BirthDate") ?? resource.child1BirthDate,
                     child1TargetUniversityYear: (0, validators_1.ensureOptionalNumberInRange)(body.child1TargetUniversityYear, "child1TargetUniversityYear", 2000, 2200) ??

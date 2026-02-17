@@ -7,6 +7,7 @@ import { FeedbackBanner } from '@/components/ui/FeedbackBanner';
 import { useFeedbackMessage } from '@/hooks/useFeedbackMessage';
 import { useConfirmModal } from '@/hooks/useConfirmModal';
 import { ConfirmModal } from '@/components/ui/ConfirmModal';
+import ReactMarkdown from 'react-markdown';
 
 export default function AIAdvisorPage() {
   const [conversations, setConversations] = useState<Conversation[]>([]);
@@ -257,7 +258,13 @@ export default function AIAdvisorPage() {
                         <div className="ai-chat-meta">
                           {isUser ? '나' : 'Mr. Money'}
                         </div>
-                        <div className="whitespace-pre-wrap leading-[1.45]">{msg.content}</div>
+                        {isUser ? (
+                          <div className="whitespace-pre-wrap leading-[1.45]">{msg.content}</div>
+                        ) : (
+                          <div className="ai-markdown prose prose-sm max-w-none leading-[1.55]">
+                            <ReactMarkdown>{msg.content}</ReactMarkdown>
+                          </div>
+                        )}
                       </div>
                     </div>
                   );
