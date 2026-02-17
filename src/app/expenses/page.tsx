@@ -1,6 +1,6 @@
 'use client';
 
-import { FormEvent, useEffect, useMemo, useState } from 'react';
+import { FormEvent, useEffect, useMemo, useRef, useState } from 'react';
 import { api, Expense, GoalFund } from '@/lib/api';
 import { FeedbackBanner } from '@/components/ui/FeedbackBanner';
 import { getAssetCategoryLabel } from '@/lib/assetCategory';
@@ -98,6 +98,8 @@ export default function ExpensesPage() {
   const [isMonthSettled, setIsMonthSettled] = useState(false);
   const [settlementMonth, setSettlementMonth] = useState(getCurrentMonthKey());
   const [editingExpenseId, setEditingExpenseId] = useState<string | null>(null);
+  const [formOpen, setFormOpen] = useState(false);
+  const formSectionRef = useRef<HTMLElement>(null);
   const [entryMode, setEntryMode] = useState<'card' | 'general' | 'investment'>('card');
   const [form, setForm] = useState<ExpenseForm>(defaultForm);
   const [cardQuickForm, setCardQuickForm] = useState<CardQuickForm>(defaultCardQuickForm);
@@ -354,6 +356,7 @@ export default function ExpensesPage() {
     } else {
       setForm(defaultForm);
       setEditingExpenseId(null);
+      setFormOpen(false);
       setSuccessMessage(editingExpenseId ? '지출이 수정되었습니다.' : '지출이 저장되었습니다.');
       await loadExpenses();
     }
@@ -469,6 +472,7 @@ export default function ExpensesPage() {
   function onEdit(expense: Expense) {
     setEntryMode(expense.isInvestmentTransfer ? 'investment' : 'general');
     setEditingExpenseId(expense.id);
+    setFormOpen(true);
     setErrors({});
     clearMessage();
     setForm({
@@ -491,10 +495,15 @@ export default function ExpensesPage() {
       goalFundId: expense.goalFundId ?? '',
       owner: expense.owner ?? '본인'
     });
+
+    setTimeout(() => {
+      formSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 0);
   }
 
   function onCancelEdit() {
     setEditingExpenseId(null);
+    setFormOpen(false);
     setErrors({});
     setForm(defaultForm);
   }
@@ -574,8 +583,22 @@ export default function ExpensesPage() {
         </div>
       </SectionCard>
 
-      <SectionCard className="mt-5 max-w-[980px]">
-        <div className="mb-3 flex flex-wrap gap-2">
+      <SectionCard className="mt-5 max-w-[980px]" ref={formSectionRef}>
+        <button
+          type="button"
+          onClick={() => setFormOpen((prev) => !prev)}
+          className="flex w-full items-center justify-between bg-transparent border-0 cursor-pointer p-0 text-left"
+        >
+          <h3 className="m-0 text-base font-semibold">
+            {editingExpenseId ? '✘ 지출 수정' : '✘ 지출 입력'}
+          </h3>
+          <span className={`text-[var(--color-text-muted)] transition-transform duration-200 ${formOpen ? 'rotate-180' : ''}`}>
+            ▼
+          </span>
+        </button>
+
+        {formOpen && <>
+        <div className="mb-3 mt-3 flex flex-wrap gap-2">
           <button
             type="button"
             className={entryMode === 'card' ? 'btn-primary' : 'btn-danger-outline'}
@@ -877,6 +900,7 @@ export default function ExpensesPage() {
             </FormField>
           </div>
         )}
+        </>}
       </SectionCard>
 
       <SectionCard className="mt-4 max-w-[980px]">
