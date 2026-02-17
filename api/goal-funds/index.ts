@@ -23,7 +23,7 @@ type MonthlyLog = {
   note?: string;
 };
 
-export async function goalFundsHandler(req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
+export async function goalFundsHandler(context: InvocationContext, req: HttpRequest): Promise<HttpResponseInit> {
   try {
     const { userId } = getAuthContext(req.headers);
     requireUserId(userId);
@@ -175,13 +175,8 @@ export async function goalFundsHandler(req: HttpRequest, context: InvocationCont
     return fail("METHOD_NOT_ALLOWED", "Method not allowed", 405);
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : "Unknown error";
-    const stack = error instanceof Error ? error.stack : undefined;
     if (message === "UNAUTHORIZED") return fail("UNAUTHORIZED", "Unauthorized", 401);
-    context.log("GoalFunds error:", message, "stack:", stack);
-    return {
-      status: 500,
-      headers: { "content-type": "application/json; charset=utf-8" },
-      body: JSON.stringify({ error: { code: "GOAL_FUNDS_ERROR", message, stack } })
-    };
+    context.log("GoalFunds error:", message);
+    return fail("BAD_REQUEST", message, 400);
   }
 }

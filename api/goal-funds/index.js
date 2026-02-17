@@ -10,7 +10,7 @@ const request_body_1 = require("../shared/request-body");
 const horizonTypes = ["short", "mid", "long"];
 const vehicleTypes = ["savings", "deposit", "etf", "stock", "fund", "crypto", "cash", "other"];
 const statusTypes = ["active", "paused", "completed", "cancelled"];
-async function goalFundsHandler(req, context) {
+async function goalFundsHandler(context, req) {
     try {
         const { userId } = (0, auth_1.getAuthContext)(req.headers);
         (0, validators_1.requireUserId)(userId);
@@ -145,14 +145,9 @@ async function goalFundsHandler(req, context) {
     }
     catch (error) {
         const message = error instanceof Error ? error.message : "Unknown error";
-        const stack = error instanceof Error ? error.stack : undefined;
         if (message === "UNAUTHORIZED")
             return (0, responses_1.fail)("UNAUTHORIZED", "Unauthorized", 401);
-        context.log("GoalFunds error:", message, "stack:", stack);
-        return {
-            status: 500,
-            headers: { "content-type": "application/json; charset=utf-8" },
-            body: JSON.stringify({ error: { code: "GOAL_FUNDS_ERROR", message, stack } })
-        };
+        context.log("GoalFunds error:", message);
+        return (0, responses_1.fail)("BAD_REQUEST", message, 400);
     }
 }
