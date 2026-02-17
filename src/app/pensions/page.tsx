@@ -1,6 +1,6 @@
 'use client';
 
-import { FormEvent, useEffect, useMemo, useState } from 'react';
+import { FormEvent, useEffect, useMemo, useRef, useState } from 'react';
 import { api, Asset } from '@/lib/api';
 import { FeedbackBanner } from '@/components/ui/FeedbackBanner';
 import { useFeedbackMessage } from '@/hooks/useFeedbackMessage';
@@ -61,6 +61,8 @@ export default function PensionsPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [editingAssetId, setEditingAssetId] = useState<string | null>(null);
+  const [formOpen, setFormOpen] = useState(false);
+  const formSectionRef = useRef<HTMLElement>(null);
   const [form, setForm] = useState<PensionForm>(defaultForm);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const { message, feedback, clearMessage, setMessageText, setSuccessMessage, setErrorMessage } = useFeedbackMessage();
@@ -175,6 +177,7 @@ export default function PensionsPage() {
       setErrorMessage(editingAssetId ? '수정 실패' : '저장 실패', result.error);
     } else {
       setEditingAssetId(null);
+      setFormOpen(false);
       setForm(defaultForm);
       setSuccessMessage(editingAssetId ? '연금 자산이 수정되었습니다.' : '연금 자산이 저장되었습니다.');
       await loadPensions();
@@ -185,6 +188,7 @@ export default function PensionsPage() {
 
   function onEdit(asset: Asset) {
     setEditingAssetId(asset.id);
+    setFormOpen(true);
     setErrors({});
     clearMessage();
     setForm({
@@ -198,10 +202,15 @@ export default function PensionsPage() {
       note: asset.note ?? '',
       owner: asset.owner ?? '본인'
     });
+
+    setTimeout(() => {
+      formSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 0);
   }
 
   function onCancelEdit() {
     setEditingAssetId(null);
+    setFormOpen(false);
     setErrors({});
     setForm(defaultForm);
   }
@@ -257,9 +266,21 @@ export default function PensionsPage() {
         </SectionCard>
       </div>
 
-      <SectionCard className="mt-4">
-        <h3 className="mb-3 mt-0">연금 자산 입력</h3>
-        <form onSubmit={onSubmit} className="form-grid">
+      <SectionCard className="mt-4" ref={formSectionRef}>
+        <button
+          type="button"
+          onClick={() => setFormOpen((prev) => !prev)}
+          className="flex w-full items-center justify-between bg-transparent border-0 cursor-pointer p-0 text-left"
+        >
+          <h3 className="m-0 text-base font-semibold">
+            {editingAssetId ? '✘ 연금 자산 수정' : '✘ 연금 자산 입력'}
+          </h3>
+          <span className={`text-[var(--color-text-muted)] transition-transform duration-200 ${formOpen ? 'rotate-180' : ''}`}>
+            ▼
+          </span>
+        </button>
+
+        {formOpen && <form onSubmit={onSubmit} className="form-grid mt-3">
           <FormField label="연금 유형">
             <select
               value={form.category}
@@ -375,7 +396,7 @@ export default function PensionsPage() {
               </button>
             ) : null}
           </div>
-        </form>
+        </form>}
       </SectionCard>
 
       <FeedbackBanner feedback={feedback} />
