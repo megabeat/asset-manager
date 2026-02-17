@@ -167,7 +167,7 @@ export default function Home() {
       <section className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-5 shadow-[0_8px_24px_rgba(15,23,42,0.05)]">
         <div className="flex items-start justify-between gap-4">
           <div>
-            <h1 className="mb-2 mt-0">개인 자산관리 홈</h1>
+            <h1 className="mb-2 mt-0">{profile?.fullName ? `${profile.fullName} 자산관리 홈` : '개인 자산관리 홈'}</h1>
             <p className="m-0 text-[var(--muted)]">
               자산/수입/지출/부채를 입력하고 순자산과 현금흐름을 바로 확인하세요.
             </p>
