@@ -525,35 +525,22 @@ export default function AssetsPage() {
       </div>
 
       <SectionCard className="mt-4" ref={formSectionRef}>
-        <div className="mb-3">
-          <p className="helper-text m-0">빠른 입력 템플릿</p>
-          <div className="mt-2 flex flex-wrap gap-1.5">
-            {quickPresets.map((preset) => (
-              <button
-                key={preset.id}
-                type="button"
-                onClick={() => applyPreset(preset)}
-                className="btn-danger-outline min-w-[100px]"
-              >
-                {preset.label}
-              </button>
-            ))}
-          </div>
-        </div>
-
         <form onSubmit={onSubmit} className="form-grid">
           <FormField label="카테고리" fullWidth>
             <div className="flex flex-wrap gap-1.5">
-              {(Object.keys(categoryLabel) as AssetCategory[]).map((category) => (
-                <button
-                  key={category}
-                  type="button"
-                  onClick={() => changeCategory(category)}
-                  className={`${form.category === category ? 'btn-primary' : 'btn-danger-outline'} min-w-[92px]`}
-                >
-                  {categoryLabel[category]}
-                </button>
-              ))}
+              {(Object.keys(categoryLabel) as AssetCategory[]).map((category) => {
+                const preset = quickPresets.find((p) => p.category === category);
+                return (
+                  <button
+                    key={category}
+                    type="button"
+                    onClick={() => preset ? applyPreset(preset) : changeCategory(category)}
+                    className={`${form.category === category ? 'btn-primary' : 'btn-danger-outline'} min-w-[92px]`}
+                  >
+                    {categoryLabel[category]}
+                  </button>
+                );
+              })}
             </div>
           </FormField>
 
