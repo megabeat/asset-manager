@@ -277,6 +277,30 @@ table {
   border-color: var(--brand-strong) !important;
 }
 
+/* --- User switcher --- */
+.user-switcher {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.user-switcher-select {
+  @apply rounded-full border px-3 py-1.5 text-[0.82rem] font-medium;
+  border-color: var(--subtle-border);
+  background: var(--surface);
+  color: var(--text);
+  cursor: pointer;
+  outline: none;
+  transition: border-color 0.15s;
+  min-width: 0;
+  max-width: 160px;
+}
+
+.user-switcher-select:hover,
+.user-switcher-select:focus-visible {
+  border-color: var(--brand);
+}
+
 /* --- Hamburger menu (mobile) --- */
 .nav-hamburger {
   display: none;

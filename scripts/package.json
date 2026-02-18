@@ -4,6 +4,8 @@
   "private": true,
   "scripts": {
     "setup-cosmos": "node setup-cosmos.js",
+    "seed-demo": "node seed-demo-data.js",
+    "seed-demo:clean": "node seed-demo-data.js --clean",
     "normalize-asset-categories": "node normalize-asset-categories.js",
     "normalize-asset-categories:apply": "node normalize-asset-categories.js --apply"
   },

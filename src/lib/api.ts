@@ -1,5 +1,6 @@
+import { getCurrentUserId } from '@/hooks/useUserStore';
+
 const API_BASE = '/api';
-const DEFAULT_USER_ID = 'demo-user';
 
 export type ApiResponse<T> = {
   data: T | null;
@@ -212,7 +213,7 @@ async function fetchApi<T>(
       ...options,
       headers: {
         'Content-Type': 'application/json',
-        'x-user-id': DEFAULT_USER_ID,
+        'x-user-id': getCurrentUserId(),
         ...options?.headers
       }
     });

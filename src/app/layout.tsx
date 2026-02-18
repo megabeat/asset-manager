@@ -3,6 +3,7 @@ import Link from "next/link";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import { AppLogo } from "@/components/ui/AppLogo";
 import { NavLinks } from "@/components/ui/NavLinks";
+import { UserSwitcher } from "@/components/ui/UserSwitcher";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -30,6 +31,7 @@ export default function RootLayout({
               <AppLogo />
             </Link>
             <NavLinks />
+            <UserSwitcher />
             <ThemeToggle />
           </div>
         </header>
