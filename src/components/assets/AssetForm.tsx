@@ -140,7 +140,7 @@ export function AssetForm({
       } else {
         const errMsg = result.error?.message ?? '';
         if (errMsg.includes('404') || errMsg.includes('No price') || errMsg.includes('Invalid price')) {
-          setPriceInfo('올바른 티커를 입력하세요');
+          setPriceInfo(market === 'KR' ? '현재 시세를 조회할 수 없습니다. 단가를 직접 입력하세요.' : '올바른 티커를 입력하세요');
         } else {
           setPriceInfo(`시세 조회 실패: ${errMsg || '알 수 없는 오류'}`);
         }
