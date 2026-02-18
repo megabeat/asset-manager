@@ -164,6 +164,22 @@ export default function AssetsPage() {
     [assets]
   );
 
+  const cashAssetValue = useMemo(
+    () =>
+      assets
+        .filter((asset) => asset.category === 'cash' || asset.category === 'deposit')
+        .reduce((sum, asset) => sum + (asset.currentValue ?? 0), 0),
+    [assets]
+  );
+
+  const realEstateAssetValue = useMemo(
+    () =>
+      assets
+        .filter((asset) => asset.category === 'real_estate' || asset.category === 'realestate' || asset.category === 'realestate_kr' || asset.category === 'realestate_us')
+        .reduce((sum, asset) => sum + (asset.currentValue ?? 0), 0),
+    [assets]
+  );
+
   const categoryGroups = useMemo<CategoryGroup[]>(() => {
     const groupMap = new Map<string, CategoryGroup>();
 
@@ -451,6 +467,14 @@ export default function AssetsPage() {
         <SectionCard>
           <p className="helper-text">주식 자산</p>
           <h2 className="m-0">{stockAssetValue.toLocaleString()}원</h2>
+        </SectionCard>
+        <SectionCard>
+          <p className="helper-text">현금·예금</p>
+          <h2 className="m-0">{cashAssetValue.toLocaleString()}원</h2>
+        </SectionCard>
+        <SectionCard>
+          <p className="helper-text">부동산</p>
+          <h2 className="m-0">{realEstateAssetValue.toLocaleString()}원</h2>
         </SectionCard>
       </div>
 
