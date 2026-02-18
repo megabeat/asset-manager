@@ -168,6 +168,19 @@ export type MonthlySnapshot = {
   recordedAt: string;
 };
 
+export type CategoryTrendPoint = {
+  date: string;
+  [category: string]: string | number;
+};
+
+export type StockTrendAsset = {
+  assetId: string;
+  name: string;
+  ticker: string;
+  category: string;
+  history: Array<{ date: string; value: number }>;
+};
+
 export type GoalFundLog = {
   month: string;
   amount: number;
@@ -259,6 +272,10 @@ export const api = {
     fetchApi<MonthlyAssetChange[]>('/dashboard/monthly-change'),
   getSnapshots: () =>
     fetchApi<MonthlySnapshot[]>('/dashboard/snapshots'),
+  getCategoryTrend: () =>
+    fetchApi<CategoryTrendPoint[]>('/dashboard/category-trend'),
+  getStockTrends: () =>
+    fetchApi<StockTrendAsset[]>('/dashboard/stock-trends'),
 
   // Children
   getChildren: () => fetchApi<Child[]>('/children'),

@@ -318,6 +318,158 @@ export async function dashboardHandler(context: InvocationContext, req: HttpRequ
         return fail("SERVER_ERROR", "Failed to fetch snapshots", 500);
       }
     }
+    case "category-trend": {
+      try {
+        const assetsContainer = getContainer("assets");
+        const historyContainer = getContainer("assetHistory");
+
+        // 1. Get all assets with their categories
+        const assetQuery = {
+          query: "SELECT c.id, c.category FROM c WHERE c.userId = @userId AND c.type = 'Asset'",
+          parameters: [{ name: "@userId", value: userId }]
+        };
+        const { resources: assetMeta } = await assetsContainer.items.query(assetQuery).fetchAll();
+        const categoryMap = new Map<string, string>();
+        const assetIds: string[] = [];
+        for (const a of assetMeta as Array<{ id: string; category: string }>) {
+          categoryMap.set(a.id, a.category);
+          assetIds.push(a.id);
+        }
+
+        if (assetIds.length === 0) {
+          return ok([]);
+        }
+
+        // 2. Get all regular history entries (price-updater creates these daily)
+        const historyQuery = {
+          query:
+            "SELECT c.assetId, c.recordedAt, c[\"value\"] FROM c WHERE c.userId = @userId AND c.type = 'AssetHistory' AND (NOT IS_DEFINED(c.isWindowRecord) OR c.isWindowRecord = false) AND (NOT IS_DEFINED(c.isMonthlySnapshot) OR c.isMonthlySnapshot = false) AND ARRAY_CONTAINS(@assetIds, c.assetId)",
+          parameters: [
+            { name: "@userId", value: userId },
+            { name: "@assetIds", value: assetIds }
+          ]
+        };
+
+        const historyRows = await queryAssetHistoryRows(historyContainer, userId, historyQuery);
+
+        // 3. Bucket by day, aggregate by category
+        // For each day+asset, keep the latest entry
+        const latestByDayAsset = new Map<string, { date: string; category: string; value: number; ts: string }>();
+        for (const row of historyRows) {
+          const assetId = row.assetId ?? "";
+          const recordedAt = String(row.recordedAt ?? "");
+          if (!assetId || !recordedAt) continue;
+
+          const date = recordedAt.slice(0, 10); // YYYY-MM-DD
+          const key = `${date}|${assetId}`;
+          const existing = latestByDayAsset.get(key);
+
+          if (!existing || recordedAt > existing.ts) {
+            latestByDayAsset.set(key, {
+              date,
+              category: categoryMap.get(assetId) ?? "etc",
+              value: Number(row.value ?? 0),
+              ts: recordedAt
+            });
+          }
+        }
+
+        // 4. Aggregate by date + category
+        const dateCategoryMap = new Map<string, Record<string, number>>();
+        for (const entry of latestByDayAsset.values()) {
+          if (!dateCategoryMap.has(entry.date)) {
+            dateCategoryMap.set(entry.date, {});
+          }
+          const bucket = dateCategoryMap.get(entry.date)!;
+          bucket[entry.category] = (bucket[entry.category] ?? 0) + entry.value;
+        }
+
+        const result = Array.from(dateCategoryMap.entries())
+          .map(([date, categories]) => ({ date, ...categories }))
+          .sort((a, b) => a.date.localeCompare(b.date));
+
+        return ok(result);
+      } catch (error: unknown) {
+        context.log(error);
+        return fail("SERVER_ERROR", "Failed to build category trend", 500);
+      }
+    }
+    case "stock-trends": {
+      try {
+        const assetsContainer = getContainer("assets");
+        const historyContainer = getContainer("assetHistory");
+
+        // 1. Get stock assets
+        const assetQuery = {
+          query: "SELECT c.id, c.name, c.symbol, c.category FROM c WHERE c.userId = @userId AND c.type = 'Asset' AND (c.category = 'stock_kr' OR c.category = 'stock_us')",
+          parameters: [{ name: "@userId", value: userId }]
+        };
+        const { resources: stockAssets } = await assetsContainer.items.query(assetQuery).fetchAll();
+        type StockMeta = { id: string; name: string; symbol?: string; category: string };
+        const stocks = stockAssets as StockMeta[];
+
+        if (stocks.length === 0) {
+          return ok([]);
+        }
+
+        const stockIds = stocks.map((s) => s.id);
+
+        // 2. Get all history records for these stock assets
+        const historyQuery = {
+          query:
+            "SELECT c.assetId, c.recordedAt, c[\"value\"] FROM c WHERE c.userId = @userId AND c.type = 'AssetHistory' AND (NOT IS_DEFINED(c.isWindowRecord) OR c.isWindowRecord = false) AND (NOT IS_DEFINED(c.isMonthlySnapshot) OR c.isMonthlySnapshot = false) AND ARRAY_CONTAINS(@assetIds, c.assetId)",
+          parameters: [
+            { name: "@userId", value: userId },
+            { name: "@assetIds", value: stockIds }
+          ]
+        };
+
+        const historyRows = await queryAssetHistoryRows(historyContainer, userId, historyQuery);
+
+        // 3. Group by asset, keep latest per day
+        const assetDayMap = new Map<string, Map<string, { date: string; value: number; ts: string }>>();
+        for (const row of historyRows) {
+          const assetId = row.assetId ?? "";
+          const recordedAt = String(row.recordedAt ?? "");
+          if (!assetId || !recordedAt) continue;
+
+          const date = recordedAt.slice(0, 10);
+
+          if (!assetDayMap.has(assetId)) {
+            assetDayMap.set(assetId, new Map());
+          }
+          const dayMap = assetDayMap.get(assetId)!;
+          const existing = dayMap.get(date);
+
+          if (!existing || recordedAt > existing.ts) {
+            dayMap.set(date, { date, value: Number(row.value ?? 0), ts: recordedAt });
+          }
+        }
+
+        // 4. Build result
+        const result = stocks.map((stock) => {
+          const dayMap = assetDayMap.get(stock.id);
+          const history = dayMap
+            ? Array.from(dayMap.values())
+                .map(({ date, value }) => ({ date, value }))
+                .sort((a, b) => a.date.localeCompare(b.date))
+            : [];
+
+          return {
+            assetId: stock.id,
+            name: stock.name,
+            ticker: stock.symbol ?? "",
+            category: stock.category,
+            history
+          };
+        });
+
+        return ok(result);
+      } catch (error: unknown) {
+        context.log(error);
+        return fail("SERVER_ERROR", "Failed to build stock trends", 500);
+      }
+    }
     default:
       context.log(`Unsupported dashboard action: ${action}`);
       return fail("NOT_FOUND", "Unknown dashboard action", 404);
