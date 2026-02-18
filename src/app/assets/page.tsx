@@ -548,23 +548,56 @@ export default function AssetsPage() {
               render: (asset) => getAssetCategoryLabel(asset.category),
             },
             {
-              key: 'meta',
-              header: '상세',
+              key: 'symbol',
+              header: '종목',
+              render: (asset) => {
+                if (asset.category === 'stock_us' || asset.category === 'stock_kr') {
+                  return asset.symbol || '-';
+                }
+                return '-';
+              },
+            },
+            {
+              key: 'quantity',
+              header: '수량',
+              align: 'right',
+              render: (asset) => {
+                if (asset.category === 'stock_us' || asset.category === 'stock_kr') {
+                  return asset.quantity != null ? `${asset.quantity}주` : '-';
+                }
+                return '-';
+              },
+            },
+            {
+              key: 'usd',
+              header: '가치(USD)',
+              align: 'right',
               render: (asset) => {
                 if (asset.category === 'stock_us') {
-                  return `${asset.symbol || '-'} / ${asset.usdAmount?.toLocaleString() ?? 0} USD`;
+                  const usd = (asset.quantity ?? 0) * (asset.acquiredValue ?? 0);
+                  return usd > 0 ? `$${usd.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}` : '-';
                 }
-                if (asset.category === 'car') {
-                  return asset.carYear ? `${asset.carYear}년식` : '-';
-                }
-                return asset.symbol || '-';
+                return '';
               },
             },
             {
               key: 'value',
-              header: '현재가치',
+              header: '가치(원)',
               align: 'right',
               render: (asset) => `${(asset.currentValue ?? 0).toLocaleString()}원`,
+            },
+            {
+              key: 'meta',
+              header: '상세',
+              render: (asset) => {
+                if (asset.category === 'stock_us' && asset.exchangeRate) {
+                  return `환율 ${asset.exchangeRate.toLocaleString()}`;
+                }
+                if (asset.category === 'car') {
+                  return asset.carYear ? `${asset.carYear}년식` : '-';
+                }
+                return '';
+              },
             },
             {
               key: 'owner',
