@@ -537,7 +537,7 @@ export default function AssetsPage() {
       <SectionCard className="mt-4">
         <h3 className="mt-0">자산 상세 목록</h3>
         <DataTable
-          rows={assets}
+          rows={[...assets].sort((a, b) => a.category.localeCompare(b.category))}
           rowKey={(asset) => asset.id}
           emptyMessage="등록된 자산이 없습니다."
           columns={[
