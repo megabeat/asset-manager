@@ -102,7 +102,7 @@ async function priceUpdater(context, req) {
         // ── 1. Auto-update investment prices (stooq) ──
         try {
             const query = {
-                query: "SELECT * FROM c WHERE c.type = 'Asset' AND c.category = 'investment' AND c.autoUpdate = true AND c.priceSource = 'stooq'",
+                query: "SELECT * FROM c WHERE c.type = 'Asset' AND c.category = 'investment' AND c.priceSource = 'stooq'",
                 parameters: []
             };
             const { resources } = await assetsContainer.items.query(query).fetchAll();
@@ -150,7 +150,7 @@ async function priceUpdater(context, req) {
         // ── 2. Auto-update Korean stock prices (stock_kr with autoUpdate) ──
         try {
             const krQuery = {
-                query: "SELECT * FROM c WHERE c.type = 'Asset' AND c.category = 'stock_kr' AND c.autoUpdate = true",
+                query: "SELECT * FROM c WHERE c.type = 'Asset' AND c.category = 'stock_kr'",
                 parameters: []
             };
             const { resources: krResources } = await assetsContainer.items.query(krQuery).fetchAll();
@@ -203,7 +203,7 @@ async function priceUpdater(context, req) {
         // ── 2b. Auto-update US stock prices (stock_us with autoUpdate) ──
         try {
             const usQuery = {
-                query: "SELECT * FROM c WHERE c.type = 'Asset' AND c.category = 'stock_us' AND c.autoUpdate = true",
+                query: "SELECT * FROM c WHERE c.type = 'Asset' AND c.category = 'stock_us'",
                 parameters: []
             };
             const { resources: usResources } = await assetsContainer.items.query(usQuery).fetchAll();

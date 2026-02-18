@@ -227,7 +227,7 @@ export async function assetsHandler(context: InvocationContext, req: HttpRequest
           carYear: ensureOptionalNumber(body.carYear, "carYear") ?? null,
           exchange: ensureOptionalString(body.exchange, "exchange") ?? "",
           priceSource: ensureOptionalString(body.priceSource, "priceSource") ?? "",
-          autoUpdate: ensureOptionalBoolean(body.autoUpdate, "autoUpdate") ?? false,
+          autoUpdate: ensureOptionalBoolean(body.autoUpdate, "autoUpdate") ?? true,
           note: ensureOptionalString(body.note, "note") ?? "",
           owner: ensureOptionalString(body.owner, "owner") ?? "본인",
           createdAt: new Date().toISOString(),

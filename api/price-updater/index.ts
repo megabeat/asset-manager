@@ -128,7 +128,7 @@ export async function priceUpdater(context: InvocationContext, req: HttpRequest)
   try {
     const query = {
       query:
-        "SELECT * FROM c WHERE c.type = 'Asset' AND c.category = 'investment' AND c.autoUpdate = true AND c.priceSource = 'stooq'",
+        "SELECT * FROM c WHERE c.type = 'Asset' AND c.category = 'investment' AND c.priceSource = 'stooq'",
       parameters: []
     };
 
@@ -182,7 +182,7 @@ export async function priceUpdater(context: InvocationContext, req: HttpRequest)
   try {
     const krQuery = {
       query:
-        "SELECT * FROM c WHERE c.type = 'Asset' AND c.category = 'stock_kr' AND c.autoUpdate = true",
+        "SELECT * FROM c WHERE c.type = 'Asset' AND c.category = 'stock_kr'",
       parameters: []
     };
 
@@ -242,7 +242,7 @@ export async function priceUpdater(context: InvocationContext, req: HttpRequest)
   try {
     const usQuery = {
       query:
-        "SELECT * FROM c WHERE c.type = 'Asset' AND c.category = 'stock_us' AND c.autoUpdate = true",
+        "SELECT * FROM c WHERE c.type = 'Asset' AND c.category = 'stock_us'",
       parameters: []
     };
 

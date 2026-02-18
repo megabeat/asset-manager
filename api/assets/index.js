@@ -187,7 +187,7 @@ async function assetsHandler(context, req) {
                     carYear: (0, validators_1.ensureOptionalNumber)(body.carYear, "carYear") ?? null,
                     exchange: (0, validators_1.ensureOptionalString)(body.exchange, "exchange") ?? "",
                     priceSource: (0, validators_1.ensureOptionalString)(body.priceSource, "priceSource") ?? "",
-                    autoUpdate: (0, validators_1.ensureOptionalBoolean)(body.autoUpdate, "autoUpdate") ?? false,
+                    autoUpdate: (0, validators_1.ensureOptionalBoolean)(body.autoUpdate, "autoUpdate") ?? true,
                     note: (0, validators_1.ensureOptionalString)(body.note, "note") ?? "",
                     owner: (0, validators_1.ensureOptionalString)(body.owner, "owner") ?? "본인",
                     createdAt: new Date().toISOString(),
