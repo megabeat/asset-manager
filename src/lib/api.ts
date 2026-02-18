@@ -369,4 +369,10 @@ export const api = {
   createGoalFund: (data: unknown) => fetchApi<GoalFund>('/goal-funds', { method: 'POST', body: JSON.stringify(data) }),
   updateGoalFund: (id: string, data: unknown) => fetchApi<GoalFund>(`/goal-funds/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
   deleteGoalFund: (id: string) => fetchApi(`/goal-funds/${id}`, { method: 'DELETE' }),
+
+  // Stock Price Lookup
+  getStockPrice: (symbol: string, market: 'KR' | 'US') =>
+    fetchApi<{ symbol: string; market: string; price: number; fxRate: number | null; stooqSymbol: string }>(
+      `/stock-price?symbol=${encodeURIComponent(symbol)}&market=${market}`
+    ),
 };

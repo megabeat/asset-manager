@@ -1,7 +1,8 @@
 'use client';
 
-import { FormEvent, Dispatch, SetStateAction } from 'react';
+import { FormEvent, Dispatch, SetStateAction, useState } from 'react';
 import { FormField } from '@/components/ui/FormField';
+import { api } from '@/lib/api';
 
 type AssetCategory = 'cash' | 'deposit' | 'stock_kr' | 'stock_us' | 'car' | 'real_estate' | 'etc';
 type NumericInput = number | '';
@@ -121,6 +122,34 @@ export function AssetForm({
     });
   }
 
+  const [priceFetching, setPriceFetching] = useState(false);
+  const [priceInfo, setPriceInfo] = useState<string | null>(null);
+
+  async function fetchCurrentPrice() {
+    const symbol = form.symbol.trim();
+    if (!symbol) return;
+    const market = form.category === 'stock_us' ? 'US' : 'KR';
+    setPriceFetching(true);
+    setPriceInfo(null);
+    try {
+      const result = await api.getStockPrice(symbol, market);
+      if (result.data) {
+        const price = result.data.price;
+        setForm((prev) => ({ ...prev, acquiredValue: price }));
+        if (result.data.fxRate && form.category === 'stock_us') {
+          setForm((prev) => ({ ...prev, exchangeRate: result.data!.fxRate! }));
+        }
+        setPriceInfo(`${symbol} 현재가: ${price.toLocaleString()}${market === 'KR' ? '원' : ' USD'}`);
+      } else {
+        setPriceInfo(`시세 조회 실패: ${result.error?.message ?? '알 수 없는 오류'}`);
+      }
+    } catch {
+      setPriceInfo('시세 조회 중 오류가 발생했습니다.');
+    } finally {
+      setPriceFetching(false);
+    }
+  }
+
   function changeCategory(category: AssetCategory) {
     const preservedRate = form.exchangeRate;
     setForm((prev) => ({
@@ -164,11 +193,26 @@ export function AssetForm({
       {isStockCategory ? (
         <>
           <FormField label="종목코드" error={errors.symbol}>
-            <input
-              value={form.symbol}
-              onChange={(event) => setForm((prev) => ({ ...prev, symbol: event.target.value.toUpperCase() }))}
-              placeholder="예: AAPL"
-            />
+            <div className="flex items-center gap-2">
+              <input
+                value={form.symbol}
+                onChange={(event) => setForm((prev) => ({ ...prev, symbol: event.target.value.toUpperCase() }))}
+                placeholder={form.category === 'stock_us' ? '예: AAPL' : '예: 005930'}
+              />
+              <button
+                type="button"
+                className="btn-subtle shrink-0 whitespace-nowrap text-xs"
+                disabled={priceFetching || !form.symbol.trim()}
+                onClick={fetchCurrentPrice}
+              >
+                {priceFetching ? '조회중...' : '시세 조회'}
+              </button>
+            </div>
+            {priceInfo && (
+              <p className="helper-text mt-1" style={{ color: priceInfo.includes('실패') || priceInfo.includes('오류') ? 'var(--accent-red)' : 'var(--accent-green)' }}>
+                {priceInfo}
+              </p>
+            )}
           </FormField>
           <FormField label="수량" error={errors.quantity}>
             <input
@@ -185,7 +229,7 @@ export function AssetForm({
             />
           </FormField>
           <FormField
-            label={form.category === 'stock_us' ? '단가(USD)' : '단가(원)'}
+            label={`${form.category === 'stock_us' ? '단가(USD)' : '단가(원)'} — 시세 조회 시 자동 입력`}
             error={errors.acquiredValue}
           >
             <input

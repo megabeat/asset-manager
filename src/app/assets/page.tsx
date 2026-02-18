@@ -264,7 +264,7 @@ export default function AssetsPage() {
     if (isStockCategory) {
       if (!form.symbol.trim()) nextErrors.symbol = '종목코드를 입력해주세요.';
       if (Number(form.quantity || 0) <= 0) nextErrors.quantity = '수량은 0보다 커야 합니다.';
-      if (Number(form.acquiredValue || 0) <= 0) nextErrors.acquiredValue = '단가는 0보다 커야 합니다.';
+      if (Number(form.acquiredValue || 0) <= 0) nextErrors.acquiredValue = '단가를 입력하거나 시세 조회를 해주세요.';
     }
 
     if (form.category === 'stock_us') {

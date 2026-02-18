@@ -1,0 +1,19 @@
+{
+  "scriptFile": "index.js",
+  "entryPoint": "stockPriceHandler",
+  "bindings": [
+    {
+      "authLevel": "anonymous",
+      "type": "httpTrigger",
+      "direction": "in",
+      "name": "req",
+      "methods": ["get"],
+      "route": "stock-price"
+    },
+    {
+      "name": "$return",
+      "type": "http",
+      "direction": "out"
+    }
+  ]
+}
