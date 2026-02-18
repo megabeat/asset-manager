@@ -1,8 +1,9 @@
 'use client';
 
-import { FormEvent, Dispatch, SetStateAction, useState } from 'react';
+import { FormEvent, Dispatch, SetStateAction, useState, useRef, useEffect } from 'react';
 import { FormField } from '@/components/ui/FormField';
 import { api } from '@/lib/api';
+import { searchKrStocks, KrStock } from '@/lib/kr-stocks';
 
 type AssetCategory = 'cash' | 'deposit' | 'stock_kr' | 'stock_us' | 'car' | 'real_estate' | 'etc';
 type NumericInput = number | '';
@@ -192,27 +193,19 @@ export function AssetForm({
 
       {isStockCategory ? (
         <>
-          <FormField label="종목코드" error={errors.symbol}>
-            <div className="flex items-center gap-2">
-              <input
-                value={form.symbol}
-                onChange={(event) => setForm((prev) => ({ ...prev, symbol: event.target.value.toUpperCase() }))}
-                placeholder={form.category === 'stock_us' ? '예: AAPL' : '예: 005930'}
-              />
-              <button
-                type="button"
-                className="btn-subtle shrink-0 whitespace-nowrap text-xs"
-                disabled={priceFetching || !form.symbol.trim()}
-                onClick={fetchCurrentPrice}
-              >
-                {priceFetching ? '조회중...' : '시세 조회'}
-              </button>
-            </div>
-            {priceInfo && (
-              <p className="helper-text mt-1" style={{ color: priceInfo.includes('실패') || priceInfo.includes('오류') ? 'var(--accent-red)' : 'var(--accent-green)' }}>
-                {priceInfo}
-              </p>
-            )}
+          <FormField label={form.category === 'stock_kr' ? '종목명 또는 종목코드' : '종목코드(Ticker)'} error={errors.symbol} fullWidth>
+            <StockSymbolInput
+              category={form.category}
+              symbol={form.symbol}
+              name={form.name}
+              onSelect={(code, name) => {
+                setForm((prev) => ({ ...prev, symbol: code, name: name || prev.name }));
+              }}
+              onSymbolChange={(val) => setForm((prev) => ({ ...prev, symbol: val.toUpperCase() }))}
+              priceFetching={priceFetching}
+              onFetchPrice={fetchCurrentPrice}
+              priceInfo={priceInfo}
+            />
           </FormField>
           <FormField label="수량" error={errors.quantity}>
             <input
@@ -371,5 +364,118 @@ export function AssetForm({
         ) : null}
       </div>
     </form>
+  );
+}
+
+/* ─── Stock Symbol Input with Korean autocomplete ─── */
+
+function StockSymbolInput({
+  category,
+  symbol,
+  name: _formName,
+  onSelect,
+  onSymbolChange,
+  priceFetching,
+  onFetchPrice,
+  priceInfo,
+}: {
+  category: string;
+  symbol: string;
+  name: string;
+  onSelect: (code: string, name: string) => void;
+  onSymbolChange: (val: string) => void;
+  priceFetching: boolean;
+  onFetchPrice: () => void;
+  priceInfo: string | null;
+}) {
+  const [searchText, setSearchText] = useState('');
+  const [suggestions, setSuggestions] = useState<KrStock[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const wrapperRef = useRef<HTMLDivElement>(null);
+
+  // Close suggestions on outside click
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (wrapperRef.current && !wrapperRef.current.contains(e.target as Node)) {
+        setShowSuggestions(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, []);
+
+  const isKr = category === 'stock_kr';
+
+  function handleSearchChange(val: string) {
+    setSearchText(val);
+    if (isKr && val.trim().length > 0) {
+      const results = searchKrStocks(val.trim());
+      setSuggestions(results);
+      setShowSuggestions(results.length > 0);
+    } else {
+      setSuggestions([]);
+      setShowSuggestions(false);
+    }
+  }
+
+  function selectStock(stock: KrStock) {
+    onSelect(stock.code, stock.name);
+    setSearchText('');
+    setSuggestions([]);
+    setShowSuggestions(false);
+  }
+
+  return (
+    <div ref={wrapperRef}>
+      {isKr && (
+        <div className="relative mb-2">
+          <input
+            value={searchText}
+            onChange={(e) => handleSearchChange(e.target.value)}
+            placeholder="한글 종목명 검색 (예: 삼성전자, SK하이닉스)"
+            className="w-full"
+          />
+          {showSuggestions && (
+            <ul
+              className="absolute z-50 mt-1 max-h-[200px] w-full overflow-y-auto rounded-lg border border-[var(--line)] bg-[var(--surface)] shadow-lg"
+            >
+              {suggestions.map((s) => (
+                <li key={s.code}>
+                  <button
+                    type="button"
+                    className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm hover:bg-[var(--surface-hover)] transition-colors"
+                    onClick={() => selectStock(s)}
+                  >
+                    <span className="font-semibold">{s.name}</span>
+                    <span className="helper-text">{s.code}</span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
+      <div className="flex items-center gap-2">
+        <input
+          value={symbol}
+          onChange={(e) => onSymbolChange(e.target.value)}
+          placeholder={isKr ? '종목코드 (예: 005930)' : '종목코드 (예: AAPL)'}
+          className="flex-1 min-w-0"
+        />
+        <button
+          type="button"
+          className="btn-subtle shrink-0 whitespace-nowrap text-xs"
+          disabled={priceFetching || !symbol.trim()}
+          onClick={onFetchPrice}
+        >
+          {priceFetching ? '조회중...' : '시세 조회'}
+        </button>
+      </div>
+      {priceInfo && (
+        <p className="helper-text mt-1" style={{ color: priceInfo.includes('실패') || priceInfo.includes('오류') ? 'var(--accent-red)' : 'var(--accent-green)' }}>
+          {priceInfo}
+        </p>
+      )}
+    </div>
   );
 }
