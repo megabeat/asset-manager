@@ -79,8 +79,6 @@ interface AssetFormProps {
   editingAssetId: string | null;
   setEditingAssetId: Dispatch<SetStateAction<string | null>>;
   fxLoading: boolean;
-  fxManualOverride: boolean;
-  setFxManualOverride: Dispatch<SetStateAction<boolean>>;
   effectiveUsdAmount: number;
   effectiveCurrentValue: number | '';
   isStockCategory: boolean;
@@ -99,8 +97,6 @@ export function AssetForm({
   editingAssetId,
   setEditingAssetId,
   fxLoading,
-  fxManualOverride,
-  setFxManualOverride,
   effectiveUsdAmount,
   effectiveCurrentValue,
   isStockCategory,
@@ -142,7 +138,12 @@ export function AssetForm({
         }
         setPriceInfo(`${symbol} 현재가: ${price.toLocaleString()}${market === 'KR' ? '원' : ' USD'}`);
       } else {
-        setPriceInfo(`시세 조회 실패: ${result.error?.message ?? '알 수 없는 오류'}`);
+        const errMsg = result.error?.message ?? '';
+        if (errMsg.includes('404') || errMsg.includes('No price') || errMsg.includes('Invalid price')) {
+          setPriceInfo('올바른 티커를 입력하세요');
+        } else {
+          setPriceInfo(`시세 조회 실패: ${errMsg || '알 수 없는 오류'}`);
+        }
       }
     } catch {
       setPriceInfo('시세 조회 중 오류가 발생했습니다.');
@@ -241,35 +242,19 @@ export function AssetForm({
 
           {form.category === 'stock_us' ? (
             <>
-              <FormField label={`환율(USD/KRW)${fxLoading ? ' - 조회중' : fxManualOverride ? '' : ' - 자동'}`} error={errors.exchangeRate}>
-                <div className="flex items-center gap-2">
-                  <input
-                    type="number"
-                    min={0}
-                    step="0.01"
-                    value={form.exchangeRate}
-                    readOnly={!fxManualOverride}
-                    className={!fxManualOverride ? 'opacity-70' : ''}
-                    onChange={(event) =>
-                      setForm((prev) => ({
-                        ...prev,
-                        exchangeRate: event.target.value === '' ? '' : Number(event.target.value)
-                      }))
-                    }
-                  />
-                  <button
-                    type="button"
-                    className="btn-subtle shrink-0 whitespace-nowrap text-xs"
-                    onClick={() => {
-                      if (fxManualOverride) {
-                        loadUsdKrwRate();
-                      }
-                      setFxManualOverride(!fxManualOverride);
-                    }}
-                  >
-                    {fxManualOverride ? '자동' : '수동입력'}
-                  </button>
-                </div>
+              <FormField label={`환율(USD/KRW)${fxLoading ? ' - 조회중' : ''}`} error={errors.exchangeRate}>
+                <input
+                  type="number"
+                  min={0}
+                  step="0.01"
+                  value={form.exchangeRate}
+                  onChange={(event) =>
+                    setForm((prev) => ({
+                      ...prev,
+                      exchangeRate: event.target.value === '' ? '' : Number(event.target.value)
+                    }))
+                  }
+                />
               </FormField>
               <FormField label="USD 평가액(자동 계산)">
                 <input value={effectiveUsdAmount.toLocaleString()} readOnly />
@@ -472,7 +457,7 @@ function StockSymbolInput({
         </button>
       </div>
       {priceInfo && (
-        <p className="helper-text mt-1" style={{ color: priceInfo.includes('실패') || priceInfo.includes('오류') ? 'var(--accent-red)' : 'var(--accent-green)' }}>
+        <p className="helper-text mt-1" style={{ color: priceInfo.includes('현재가') ? 'var(--accent-green)' : 'var(--accent-red)' }}>
           {priceInfo}
         </p>
       )}

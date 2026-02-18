@@ -84,7 +84,6 @@ export default function AssetsPage() {
   const { confirmState, confirm, onConfirm: onModalConfirm, onCancel: onModalCancel } = useConfirmModal();
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [fxLoading, setFxLoading] = useState(false);
-  const [fxManualOverride, setFxManualOverride] = useState(false);
   const [treemapView, setTreemapView] = useState<'all' | 'stock'>('all');
 
   async function loadAssets() {
@@ -436,8 +435,6 @@ export default function AssetsPage() {
           editingAssetId={editingAssetId}
           setEditingAssetId={setEditingAssetId}
           fxLoading={fxLoading}
-          fxManualOverride={fxManualOverride}
-          setFxManualOverride={setFxManualOverride}
           effectiveUsdAmount={effectiveUsdAmount}
           effectiveCurrentValue={effectiveCurrentValue}
           isStockCategory={isStockCategory}
