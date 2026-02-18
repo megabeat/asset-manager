@@ -4,8 +4,9 @@ import { getContainer } from "../shared/cosmosClient";
 /**
  * Price updater — called via GitHub Actions cron on weekdays.
  *
- * 1. Updates USD/KRW exchange rate for all stock_us assets with usdAmount > 0.
- * 2. Updates prices for investment assets with autoUpdate + priceSource = stooq.
+ * 1. Investment assets with priceSource = stooq.
+ * 2. Korean stocks (stock_kr) via Naver Finance.
+ * 3. US stocks (stock_us) via Stooq + USD/KRW FX rate.
  */
 
 const DEFAULT_TIMEOUT_MS = 15000;
@@ -20,6 +21,7 @@ type AssetItem = {
   autoUpdate?: boolean;
   quantity?: number | null;
   currentValue?: number;
+  acquiredValue?: number | null;
   exchangeRate?: number | null;
   usdAmount?: number | null;
 };
@@ -188,6 +190,7 @@ export async function priceUpdater(context: InvocationContext, req: HttpRequest)
 
     const { resources: krResources } = await assetsContainer.items.query(krQuery).fetchAll();
     const krAssets = krResources as AssetItem[];
+    results.push(`Found ${krAssets.length} KR stock assets`);
 
     for (const asset of krAssets) {
       try {
@@ -238,7 +241,15 @@ export async function priceUpdater(context: InvocationContext, req: HttpRequest)
     results.push(`ERR KR stock query: ${queryErr instanceof Error ? queryErr.message : String(queryErr)}`);
   }
 
-  // ── 2b. Auto-update US stock prices (stock_us with autoUpdate) ──
+  // ── 3. Auto-update US stock prices + FX rate (unified single pass) ──
+  const fxRate = await fetchUsdKrwRate();
+  if (fxRate !== null) {
+    results.push(`FX rate: 1 USD = ${fxRate.toFixed(2)} KRW`);
+  } else {
+    context.log("WARNING: Failed to fetch USD/KRW rate");
+    results.push("WARN FX: USD/KRW rate fetch failed, will use existing rates");
+  }
+
   try {
     const usQuery = {
       query:
@@ -248,6 +259,7 @@ export async function priceUpdater(context: InvocationContext, req: HttpRequest)
 
     const { resources: usResources } = await assetsContainer.items.query(usQuery).fetchAll();
     const usAssets = usResources as AssetItem[];
+    results.push(`Found ${usAssets.length} US stock assets`);
 
     for (const asset of usAssets) {
       try {
@@ -256,27 +268,60 @@ export async function priceUpdater(context: InvocationContext, req: HttpRequest)
           continue;
         }
 
-        // Fetch USD price from Stooq (.us suffix)
-        const usdPrice = await fetchStooqPrice(asset.symbol, "NASDAQ");
-        if (usdPrice === null || usdPrice <= 0) {
-          results.push(`SKIP ${asset.id}: US price fetch failed for ${asset.symbol}`);
+        const quantity = asset.quantity ?? 1;
+        const updatedAt = new Date().toISOString();
+        let usdPrice: number | null = null;
+        let newUsdAmount = asset.usdAmount ?? 0;
+
+        // Fetch latest USD price from Stooq
+        usdPrice = await fetchStooqPrice(asset.symbol, "NASDAQ");
+        if (usdPrice !== null && usdPrice > 0) {
+          newUsdAmount = Math.round(usdPrice * quantity * 100) / 100;
+        } else {
+          results.push(`WARN ${asset.id}: price fetch failed for ${asset.symbol}, using existing usdAmount`);
+        }
+
+        // Determine exchange rate (fresh or existing)
+        const effectiveRate = fxRate ?? asset.exchangeRate ?? 0;
+        if (effectiveRate <= 0) {
+          results.push(`SKIP ${asset.id}: no exchange rate available`);
           continue;
         }
 
-        const quantity = asset.quantity ?? 1;
-        const newUsdAmount = Math.round(usdPrice * quantity * 100) / 100;
-        const updatedAt = new Date().toISOString();
+        // Calculate KRW value
+        const newValue = Math.round(newUsdAmount * effectiveRate);
+        const oldValue = asset.currentValue ?? 0;
+
+        // Skip only if absolutely nothing changed
+        if (newValue === oldValue && newUsdAmount === (asset.usdAmount ?? 0)) {
+          results.push(`SKIP ${asset.id}: ${asset.symbol} no change ($${newUsdAmount} × ${effectiveRate.toFixed(0)} = ${newValue.toLocaleString()}원)`);
+          continue;
+        }
 
         await assetsContainer.item(asset.id, asset.userId).replace({
           ...asset,
           usdAmount: newUsdAmount,
-          acquiredValue: usdPrice,
+          acquiredValue: usdPrice ?? asset.acquiredValue,
+          exchangeRate: Math.round(effectiveRate * 100) / 100,
+          currentValue: newValue,
           valuationDate: updatedAt.slice(0, 10),
           updatedAt
         });
 
+        await historyContainer.items.create({
+          id: `${asset.id}-${updatedAt}`,
+          userId: asset.userId,
+          assetId: asset.id,
+          type: "AssetHistory",
+          value: newValue,
+          quantity,
+          recordedAt: updatedAt,
+          note: `auto US update (${asset.symbol}: $${usdPrice ?? '?'} × ${quantity} = $${newUsdAmount}, rate ${effectiveRate.toFixed(0)})`,
+          createdAt: updatedAt
+        });
+
         updatedCount++;
-        results.push(`OK ${asset.id}: ${asset.symbol} → $${usdPrice} × ${quantity} = $${newUsdAmount}`);
+        results.push(`OK ${asset.id}: ${asset.symbol} → $${usdPrice ?? '?'} × ${quantity} = $${newUsdAmount} × ${effectiveRate.toFixed(0)} = ${newValue.toLocaleString()}원`);
       } catch (err: unknown) {
         errorCount++;
         results.push(`ERR ${asset.id}: ${err instanceof Error ? err.message : String(err)}`);
@@ -285,76 +330,6 @@ export async function priceUpdater(context: InvocationContext, req: HttpRequest)
   } catch (queryErr: unknown) {
     context.log("US stock query error:", queryErr);
     results.push(`ERR US stock query: ${queryErr instanceof Error ? queryErr.message : String(queryErr)}`);
-  }
-
-  // ── 3. Update USD/KRW exchange rate for stock_us assets ──
-  const fxRate = await fetchUsdKrwRate();
-  if (fxRate === null) {
-    context.log("Failed to fetch USD/KRW rate, skipping FX update.");
-    results.push("SKIP FX: USD/KRW rate fetch failed");
-  } else {
-    context.log(`Fetched USD/KRW rate: ${fxRate}`);
-    results.push(`FX rate: 1 USD = ${fxRate.toFixed(2)} KRW`);
-
-    try {
-      const fxQuery = {
-        query:
-          "SELECT * FROM c WHERE c.type = 'Asset' AND c.category = 'stock_us' AND c.usdAmount > 0",
-        parameters: []
-      };
-
-      const { resources: usAssets } = await assetsContainer.items.query(fxQuery).fetchAll();
-      const stockUsAssets = usAssets as AssetItem[];
-
-      for (const asset of stockUsAssets) {
-        try {
-          const usd = asset.usdAmount ?? 0;
-          if (usd <= 0) continue;
-
-          const oldRate = asset.exchangeRate ?? 0;
-          const newValue = Math.round(usd * fxRate);
-          const updatedAt = new Date().toISOString();
-
-          // Skip if both rate and value barely changed
-          const oldValue = asset.currentValue ?? 0;
-          if (oldRate > 0 && oldValue > 0
-            && Math.abs(fxRate - oldRate) / oldRate < 0.001
-            && Math.abs(newValue - oldValue) / oldValue < 0.001) {
-            results.push(`SKIP ${asset.id}: no significant change`);
-            continue;
-          }
-
-          await assetsContainer.item(asset.id, asset.userId).replace({
-            ...asset,
-            exchangeRate: Math.round(fxRate * 100) / 100,
-            currentValue: newValue,
-            valuationDate: updatedAt.slice(0, 10),
-            updatedAt
-          });
-
-          await historyContainer.items.create({
-            id: `${asset.id}-fx-${updatedAt}`,
-            userId: asset.userId,
-            assetId: asset.id,
-            type: "AssetHistory",
-            value: newValue,
-            quantity: asset.quantity ?? 1,
-            recordedAt: updatedAt,
-            note: `auto FX update (${oldRate.toFixed(2)} → ${fxRate.toFixed(2)} KRW/USD)`,
-            createdAt: updatedAt
-          });
-
-          updatedCount++;
-          results.push(`OK ${asset.id}: ${usd} USD × ${fxRate.toFixed(2)} = ${newValue.toLocaleString()}원`);
-        } catch (err: unknown) {
-          errorCount++;
-          results.push(`ERR ${asset.id}: ${err instanceof Error ? err.message : String(err)}`);
-        }
-      }
-    } catch (queryErr: unknown) {
-      context.log("FX query error:", queryErr);
-      results.push(`ERR FX query: ${queryErr instanceof Error ? queryErr.message : String(queryErr)}`);
-    }
   }
 
   context.log(`Price updater done: ${updatedCount} updated, ${errorCount} errors`);
