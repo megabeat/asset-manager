@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import { api, MonthlySnapshot, CategoryTrendPoint, StockTrendAsset } from '@/lib/api';
+import { api, MonthlySnapshot, CategoryTrendPoint } from '@/lib/api';
 import { DashboardSkeleton } from '@/components/ui/Skeleton';
 import { useAuth } from '@/hooks/useAuth';
 import { LoginPrompt } from '@/components/ui/AuthGuard';
@@ -71,22 +71,18 @@ export default function DashboardPage() {
   const authStatus = useAuth();
   const [snapshots, setSnapshots] = useState<MonthlySnapshot[]>([]);
   const [categoryTrend, setCategoryTrend] = useState<CategoryTrendPoint[]>([]);
-  const [stockTrends, setStockTrends] = useState<StockTrendAsset[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [stockTab, setStockTab] = useState<'all' | 'stock_us' | 'stock_kr'>('all');
 
   useEffect(() => {
     Promise.all([
       api.getSnapshots(),
-      api.getCategoryTrend(),
-      api.getStockTrends()
-    ]).then(([snapRes, catRes, stockRes]) => {
+      api.getCategoryTrend()
+    ]).then(([snapRes, catRes]) => {
       if (snapRes.data) setSnapshots(snapRes.data);
       if (catRes.data) setCategoryTrend(catRes.data);
-      if (stockRes.data) setStockTrends(stockRes.data);
 
-      const firstError = snapRes.error ?? catRes.error ?? stockRes.error;
+      const firstError = snapRes.error ?? catRes.error;
       if (firstError) setError(firstError.message);
       setLoading(false);
     });
@@ -104,10 +100,18 @@ export default function DashboardPage() {
     return Array.from(cats);
   }, [categoryTrend]);
 
-  const filteredStocks = useMemo(() => {
-    if (stockTab === 'all') return stockTrends;
-    return stockTrends.filter((s) => s.category === stockTab);
-  }, [stockTrends, stockTab]);
+  // 전체 주식 원화 합산 일별 추이 (stock_kr + stock_us)
+  const totalStockDailyData = useMemo(() => {
+    return categoryTrend
+      .map((point) => {
+        const kr = Number(point['stock_kr'] ?? 0);
+        const us = Number(point['stock_us'] ?? 0);
+        const total = kr + us;
+        if (total === 0) return null;
+        return { date: point.date as string, total, kr, us };
+      })
+      .filter((d): d is { date: string; total: number; kr: number; us: number } => d !== null);
+  }, [categoryTrend]);
 
   const monthlyDeltaData = useMemo(() => {
     return snapshots.map((s) => ({
@@ -120,7 +124,7 @@ export default function DashboardPage() {
     return snapshots.map((s) => ({ label: s.month, value: s.totalValue }));
   }, [snapshots]);
 
-  const hasNoData = snapshots.length === 0 && categoryTrend.length === 0 && stockTrends.length === 0;
+  const hasNoData = snapshots.length === 0 && categoryTrend.length === 0;
 
   if (authStatus === 'loading') return <LoadingSpinner />;
   if (authStatus !== 'authenticated') return <LoginPrompt />;
@@ -224,47 +228,25 @@ export default function DashboardPage() {
         )}
       </SectionCard>
 
-      {/* ── 3. 주식 종목별 추이 ── */}
+      {/* ── 3. 전체 주식 원화 합산 추이 ── */}
       <SectionCard className="mt-4">
-        <div className="flex flex-wrap items-center gap-3 mb-2">
-          <h3 className="mt-0 mb-0">💹 주식 종목별 추이</h3>
-          <div className="flex gap-1">
-            {(['all', 'stock_us', 'stock_kr'] as const).map((tab) => (
-              <button
-                key={tab}
-                onClick={() => setStockTab(tab)}
-                className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
-                  stockTab === tab
-                    ? 'bg-[var(--color-primary)] text-white'
-                    : 'bg-[var(--color-bg-secondary)] text-[var(--color-text-muted)] hover:bg-[var(--color-border)]'
-                }`}
-              >
-                {tab === 'all' ? '전체' : tab === 'stock_us' ? '🇺🇸 미국' : '🇰🇷 국내'}
-              </button>
-            ))}
-          </div>
-        </div>
-        {stockTrends.length === 0 ? (
+        <h3 className="mt-0">💹 전체 주식 원화 합산 추이 (Daily)</h3>
+        <p className="helper-text mt-1">국내주식 + 미국주식(원화 환산) 일별 합산 평가액입니다.</p>
+        {totalStockDailyData.length === 0 ? (
           <EmptyGuide
             icon="💹"
             title="주식 추이 데이터 없음"
-            description="주식 자산을 등록하고 자동 시세 업데이트를 활성화하면 종목별 추이가 표시됩니다."
+            description="주식 자산을 등록하고 자동 시세 업데이트를 활성화하면 추이가 표시됩니다."
             linkHref="/assets"
             linkLabel="주식 자산 등록하기"
           />
-        ) : filteredStocks.length === 0 ? (
-          <p className="py-6 text-center text-[var(--color-text-muted)]">
-            해당 마켓의 주식이 없습니다.
-          </p>
         ) : (
           <div className="h-[280px] w-full sm:h-[340px]">
             <ResponsiveContainer>
-              <LineChart>
+              <LineChart data={totalStockDailyData}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis
                   dataKey="date"
-                  type="category"
-                  allowDuplicatedCategory={false}
                   tick={{ fontSize: 11 }}
                   tickFormatter={(v) => {
                     const parts = String(v).split('-');
@@ -275,23 +257,14 @@ export default function DashboardPage() {
                 <Tooltip
                   formatter={(value: number, name: string) => [
                     `${Number(value).toLocaleString()}원`,
-                    name
+                    name === 'total' ? '합계' : name === 'kr' ? '국내주식' : name === 'us' ? '미국주식' : name
                   ]}
+                  labelFormatter={(label) => `${label}`}
                 />
-                <Legend />
-                {filteredStocks.map((stock, idx) => (
-                  <Line
-                    key={stock.assetId}
-                    data={stock.history}
-                    type="monotone"
-                    dataKey="value"
-                    name={stock.ticker ? `${stock.name} (${stock.ticker})` : stock.name}
-                    stroke={STOCK_PALETTE[idx % STOCK_PALETTE.length]}
-                    strokeWidth={2}
-                    dot={false}
-                    connectNulls
-                  />
-                ))}
+                <Legend formatter={(v) => v === 'total' ? '합계' : v === 'kr' ? '🇰🇷 국내' : v === 'us' ? '🇺🇸 미국' : v} />
+                <Line type="monotone" dataKey="total" name="total" stroke="#0b63ce" strokeWidth={2.5} dot={false} connectNulls />
+                <Line type="monotone" dataKey="kr" name="kr" stroke="#ef4444" strokeWidth={1.5} dot={false} connectNulls strokeDasharray="4 2" />
+                <Line type="monotone" dataKey="us" name="us" stroke="#8b5cf6" strokeWidth={1.5} dot={false} connectNulls strokeDasharray="4 2" />
               </LineChart>
             </ResponsiveContainer>
           </div>
