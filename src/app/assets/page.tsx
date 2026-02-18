@@ -304,7 +304,8 @@ export default function AssetsPage() {
       pensionMonthlyContribution: null,
       pensionReceiveAge: null,
       pensionReceiveStart: null,
-      owner: form.owner
+      owner: form.owner,
+      autoUpdate: isStockCategory ? true : undefined,
     };
 
     const result = editingAssetId

@@ -17,6 +17,9 @@ function buildStooqSymbol(symbol, exchange) {
     if (normalized === "NASDAQ" || normalized === "NYSE") {
         return `${symbol.toLowerCase()}.us`;
     }
+    if (normalized === "KRX" || normalized === "KOSPI" || normalized === "KOSDAQ") {
+        return `${symbol}.kr`;
+    }
     return symbol.toLowerCase();
 }
 async function fetchStooqPrice(symbol, exchange) {
@@ -121,7 +124,60 @@ async function priceUpdater(context, req) {
             context.log("Investment query error:", queryErr);
             results.push(`ERR investment query: ${queryErr instanceof Error ? queryErr.message : String(queryErr)}`);
         }
-        // ── 2. Update USD/KRW exchange rate for stock_us assets ──
+        // ── 2. Auto-update Korean stock prices (stock_kr with autoUpdate) ──
+        try {
+            const krQuery = {
+                query: "SELECT * FROM c WHERE c.type = 'Asset' AND c.category = 'stock_kr' AND c.autoUpdate = true",
+                parameters: []
+            };
+            const { resources: krResources } = await assetsContainer.items.query(krQuery).fetchAll();
+            const krAssets = krResources;
+            for (const asset of krAssets) {
+                try {
+                    if (!asset.symbol) {
+                        results.push(`SKIP ${asset.id}: no symbol`);
+                        continue;
+                    }
+                    const price = await fetchStooqPrice(asset.symbol, "KRX");
+                    if (price === null) {
+                        results.push(`SKIP ${asset.id}: KR price fetch failed for ${asset.symbol}`);
+                        continue;
+                    }
+                    const quantity = asset.quantity ?? 1;
+                    const newValue = Math.round(price * quantity);
+                    const updatedAt = new Date().toISOString();
+                    await assetsContainer.item(asset.id, asset.userId).replace({
+                        ...asset,
+                        currentValue: newValue,
+                        acquiredValue: price,
+                        valuationDate: updatedAt.slice(0, 10),
+                        updatedAt
+                    });
+                    await historyContainer.items.create({
+                        id: `${asset.id}-${updatedAt}`,
+                        userId: asset.userId,
+                        assetId: asset.id,
+                        type: "AssetHistory",
+                        value: newValue,
+                        quantity,
+                        recordedAt: updatedAt,
+                        note: `auto KR price update (${asset.symbol}: ${price.toLocaleString()}원)`,
+                        createdAt: updatedAt
+                    });
+                    updatedCount++;
+                    results.push(`OK ${asset.id}: ${asset.symbol} → ${price.toLocaleString()}원 × ${quantity} = ${newValue.toLocaleString()}원`);
+                }
+                catch (err) {
+                    errorCount++;
+                    results.push(`ERR ${asset.id}: ${err instanceof Error ? err.message : String(err)}`);
+                }
+            }
+        }
+        catch (queryErr) {
+            context.log("KR stock query error:", queryErr);
+            results.push(`ERR KR stock query: ${queryErr instanceof Error ? queryErr.message : String(queryErr)}`);
+        }
+        // ── 3. Update USD/KRW exchange rate for stock_us assets ──
         const fxRate = await fetchUsdKrwRate();
         if (fxRate === null) {
             context.log("Failed to fetch USD/KRW rate, skipping FX update.");
