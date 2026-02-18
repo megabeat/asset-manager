@@ -100,7 +100,7 @@ export default function DashboardPage() {
     return Array.from(cats);
   }, [categoryTrend]);
 
-  // 전체 주식 원화 합산 일별 추이 (stock_kr + stock_us)
+  // 전체 주식 원화 합산 일별 추이 (stock_kr + stock_us) — 2025-02-18부터
   const totalStockDailyData = useMemo(() => {
     return categoryTrend
       .map((point) => {
@@ -110,7 +110,7 @@ export default function DashboardPage() {
         if (total === 0) return null;
         return { date: point.date as string, total, kr, us };
       })
-      .filter((d): d is { date: string; total: number; kr: number; us: number } => d !== null);
+      .filter((d): d is { date: string; total: number; kr: number; us: number } => d !== null && d.date >= '2025-02-18');
   }, [categoryTrend]);
 
   const monthlyDeltaData = useMemo(() => {
