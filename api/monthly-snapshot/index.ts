@@ -15,6 +15,7 @@ type AssetRow = {
 };
 
 export async function monthlySnapshot(context: InvocationContext, req: HttpRequest): Promise<HttpResponseInit> {
+  try {
   // ── Auth: require API_SECRET token when called without SWA auth ──
   const apiSecret = process.env.API_SECRET;
   if (apiSecret) {
@@ -118,4 +119,21 @@ export async function monthlySnapshot(context: InvocationContext, req: HttpReque
 
   context.log(`Monthly snapshot complete: ${snapshotCount} users processed for ${windowMonth}`);
   return { status: 200, jsonBody: { message: `Snapshot complete: ${snapshotCount} users for ${windowMonth}` } };
+  } catch (fatalErr: unknown) {
+    context.log("FATAL monthly-snapshot error:", fatalErr);
+    return {
+      status: 500,
+      jsonBody: {
+        error: "Internal server error",
+        message: fatalErr instanceof Error ? fatalErr.message : String(fatalErr),
+        stack: fatalErr instanceof Error ? fatalErr.stack : undefined,
+        envCheck: {
+          hasCosmos: !!(process.env.COSMOS_CONNECTION_STRING || process.env.COSMOS_ENDPOINT),
+          hasDbId: !!(process.env.COSMOS_DATABASE_ID || process.env.COSMOS_DATABASE),
+          hasApiSecret: !!process.env.API_SECRET,
+          nodeVersion: process.version,
+        }
+      }
+    };
+  }
 }

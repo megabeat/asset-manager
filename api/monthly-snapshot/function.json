@@ -10,7 +10,7 @@
       "route": "monthly-snapshot"
     },
     {
-      "name": "res",
+      "name": "$return",
       "type": "http",
       "direction": "out"
     }

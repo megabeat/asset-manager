@@ -58,116 +58,57 @@ async function fetchUsdKrwRate() {
     return fetchStooqPrice("usdkrw");
 }
 async function priceUpdater(context, req) {
-    // ── Auth: require API_SECRET token when called without SWA auth ──
-    const apiSecret = process.env.API_SECRET;
-    if (apiSecret) {
-        const authHeader = req.headers.get("x-api-key") ?? "";
-        if (authHeader !== apiSecret) {
-            return { status: 401, jsonBody: { error: "Unauthorized" } };
-        }
-    }
-    const assetsContainer = (0, cosmosClient_1.getContainer)("assets");
-    const historyContainer = (0, cosmosClient_1.getContainer)("assetHistory");
-    const results = [];
-    let updatedCount = 0;
-    let errorCount = 0;
-    // ── 1. Auto-update investment prices (stooq) ──
     try {
-        const query = {
-            query: "SELECT * FROM c WHERE c.type = 'Asset' AND c.category = 'investment' AND c.autoUpdate = true AND c.priceSource = 'stooq'",
-            parameters: []
-        };
-        const { resources } = await assetsContainer.items.query(query).fetchAll();
-        const assets = resources;
-        for (const asset of assets) {
-            try {
-                const price = await resolvePrice(asset);
-                if (price === null) {
-                    results.push(`SKIP ${asset.id}: price fetch failed`);
-                    continue;
-                }
-                const quantity = asset.quantity ?? 1;
-                const newValue = price * quantity;
-                const updatedAt = new Date().toISOString();
-                await assetsContainer.item(asset.id, asset.userId).replace({
-                    ...asset,
-                    currentValue: newValue,
-                    valuationDate: updatedAt.slice(0, 10),
-                    updatedAt
-                });
-                await historyContainer.items.create({
-                    id: `${asset.id}-${updatedAt}`,
-                    userId: asset.userId,
-                    assetId: asset.id,
-                    type: "AssetHistory",
-                    value: newValue,
-                    quantity,
-                    recordedAt: updatedAt,
-                    note: "auto price update",
-                    createdAt: updatedAt
-                });
-                updatedCount++;
-                results.push(`OK ${asset.id}: ${asset.symbol} → ${newValue.toLocaleString()}원`);
-            }
-            catch (err) {
-                errorCount++;
-                results.push(`ERR ${asset.id}: ${err instanceof Error ? err.message : String(err)}`);
+        // ── Auth: require API_SECRET token when called without SWA auth ──
+        const apiSecret = process.env.API_SECRET;
+        if (apiSecret) {
+            const authHeader = req.headers.get("x-api-key") ?? "";
+            if (authHeader !== apiSecret) {
+                return { status: 401, jsonBody: { error: "Unauthorized" } };
             }
         }
-    }
-    catch (queryErr) {
-        context.log("Investment query error:", queryErr);
-        results.push(`ERR investment query: ${queryErr instanceof Error ? queryErr.message : String(queryErr)}`);
-    }
-    // ── 2. Update USD/KRW exchange rate for stock_us assets ──
-    const fxRate = await fetchUsdKrwRate();
-    if (fxRate === null) {
-        context.log("Failed to fetch USD/KRW rate, skipping FX update.");
-        results.push("SKIP FX: USD/KRW rate fetch failed");
-    }
-    else {
-        context.log(`Fetched USD/KRW rate: ${fxRate}`);
-        results.push(`FX rate: 1 USD = ${fxRate.toFixed(2)} KRW`);
+        const assetsContainer = (0, cosmosClient_1.getContainer)("assets");
+        const historyContainer = (0, cosmosClient_1.getContainer)("assetHistory");
+        const results = [];
+        let updatedCount = 0;
+        let errorCount = 0;
+        // ── 1. Auto-update investment prices (stooq) ──
         try {
-            const fxQuery = {
-                query: "SELECT * FROM c WHERE c.type = 'Asset' AND c.category = 'stock_us' AND c.usdAmount > 0",
+            const query = {
+                query: "SELECT * FROM c WHERE c.type = 'Asset' AND c.category = 'investment' AND c.autoUpdate = true AND c.priceSource = 'stooq'",
                 parameters: []
             };
-            const { resources: usAssets } = await assetsContainer.items.query(fxQuery).fetchAll();
-            const stockUsAssets = usAssets;
-            for (const asset of stockUsAssets) {
+            const { resources } = await assetsContainer.items.query(query).fetchAll();
+            const assets = resources;
+            for (const asset of assets) {
                 try {
-                    const usd = asset.usdAmount ?? 0;
-                    if (usd <= 0)
-                        continue;
-                    const oldRate = asset.exchangeRate ?? 0;
-                    const newValue = Math.round(usd * fxRate);
-                    const updatedAt = new Date().toISOString();
-                    // Skip if rate barely changed (< 0.1%)
-                    if (oldRate > 0 && Math.abs(fxRate - oldRate) / oldRate < 0.001) {
-                        results.push(`SKIP ${asset.id}: rate change < 0.1%`);
+                    const price = await resolvePrice(asset);
+                    if (price === null) {
+                        results.push(`SKIP ${asset.id}: price fetch failed`);
                         continue;
                     }
+                    const quantity = asset.quantity ?? 1;
+                    const newValue = price * quantity;
+                    const updatedAt = new Date().toISOString();
                     await assetsContainer.item(asset.id, asset.userId).replace({
                         ...asset,
-                        exchangeRate: Math.round(fxRate * 100) / 100,
                         currentValue: newValue,
                         valuationDate: updatedAt.slice(0, 10),
                         updatedAt
                     });
                     await historyContainer.items.create({
-                        id: `${asset.id}-fx-${updatedAt}`,
+                        id: `${asset.id}-${updatedAt}`,
                         userId: asset.userId,
                         assetId: asset.id,
                         type: "AssetHistory",
                         value: newValue,
-                        quantity: asset.quantity ?? 1,
+                        quantity,
                         recordedAt: updatedAt,
-                        note: `auto FX update (${oldRate.toFixed(2)} → ${fxRate.toFixed(2)} KRW/USD)`,
+                        note: "auto price update",
                         createdAt: updatedAt
                     });
                     updatedCount++;
-                    results.push(`OK ${asset.id}: ${usd} USD × ${fxRate.toFixed(2)} = ${newValue.toLocaleString()}원`);
+                    results.push(`OK ${asset.id}: ${asset.symbol} → ${newValue.toLocaleString()}원`);
                 }
                 catch (err) {
                     errorCount++;
@@ -176,18 +117,96 @@ async function priceUpdater(context, req) {
             }
         }
         catch (queryErr) {
-            context.log("FX query error:", queryErr);
-            results.push(`ERR FX query: ${queryErr instanceof Error ? queryErr.message : String(queryErr)}`);
+            context.log("Investment query error:", queryErr);
+            results.push(`ERR investment query: ${queryErr instanceof Error ? queryErr.message : String(queryErr)}`);
         }
+        // ── 2. Update USD/KRW exchange rate for stock_us assets ──
+        const fxRate = await fetchUsdKrwRate();
+        if (fxRate === null) {
+            context.log("Failed to fetch USD/KRW rate, skipping FX update.");
+            results.push("SKIP FX: USD/KRW rate fetch failed");
+        }
+        else {
+            context.log(`Fetched USD/KRW rate: ${fxRate}`);
+            results.push(`FX rate: 1 USD = ${fxRate.toFixed(2)} KRW`);
+            try {
+                const fxQuery = {
+                    query: "SELECT * FROM c WHERE c.type = 'Asset' AND c.category = 'stock_us' AND c.usdAmount > 0",
+                    parameters: []
+                };
+                const { resources: usAssets } = await assetsContainer.items.query(fxQuery).fetchAll();
+                const stockUsAssets = usAssets;
+                for (const asset of stockUsAssets) {
+                    try {
+                        const usd = asset.usdAmount ?? 0;
+                        if (usd <= 0)
+                            continue;
+                        const oldRate = asset.exchangeRate ?? 0;
+                        const newValue = Math.round(usd * fxRate);
+                        const updatedAt = new Date().toISOString();
+                        // Skip if rate barely changed (< 0.1%)
+                        if (oldRate > 0 && Math.abs(fxRate - oldRate) / oldRate < 0.001) {
+                            results.push(`SKIP ${asset.id}: rate change < 0.1%`);
+                            continue;
+                        }
+                        await assetsContainer.item(asset.id, asset.userId).replace({
+                            ...asset,
+                            exchangeRate: Math.round(fxRate * 100) / 100,
+                            currentValue: newValue,
+                            valuationDate: updatedAt.slice(0, 10),
+                            updatedAt
+                        });
+                        await historyContainer.items.create({
+                            id: `${asset.id}-fx-${updatedAt}`,
+                            userId: asset.userId,
+                            assetId: asset.id,
+                            type: "AssetHistory",
+                            value: newValue,
+                            quantity: asset.quantity ?? 1,
+                            recordedAt: updatedAt,
+                            note: `auto FX update (${oldRate.toFixed(2)} → ${fxRate.toFixed(2)} KRW/USD)`,
+                            createdAt: updatedAt
+                        });
+                        updatedCount++;
+                        results.push(`OK ${asset.id}: ${usd} USD × ${fxRate.toFixed(2)} = ${newValue.toLocaleString()}원`);
+                    }
+                    catch (err) {
+                        errorCount++;
+                        results.push(`ERR ${asset.id}: ${err instanceof Error ? err.message : String(err)}`);
+                    }
+                }
+            }
+            catch (queryErr) {
+                context.log("FX query error:", queryErr);
+                results.push(`ERR FX query: ${queryErr instanceof Error ? queryErr.message : String(queryErr)}`);
+            }
+        }
+        context.log(`Price updater done: ${updatedCount} updated, ${errorCount} errors`);
+        return {
+            status: errorCount > 0 ? 207 : 200,
+            jsonBody: {
+                message: `Price update complete: ${updatedCount} updated, ${errorCount} errors`,
+                updatedCount,
+                errorCount,
+                details: results
+            }
+        };
     }
-    context.log(`Price updater done: ${updatedCount} updated, ${errorCount} errors`);
-    return {
-        status: errorCount > 0 ? 207 : 200,
-        jsonBody: {
-            message: `Price update complete: ${updatedCount} updated, ${errorCount} errors`,
-            updatedCount,
-            errorCount,
-            details: results
-        }
-    };
+    catch (fatalErr) {
+        context.log("FATAL price-updater error:", fatalErr);
+        return {
+            status: 500,
+            jsonBody: {
+                error: "Internal server error",
+                message: fatalErr instanceof Error ? fatalErr.message : String(fatalErr),
+                stack: fatalErr instanceof Error ? fatalErr.stack : undefined,
+                envCheck: {
+                    hasCosmos: !!(process.env.COSMOS_CONNECTION_STRING || process.env.COSMOS_ENDPOINT),
+                    hasDbId: !!(process.env.COSMOS_DATABASE_ID || process.env.COSMOS_DATABASE),
+                    hasApiSecret: !!process.env.API_SECRET,
+                    nodeVersion: process.version,
+                }
+            }
+        };
+    }
 }
