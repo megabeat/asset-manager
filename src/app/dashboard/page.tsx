@@ -8,7 +8,6 @@ import { useAuth } from '@/hooks/useAuth';
 import { LoginPrompt } from '@/components/ui/AuthGuard';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { formatCompact } from '@/lib/formatCompact';
-import { getAssetCategoryLabel } from '@/lib/assetCategory';
 import {
   LineChart,
   Line,
@@ -90,14 +89,19 @@ export default function DashboardPage() {
 
   /* ── derived data ── */
 
-  const trendCategories = useMemo(() => {
-    const cats = new Set<string>();
+  // 주식+현금 월별 추이 (각 월 마지막 날 기준)
+  const stockCashMonthlyData = useMemo(() => {
+    // 월별로 마지막 날짜 데이터만 추출
+    const monthMap = new Map<string, { month: string; stock: number; cash: number }>();
     for (const point of categoryTrend) {
-      for (const key of Object.keys(point)) {
-        if (key !== 'date') cats.add(key);
-      }
+      const date = point.date as string;
+      const month = date.slice(0, 7); // YYYY-MM
+      const stock = Number(point['stock_kr'] ?? 0) + Number(point['stock_us'] ?? 0);
+      const cash = Number(point['cash'] ?? 0) + Number(point['deposit'] ?? 0);
+      // 같은 월이면 더 늦은 날짜로 덮어씀 (데이터가 날짜 순이므로 마지막이 월말)
+      monthMap.set(month, { month, stock, cash });
     }
-    return Array.from(cats);
+    return Array.from(monthMap.values()).sort((a, b) => a.month.localeCompare(b.month));
   }, [categoryTrend]);
 
   // 전체 주식 원화 합산 일별 추이 (stock_kr + stock_us) — 2025-02-18부터
@@ -176,52 +180,34 @@ export default function DashboardPage() {
         )}
       </SectionCard>
 
-      {/* ── 2. 카테고리별 자산 추이 (Daily) ── */}
+      {/* ── 2. 주식+현금 자산 추이 (Monthly) ── */}
       <SectionCard className="mt-4">
-        <h3 className="mt-0">📊 카테고리별 자산 추이 (Daily)</h3>
-        <p className="helper-text mt-1">시세 자동 업데이트 기록 기준 — 주식, 환율 변동이 반영됩니다.</p>
-        {categoryTrend.length === 0 ? (
+        <h3 className="mt-0">📊 주식+현금 자산 추이 (Monthly)</h3>
+        <p className="helper-text mt-1">매월 마지막 업데이트 기준 — 주식(국내+미국 원화 환산)과 현금·예금 합산입니다.</p>
+        {stockCashMonthlyData.length === 0 ? (
           <EmptyGuide
             icon="📊"
             title="추이 데이터가 없습니다"
-            description="자동 시세 업데이트가 실행되면 카테고리별 추이가 기록됩니다."
+            description="자동 시세 업데이트가 실행되면 월별 추이가 기록됩니다."
             linkHref="/assets"
             linkLabel="자산 등록하기"
           />
         ) : (
           <div className="h-[280px] w-full sm:h-[340px]">
             <ResponsiveContainer>
-              <LineChart data={categoryTrend}>
+              <LineChart data={stockCashMonthlyData}>
                 <CartesianGrid strokeDasharray="3 3" />
-                <XAxis
-                  dataKey="date"
-                  tick={{ fontSize: 11 }}
-                  tickFormatter={(v) => {
-                    const parts = String(v).split('-');
-                    return parts.length >= 3 ? `${parts[1]}/${parts[2]}` : v;
-                  }}
-                />
+                <XAxis dataKey="month" tick={{ fontSize: 12 }} />
                 <YAxis tickFormatter={(v) => `${Math.round(v / 10000)}만`} tick={{ fontSize: 12 }} />
                 <Tooltip
                   formatter={(value: number, name: string) => [
                     `${Number(value).toLocaleString()}원`,
-                    getAssetCategoryLabel(name)
+                    name === 'stock' ? '주식' : '현금·예금'
                   ]}
-                  labelFormatter={(label) => `${label}`}
                 />
-                <Legend formatter={(value) => getAssetCategoryLabel(value)} />
-                {trendCategories.map((cat) => (
-                  <Line
-                    key={cat}
-                    type="monotone"
-                    dataKey={cat}
-                    name={cat}
-                    stroke={CATEGORY_COLORS[cat] ?? '#6b7280'}
-                    strokeWidth={2}
-                    dot={false}
-                    connectNulls
-                  />
-                ))}
+                <Legend formatter={(v) => v === 'stock' ? '주식 (국내+미국)' : '현금·예금'} />
+                <Line type="monotone" dataKey="stock" name="stock" stroke="#8b5cf6" strokeWidth={2} dot={{ r: 4 }} connectNulls />
+                <Line type="monotone" dataKey="cash" name="cash" stroke="#22c55e" strokeWidth={2} dot={{ r: 4 }} connectNulls />
               </LineChart>
             </ResponsiveContainer>
           </div>
