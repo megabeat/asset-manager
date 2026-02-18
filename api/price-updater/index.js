@@ -58,13 +58,14 @@ async function fetchUsdKrwRate() {
     return fetchStooqPrice("usdkrw");
 }
 async function priceUpdater(context, req) {
+    const h = req.headers;
     try {
         // ── Auth: require API_SECRET token when called without SWA auth ──
         const apiSecret = process.env.API_SECRET;
         if (apiSecret) {
-            const authHeader = req.headers.get("x-api-key") ?? "";
+            const authHeader = h["x-api-key"] ?? "";
             if (authHeader !== apiSecret) {
-                return { status: 401, jsonBody: { error: "Unauthorized" } };
+                return { status: 401, headers: { "content-type": "application/json" }, body: JSON.stringify({ error: "Unauthorized" }) };
             }
         }
         const assetsContainer = (0, cosmosClient_1.getContainer)("assets");
@@ -184,19 +185,21 @@ async function priceUpdater(context, req) {
         context.log(`Price updater done: ${updatedCount} updated, ${errorCount} errors`);
         return {
             status: errorCount > 0 ? 207 : 200,
-            jsonBody: {
+            headers: { "content-type": "application/json; charset=utf-8" },
+            body: JSON.stringify({
                 message: `Price update complete: ${updatedCount} updated, ${errorCount} errors`,
                 updatedCount,
                 errorCount,
                 details: results
-            }
+            })
         };
     }
     catch (fatalErr) {
         context.log("FATAL price-updater error:", fatalErr);
         return {
             status: 500,
-            jsonBody: {
+            headers: { "content-type": "application/json; charset=utf-8" },
+            body: JSON.stringify({
                 error: "Internal server error",
                 message: fatalErr instanceof Error ? fatalErr.message : String(fatalErr),
                 stack: fatalErr instanceof Error ? fatalErr.stack : undefined,
@@ -206,7 +209,7 @@ async function priceUpdater(context, req) {
                     hasApiSecret: !!process.env.API_SECRET,
                     nodeVersion: process.version,
                 }
-            }
+            })
         };
     }
 }

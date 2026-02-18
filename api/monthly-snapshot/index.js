@@ -3,22 +3,24 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.monthlySnapshot = monthlySnapshot;
 const cosmosClient_1 = require("../shared/cosmosClient");
 async function monthlySnapshot(context, req) {
+    const h = req.headers;
+    const q = req.query;
     try {
         // ── Auth: require API_SECRET token when called without SWA auth ──
         const apiSecret = process.env.API_SECRET;
         if (apiSecret) {
-            const authHeader = req.headers.get("x-api-key") ?? "";
+            const authHeader = h["x-api-key"] ?? "";
             if (authHeader !== apiSecret) {
-                return { status: 401, jsonBody: { error: "Unauthorized" } };
+                return { status: 401, headers: { "content-type": "application/json" }, body: JSON.stringify({ error: "Unauthorized" }) };
             }
         }
-        const force = req.query.get("force") === "1";
+        const force = q["force"] === "1";
         // Only proceed if today is actually the last day of the month (unless forced).
         const now = new Date();
         const tomorrow = new Date(now);
         tomorrow.setDate(tomorrow.getDate() + 1);
         if (!force && tomorrow.getMonth() === now.getMonth()) {
-            return { status: 200, jsonBody: { message: `Not last day of month (${now.toISOString()}), skipping.` } };
+            return { status: 200, headers: { "content-type": "application/json; charset=utf-8" }, body: JSON.stringify({ message: `Not last day of month (${now.toISOString()}), skipping.` }) };
         }
         const assetsContainer = (0, cosmosClient_1.getContainer)("assets");
         const historyContainer = (0, cosmosClient_1.getContainer)("assetHistory");
@@ -93,13 +95,14 @@ async function monthlySnapshot(context, req) {
             }
         }
         context.log(`Monthly snapshot complete: ${snapshotCount} users processed for ${windowMonth}`);
-        return { status: 200, jsonBody: { message: `Snapshot complete: ${snapshotCount} users for ${windowMonth}` } };
+        return { status: 200, headers: { "content-type": "application/json; charset=utf-8" }, body: JSON.stringify({ message: `Snapshot complete: ${snapshotCount} users for ${windowMonth}` }) };
     }
     catch (fatalErr) {
         context.log("FATAL monthly-snapshot error:", fatalErr);
         return {
             status: 500,
-            jsonBody: {
+            headers: { "content-type": "application/json; charset=utf-8" },
+            body: JSON.stringify({
                 error: "Internal server error",
                 message: fatalErr instanceof Error ? fatalErr.message : String(fatalErr),
                 stack: fatalErr instanceof Error ? fatalErr.stack : undefined,
@@ -109,7 +112,7 @@ async function monthlySnapshot(context, req) {
                     hasApiSecret: !!process.env.API_SECRET,
                     nodeVersion: process.version,
                 }
-            }
+            })
         };
     }
 }

@@ -83,13 +83,14 @@ async function fetchUsdKrwRate(): Promise<number | null> {
 }
 
 export async function priceUpdater(context: InvocationContext, req: HttpRequest): Promise<HttpResponseInit> {
+  const h = req.headers as unknown as Record<string, string | undefined>;
   try {
   // ── Auth: require API_SECRET token when called without SWA auth ──
   const apiSecret = process.env.API_SECRET;
   if (apiSecret) {
-    const authHeader = req.headers.get("x-api-key") ?? "";
+    const authHeader = h["x-api-key"] ?? "";
     if (authHeader !== apiSecret) {
-      return { status: 401, jsonBody: { error: "Unauthorized" } };
+      return { status: 401, headers: { "content-type": "application/json" }, body: JSON.stringify({ error: "Unauthorized" }) };
     }
   }
 
@@ -224,18 +225,20 @@ export async function priceUpdater(context: InvocationContext, req: HttpRequest)
 
   return {
     status: errorCount > 0 ? 207 : 200,
-    jsonBody: {
+    headers: { "content-type": "application/json; charset=utf-8" },
+    body: JSON.stringify({
       message: `Price update complete: ${updatedCount} updated, ${errorCount} errors`,
       updatedCount,
       errorCount,
       details: results
-    }
+    })
   };
   } catch (fatalErr: unknown) {
     context.log("FATAL price-updater error:", fatalErr);
     return {
       status: 500,
-      jsonBody: {
+      headers: { "content-type": "application/json; charset=utf-8" },
+      body: JSON.stringify({
         error: "Internal server error",
         message: fatalErr instanceof Error ? fatalErr.message : String(fatalErr),
         stack: fatalErr instanceof Error ? fatalErr.stack : undefined,
@@ -245,7 +248,7 @@ export async function priceUpdater(context: InvocationContext, req: HttpRequest)
           hasApiSecret: !!process.env.API_SECRET,
           nodeVersion: process.version,
         }
-      }
+      })
     };
   }
 }
