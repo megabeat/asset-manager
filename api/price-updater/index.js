@@ -57,7 +57,15 @@ async function fetchUsdKrwRate() {
     // stooq symbol for USD/KRW
     return fetchStooqPrice("usdkrw");
 }
-async function priceUpdater(req, context) {
+async function priceUpdater(context, req) {
+    // ── Auth: require API_SECRET token when called without SWA auth ──
+    const apiSecret = process.env.API_SECRET;
+    if (apiSecret) {
+        const authHeader = req.headers.get("x-api-key") ?? "";
+        if (authHeader !== apiSecret) {
+            return { status: 401, jsonBody: { error: "Unauthorized" } };
+        }
+    }
     const assetsContainer = (0, cosmosClient_1.getContainer)("assets");
     const historyContainer = (0, cosmosClient_1.getContainer)("assetHistory");
     const results = [];

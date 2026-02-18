@@ -2,7 +2,15 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.monthlySnapshot = monthlySnapshot;
 const cosmosClient_1 = require("../shared/cosmosClient");
-async function monthlySnapshot(req, context) {
+async function monthlySnapshot(context, req) {
+    // ── Auth: require API_SECRET token when called without SWA auth ──
+    const apiSecret = process.env.API_SECRET;
+    if (apiSecret) {
+        const authHeader = req.headers.get("x-api-key") ?? "";
+        if (authHeader !== apiSecret) {
+            return { status: 401, jsonBody: { error: "Unauthorized" } };
+        }
+    }
     const force = req.query.get("force") === "1";
     // Only proceed if today is actually the last day of the month (unless forced).
     const now = new Date();

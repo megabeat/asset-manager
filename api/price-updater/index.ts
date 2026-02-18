@@ -82,7 +82,7 @@ async function fetchUsdKrwRate(): Promise<number | null> {
   return fetchStooqPrice("usdkrw");
 }
 
-export async function priceUpdater(req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
+export async function priceUpdater(context: InvocationContext, req: HttpRequest): Promise<HttpResponseInit> {
   // ── Auth: require API_SECRET token when called without SWA auth ──
   const apiSecret = process.env.API_SECRET;
   if (apiSecret) {

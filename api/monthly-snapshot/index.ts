@@ -14,7 +14,7 @@ type AssetRow = {
   currentValue?: number;
 };
 
-export async function monthlySnapshot(req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
+export async function monthlySnapshot(context: InvocationContext, req: HttpRequest): Promise<HttpResponseInit> {
   // ── Auth: require API_SECRET token when called without SWA auth ──
   const apiSecret = process.env.API_SECRET;
   if (apiSecret) {
