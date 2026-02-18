@@ -13,6 +13,7 @@ import { getAssetCategoryLabel } from '@/lib/assetCategory';
 import { categoryMeta } from '@/components/assets/AssetForm';
 import { isPensionCategory } from '@/lib/isPensionCategory';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
+import { AssetPageSkeleton } from '@/components/ui/Skeleton';
 import { useAuth } from '@/hooks/useAuth';
 import { LoginPrompt } from '@/components/ui/AuthGuard';
 import { AssetForm, AssetFormData, defaultAssetForm, categoryLabel } from '@/components/assets/AssetForm';
@@ -86,6 +87,9 @@ export default function AssetsPage() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [fxLoading, setFxLoading] = useState(false);
   const [treemapView, setTreemapView] = useState<'all' | 'stock'>('all');
+  const [filterCategory, setFilterCategory] = useState<string>('all');
+  const [sortKey, setSortKey] = useState<'category' | 'name' | 'value'>('category');
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
 
   async function loadAssets() {
     const result = await api.getAssets();
@@ -253,6 +257,38 @@ export default function AssetsPage() {
     });
   }, [assets]);
 
+  // Filter + Sort for detail list
+  const filteredSortedAssets = useMemo(() => {
+    let list = filterCategory === 'all' ? assets : assets.filter((a) => a.category === filterCategory);
+    list = [...list].sort((a, b) => {
+      let cmp = 0;
+      if (sortKey === 'category') cmp = a.category.localeCompare(b.category);
+      else if (sortKey === 'name') cmp = (a.name || '').localeCompare(b.name || '');
+      else if (sortKey === 'value') cmp = (a.currentValue ?? 0) - (b.currentValue ?? 0);
+      return sortDir === 'asc' ? cmp : -cmp;
+    });
+    return list;
+  }, [assets, filterCategory, sortKey, sortDir]);
+
+  const uniqueCategories = useMemo(() => {
+    const cats = Array.from(new Set(assets.map((a) => a.category))).sort();
+    return cats.map((c) => ({ value: c, label: getAssetCategoryLabel(c) }));
+  }, [assets]);
+
+  function toggleSort(key: 'category' | 'name' | 'value') {
+    if (sortKey === key) {
+      setSortDir((d) => d === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortKey(key);
+      setSortDir('asc');
+    }
+  }
+
+  function sortIndicator(key: string) {
+    if (sortKey !== key) return ' ↕';
+    return sortDir === 'asc' ? ' ↑' : ' ↓';
+  }
+
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     clearMessage();
@@ -397,7 +433,7 @@ export default function AssetsPage() {
   if (authStatus !== 'authenticated') return <LoginPrompt />;
 
   if (loading) {
-    return <LoadingSpinner />;
+    return <AssetPageSkeleton />;
   }
 
   return (
@@ -536,19 +572,38 @@ export default function AssetsPage() {
       </SectionCard>
 
       <SectionCard className="mt-4">
-        <h3 className="mt-0">자산 상세 목록</h3>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h3 className="mt-0">자산 상세 목록</h3>
+          <div className="flex items-center gap-2">
+            <select
+              value={filterCategory}
+              onChange={(e) => setFilterCategory(e.target.value)}
+              className="rounded-lg border border-[var(--line)] bg-[var(--surface)] px-2 py-1 text-xs"
+            >
+              <option value="all">전체 분류</option>
+              {uniqueCategories.map((c) => (
+                <option key={c.value} value={c.value}>{c.label}</option>
+              ))}
+            </select>
+            <span className="text-xs" style={{ color: 'var(--muted)' }}>{filteredSortedAssets.length}건</span>
+          </div>
+        </div>
         {/* Desktop: table */}
-        <div className="hidden md:block">
+        <div className="hidden md:block mt-2">
           <DataTable
-            rows={[...assets].sort((a, b) => a.category.localeCompare(b.category))}
+            rows={filteredSortedAssets}
             rowKey={(asset) => asset.id}
             emptyMessage="등록된 자산이 없습니다."
             columns={[
-              { key: 'name', header: '자산명', render: (asset) => asset.name },
+              { key: 'name', header: `자산명${sortIndicator('name')}`, render: (asset) => (
+                <button type="button" className="text-left font-medium hover:underline" onClick={() => toggleSort('name')}>{asset.name}</button>
+              )},
               {
                 key: 'category',
-                header: '분류',
-                render: (asset) => getAssetCategoryLabel(asset.category),
+                header: `분류${sortIndicator('category')}`,
+                render: (asset) => (
+                  <button type="button" className="text-left hover:underline" onClick={() => toggleSort('category')}>{getAssetCategoryLabel(asset.category)}</button>
+                ),
               },
               {
                 key: 'symbol',
@@ -585,9 +640,11 @@ export default function AssetsPage() {
               },
               {
                 key: 'value',
-                header: '가치(원)',
+                header: `가치(원)${sortIndicator('value')}`,
                 align: 'right',
-                render: (asset) => `${(asset.currentValue ?? 0).toLocaleString()}원`,
+                render: (asset) => (
+                  <button type="button" className="text-right hover:underline w-full" onClick={() => toggleSort('value')}>{(asset.currentValue ?? 0).toLocaleString()}원</button>
+                ),
               },
               {
                 key: 'meta',
@@ -627,12 +684,25 @@ export default function AssetsPage() {
           />
         </div>
         {/* Mobile: card list */}
-        <div className="md:hidden">
-          {assets.length === 0 ? (
+        <div className="md:hidden mt-2">
+          {/* Mobile sort buttons */}
+          <div className="flex gap-2 mb-3">
+            {([['category', '분류'], ['name', '이름'], ['value', '가치']] as const).map(([key, label]) => (
+              <button
+                key={key}
+                type="button"
+                className={`rounded-lg border px-2.5 py-1 text-xs font-medium transition-colors ${sortKey === key ? 'border-[var(--brand)] bg-[var(--brand)] text-white' : 'border-[var(--line)] bg-[var(--surface)]'}`}
+                onClick={() => toggleSort(key)}
+              >
+                {label}{sortKey === key ? (sortDir === 'asc' ? '↑' : '↓') : ''}
+              </button>
+            ))}
+          </div>
+          {filteredSortedAssets.length === 0 ? (
             <p className="py-6 text-center text-sm" style={{ color: 'var(--muted)' }}>등록된 자산이 없습니다.</p>
           ) : (
             <div className="flex flex-col gap-3">
-              {[...assets].sort((a, b) => a.category.localeCompare(b.category)).map((asset) => {
+              {filteredSortedAssets.map((asset) => {
                 const meta = categoryMeta[asset.category as keyof typeof categoryMeta];
                 const isStock = asset.category === 'stock_us' || asset.category === 'stock_kr';
                 return (

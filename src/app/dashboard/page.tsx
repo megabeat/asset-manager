@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { api } from '@/lib/api';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
+import { DashboardSkeleton } from '@/components/ui/Skeleton';
 import { useAuth } from '@/hooks/useAuth';
 import { LoginPrompt } from '@/components/ui/AuthGuard';
 import { formatCompact } from '@/lib/formatCompact';
@@ -101,7 +102,7 @@ export default function DashboardPage() {
   if (authStatus !== 'authenticated') return <LoginPrompt />;
 
   if (loading) {
-    return <LoadingSpinner />;
+    return <DashboardSkeleton />;
   }
 
   if (!summary) {
