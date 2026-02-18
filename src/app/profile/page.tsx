@@ -6,6 +6,7 @@ import { FeedbackBanner } from '@/components/ui/FeedbackBanner';
 import { useFeedbackMessage } from '@/hooks/useFeedbackMessage';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { SelfTab, SpouseTab, ChildrenTab, SettingsTab, ProfileForm } from '@/components/profile/ProfileTabs';
+import { UserSwitcher } from '@/components/ui/UserSwitcher';
 
 type ProfileTab = 'settings' | 'self' | 'spouse' | 'children';
 
@@ -341,6 +342,10 @@ export default function ProfilePage() {
         <section className="rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-5 shadow-[0_10px_24px_rgba(15,23,42,0.045)]">
           <div className="flex items-center justify-between gap-3">
             <h1 className="m-0">설정</h1>
+            <UserSwitcher />
+          </div>
+
+          <div className="mt-3 flex items-center justify-between gap-3">
             <a
               href="/docs/user-guide.html"
               target="_blank"
