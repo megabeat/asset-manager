@@ -15,6 +15,15 @@ type AssetRow = {
 };
 
 export async function monthlySnapshot(req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
+  // ── Auth: require API_SECRET token when called without SWA auth ──
+  const apiSecret = process.env.API_SECRET;
+  if (apiSecret) {
+    const authHeader = req.headers.get("x-api-key") ?? "";
+    if (authHeader !== apiSecret) {
+      return { status: 401, jsonBody: { error: "Unauthorized" } };
+    }
+  }
+
   const force = req.query.get("force") === "1";
 
   // Only proceed if today is actually the last day of the month (unless forced).

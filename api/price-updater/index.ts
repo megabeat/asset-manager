@@ -83,6 +83,15 @@ async function fetchUsdKrwRate(): Promise<number | null> {
 }
 
 export async function priceUpdater(req: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
+  // ── Auth: require API_SECRET token when called without SWA auth ──
+  const apiSecret = process.env.API_SECRET;
+  if (apiSecret) {
+    const authHeader = req.headers.get("x-api-key") ?? "";
+    if (authHeader !== apiSecret) {
+      return { status: 401, jsonBody: { error: "Unauthorized" } };
+    }
+  }
+
   const assetsContainer = getContainer("assets");
   const historyContainer = getContainer("assetHistory");
   const results: string[] = [];

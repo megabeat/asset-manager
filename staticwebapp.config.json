@@ -8,6 +8,14 @@
   },
   "routes": [
     {
+      "route": "/api/price-updater",
+      "allowedRoles": ["anonymous", "authenticated"]
+    },
+    {
+      "route": "/api/monthly-snapshot",
+      "allowedRoles": ["anonymous", "authenticated"]
+    },
+    {
       "route": "/api/*",
       "allowedRoles": ["authenticated"]
     }

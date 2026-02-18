@@ -21,12 +21,14 @@ jobs:
       - name: Trigger price update endpoint
         env:
           BASE_URL: ${{ secrets.SWA_APP_BASE_URL }}
+          API_SECRET: ${{ secrets.API_SECRET }}
         run: |
           URL="${BASE_URL%/}/api/price-updater"
 
           echo "Calling: $URL"
           HTTP_CODE=$(curl -sS -o response.json -w "%{http_code}" -X POST "$URL" \
             -H "Content-Type: application/json" \
+            -H "x-api-key: $API_SECRET" \
             --max-time 120)
           cat response.json
 

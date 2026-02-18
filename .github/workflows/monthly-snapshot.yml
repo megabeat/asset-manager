@@ -26,6 +26,7 @@ jobs:
         env:
           BASE_URL: ${{ secrets.SWA_APP_BASE_URL }}
           FORCE: ${{ github.event.inputs.force || '0' }}
+          API_SECRET: ${{ secrets.API_SECRET }}
         run: |
           URL="${BASE_URL%/}/api/monthly-snapshot"
           if [ "$FORCE" = "1" ]; then
@@ -33,7 +34,8 @@ jobs:
           fi
 
           echo "Calling: $URL"
-          HTTP_CODE=$(curl -sS -o response.json -w "%{http_code}" -X POST "$URL")
+          HTTP_CODE=$(curl -sS -o response.json -w "%{http_code}" -X POST "$URL" \
+            -H "x-api-key: $API_SECRET")
           cat response.json
 
           if [ "$HTTP_CODE" -lt 200 ] || [ "$HTTP_CODE" -ge 300 ]; then
