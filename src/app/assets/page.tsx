@@ -10,6 +10,7 @@ import { SectionCard } from '@/components/ui/SectionCard';
 import { CollapsibleSection } from '@/components/ui/CollapsibleSection';
 import { DataTable } from '@/components/ui/DataTable';
 import { getAssetCategoryLabel } from '@/lib/assetCategory';
+import { categoryMeta } from '@/components/assets/AssetForm';
 import { isPensionCategory } from '@/lib/isPensionCategory';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { useAuth } from '@/hooks/useAuth';
@@ -536,92 +537,159 @@ export default function AssetsPage() {
 
       <SectionCard className="mt-4">
         <h3 className="mt-0">자산 상세 목록</h3>
-        <DataTable
-          rows={[...assets].sort((a, b) => a.category.localeCompare(b.category))}
-          rowKey={(asset) => asset.id}
-          emptyMessage="등록된 자산이 없습니다."
-          columns={[
-            { key: 'name', header: '자산명', render: (asset) => asset.name },
-            {
-              key: 'category',
-              header: '분류',
-              render: (asset) => getAssetCategoryLabel(asset.category),
-            },
-            {
-              key: 'symbol',
-              header: '종목',
-              render: (asset) => {
-                if (asset.category === 'stock_us' || asset.category === 'stock_kr') {
-                  return asset.symbol || '-';
-                }
-                return '-';
+        {/* Desktop: table */}
+        <div className="hidden md:block">
+          <DataTable
+            rows={[...assets].sort((a, b) => a.category.localeCompare(b.category))}
+            rowKey={(asset) => asset.id}
+            emptyMessage="등록된 자산이 없습니다."
+            columns={[
+              { key: 'name', header: '자산명', render: (asset) => asset.name },
+              {
+                key: 'category',
+                header: '분류',
+                render: (asset) => getAssetCategoryLabel(asset.category),
               },
-            },
-            {
-              key: 'quantity',
-              header: '수량',
-              align: 'right',
-              render: (asset) => {
-                if (asset.category === 'stock_us' || asset.category === 'stock_kr') {
-                  return asset.quantity != null ? `${asset.quantity}주` : '-';
-                }
-                return '-';
+              {
+                key: 'symbol',
+                header: '종목',
+                render: (asset) => {
+                  if (asset.category === 'stock_us' || asset.category === 'stock_kr') {
+                    return asset.symbol || '-';
+                  }
+                  return '-';
+                },
               },
-            },
-            {
-              key: 'usd',
-              header: '가치(USD)',
-              align: 'right',
-              render: (asset) => {
-                if (asset.category === 'stock_us') {
-                  const usd = (asset.quantity ?? 0) * (asset.acquiredValue ?? 0);
-                  return usd > 0 ? `$${usd.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}` : '-';
-                }
-                return '';
+              {
+                key: 'quantity',
+                header: '수량',
+                align: 'right',
+                render: (asset) => {
+                  if (asset.category === 'stock_us' || asset.category === 'stock_kr') {
+                    return asset.quantity != null ? `${asset.quantity}주` : '-';
+                  }
+                  return '-';
+                },
               },
-            },
-            {
-              key: 'value',
-              header: '가치(원)',
-              align: 'right',
-              render: (asset) => `${(asset.currentValue ?? 0).toLocaleString()}원`,
-            },
-            {
-              key: 'meta',
-              header: '상세',
-              render: (asset) => {
-                if (asset.category === 'stock_us' && asset.exchangeRate) {
-                  return `환율 ${asset.exchangeRate.toLocaleString()}`;
-                }
-                if (asset.category === 'car') {
-                  return asset.carYear ? `${asset.carYear}년식` : '-';
-                }
-                return '';
+              {
+                key: 'usd',
+                header: '가치(USD)',
+                align: 'right',
+                render: (asset) => {
+                  if (asset.category === 'stock_us') {
+                    const usd = (asset.quantity ?? 0) * (asset.acquiredValue ?? 0);
+                    return usd > 0 ? `$${usd.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}` : '-';
+                  }
+                  return '';
+                },
               },
-            },
-            {
-              key: 'owner',
-              header: '소유자',
-              align: 'center',
-              render: (asset) => asset.owner ?? '본인',
-            },
-            {
-              key: 'actions',
-              header: '관리',
-              align: 'center',
-              render: (asset) => (
-                <div className="flex justify-center gap-1.5">
-                  <button onClick={() => onEdit(asset)} className="btn-primary">
-                    수정
-                  </button>
-                  <button onClick={() => onDelete(asset.id)} className="btn-danger-outline">
-                    삭제
-                  </button>
-                </div>
-              ),
-            },
-          ]}
-        />
+              {
+                key: 'value',
+                header: '가치(원)',
+                align: 'right',
+                render: (asset) => `${(asset.currentValue ?? 0).toLocaleString()}원`,
+              },
+              {
+                key: 'meta',
+                header: '상세',
+                render: (asset) => {
+                  if (asset.category === 'stock_us' && asset.exchangeRate) {
+                    return `환율 ${asset.exchangeRate.toLocaleString()}`;
+                  }
+                  if (asset.category === 'car') {
+                    return asset.carYear ? `${asset.carYear}년식` : '-';
+                  }
+                  return '';
+                },
+              },
+              {
+                key: 'owner',
+                header: '소유자',
+                align: 'center',
+                render: (asset) => asset.owner ?? '본인',
+              },
+              {
+                key: 'actions',
+                header: '관리',
+                align: 'center',
+                render: (asset) => (
+                  <div className="flex justify-center gap-1.5">
+                    <button onClick={() => onEdit(asset)} className="btn-primary">
+                      수정
+                    </button>
+                    <button onClick={() => onDelete(asset.id)} className="btn-danger-outline">
+                      삭제
+                    </button>
+                  </div>
+                ),
+              },
+            ]}
+          />
+        </div>
+        {/* Mobile: card list */}
+        <div className="md:hidden">
+          {assets.length === 0 ? (
+            <p className="py-6 text-center text-sm" style={{ color: 'var(--muted)' }}>등록된 자산이 없습니다.</p>
+          ) : (
+            <div className="flex flex-col gap-3">
+              {[...assets].sort((a, b) => a.category.localeCompare(b.category)).map((asset) => {
+                const meta = categoryMeta[asset.category as keyof typeof categoryMeta];
+                const isStock = asset.category === 'stock_us' || asset.category === 'stock_kr';
+                return (
+                  <div
+                    key={asset.id}
+                    className="rounded-xl border p-3"
+                    style={{ borderColor: 'var(--line)', background: 'var(--surface)' }}
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <span
+                          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-base"
+                          style={{ backgroundColor: meta ? `${meta.color}22` : 'var(--surface-2)' }}
+                        >
+                          {meta?.icon ?? '📦'}
+                        </span>
+                        <div className="min-w-0">
+                          <p className="font-semibold text-sm truncate" style={{ color: 'var(--text)' }}>{asset.name}</p>
+                          <p className="text-xs" style={{ color: 'var(--muted)' }}>
+                            {getAssetCategoryLabel(asset.category)}
+                            {isStock && asset.symbol ? ` · ${asset.symbol}` : ''}
+                            {isStock && asset.quantity != null ? ` · ${asset.quantity}주` : ''}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="text-right shrink-0">
+                        <p className="font-bold text-sm" style={{ color: 'var(--text)' }}>
+                          {(asset.currentValue ?? 0).toLocaleString()}원
+                        </p>
+                        {asset.category === 'stock_us' && (
+                          <p className="text-xs" style={{ color: 'var(--muted)' }}>
+                            ${((asset.quantity ?? 0) * (asset.acquiredValue ?? 0)).toLocaleString(undefined, { maximumFractionDigits: 2 })} USD
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                    <div className="mt-2 flex items-center justify-between">
+                      <span className="text-xs" style={{ color: 'var(--muted)' }}>
+                        {asset.owner ?? '본인'}
+                        {asset.category === 'stock_us' && asset.exchangeRate ? ` · 환율 ${asset.exchangeRate.toLocaleString()}` : ''}
+                        {asset.category === 'car' && asset.carYear ? ` · ${asset.carYear}년식` : ''}
+                      </span>
+                      <div className="flex gap-1.5">
+                        <button onClick={() => onEdit(asset)} className="btn-primary text-xs px-2 py-1">
+                          수정
+                        </button>
+                        <button onClick={() => onDelete(asset.id)} className="btn-danger-outline text-xs px-2 py-1">
+                          삭제
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
       </SectionCard>
       <ConfirmModal
         open={confirmState.open}

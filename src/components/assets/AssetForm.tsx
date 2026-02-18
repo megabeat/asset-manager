@@ -61,6 +61,16 @@ export const categoryLabel: Record<AssetCategory, string> = {
   etc: '기타'
 };
 
+export const categoryMeta: Record<AssetCategory, { icon: string; color: string }> = {
+  cash: { icon: '💵', color: '#22c55e' },
+  deposit: { icon: '🏦', color: '#3b82f6' },
+  stock_kr: { icon: '🇰🇷', color: '#ef4444' },
+  stock_us: { icon: '🇺🇸', color: '#8b5cf6' },
+  car: { icon: '🚗', color: '#f59e0b' },
+  real_estate: { icon: '🏠', color: '#06b6d4' },
+  etc: { icon: '📦', color: '#6b7280' }
+};
+
 export const quickPresets: QuickPreset[] = [
   { id: 'cash-wallet', label: '현금-지갑', category: 'cash', values: { name: '생활비 현금' } },
   { id: 'deposit-cma', label: '예금-CMA', category: 'deposit', values: { name: 'CMA 통장' } },
@@ -167,16 +177,24 @@ export function AssetForm({
   return (
     <form onSubmit={onSubmit} className="form-grid">
       <FormField label="카테고리" fullWidth>
-        <div className="flex flex-wrap gap-1.5">
+        <div className="flex flex-wrap gap-2">
           {(Object.keys(categoryLabel) as AssetCategory[]).map((cat) => {
             const preset = quickPresets.find((p) => p.category === cat);
+            const meta = categoryMeta[cat];
+            const isActive = form.category === cat;
             return (
               <button
                 key={cat}
                 type="button"
                 onClick={() => preset ? applyPreset(preset) : changeCategory(cat)}
-                className={`${form.category === cat ? 'btn-primary' : 'btn-danger-outline'} min-w-[92px]`}
+                className={`inline-flex items-center gap-1.5 rounded-lg border px-3 py-2 text-sm font-semibold transition-all ${
+                  isActive
+                    ? 'border-transparent text-white shadow-md'
+                    : 'border-[var(--line)] bg-[var(--surface)] text-[var(--text)] hover:bg-[var(--surface-hover)]'
+                }`}
+                style={isActive ? { backgroundColor: meta.color } : undefined}
               >
+                <span className="text-base leading-none">{meta.icon}</span>
                 {categoryLabel[cat]}
               </button>
             );
