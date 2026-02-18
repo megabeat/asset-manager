@@ -238,6 +238,55 @@ export async function priceUpdater(context: InvocationContext, req: HttpRequest)
     results.push(`ERR KR stock query: ${queryErr instanceof Error ? queryErr.message : String(queryErr)}`);
   }
 
+  // ── 2b. Auto-update US stock prices (stock_us with autoUpdate) ──
+  try {
+    const usQuery = {
+      query:
+        "SELECT * FROM c WHERE c.type = 'Asset' AND c.category = 'stock_us' AND c.autoUpdate = true",
+      parameters: []
+    };
+
+    const { resources: usResources } = await assetsContainer.items.query(usQuery).fetchAll();
+    const usAssets = usResources as AssetItem[];
+
+    for (const asset of usAssets) {
+      try {
+        if (!asset.symbol) {
+          results.push(`SKIP ${asset.id}: no symbol`);
+          continue;
+        }
+
+        // Fetch USD price from Stooq (.us suffix)
+        const usdPrice = await fetchStooqPrice(asset.symbol, "NASDAQ");
+        if (usdPrice === null || usdPrice <= 0) {
+          results.push(`SKIP ${asset.id}: US price fetch failed for ${asset.symbol}`);
+          continue;
+        }
+
+        const quantity = asset.quantity ?? 1;
+        const newUsdAmount = Math.round(usdPrice * quantity * 100) / 100;
+        const updatedAt = new Date().toISOString();
+
+        await assetsContainer.item(asset.id, asset.userId).replace({
+          ...asset,
+          usdAmount: newUsdAmount,
+          acquiredValue: usdPrice,
+          valuationDate: updatedAt.slice(0, 10),
+          updatedAt
+        });
+
+        updatedCount++;
+        results.push(`OK ${asset.id}: ${asset.symbol} → $${usdPrice} × ${quantity} = $${newUsdAmount}`);
+      } catch (err: unknown) {
+        errorCount++;
+        results.push(`ERR ${asset.id}: ${err instanceof Error ? err.message : String(err)}`);
+      }
+    }
+  } catch (queryErr: unknown) {
+    context.log("US stock query error:", queryErr);
+    results.push(`ERR US stock query: ${queryErr instanceof Error ? queryErr.message : String(queryErr)}`);
+  }
+
   // ── 3. Update USD/KRW exchange rate for stock_us assets ──
   const fxRate = await fetchUsdKrwRate();
   if (fxRate === null) {
@@ -266,9 +315,12 @@ export async function priceUpdater(context: InvocationContext, req: HttpRequest)
           const newValue = Math.round(usd * fxRate);
           const updatedAt = new Date().toISOString();
 
-          // Skip if rate barely changed (< 0.1%)
-          if (oldRate > 0 && Math.abs(fxRate - oldRate) / oldRate < 0.001) {
-            results.push(`SKIP ${asset.id}: rate change < 0.1%`);
+          // Skip if both rate and value barely changed
+          const oldValue = asset.currentValue ?? 0;
+          if (oldRate > 0 && oldValue > 0
+            && Math.abs(fxRate - oldRate) / oldRate < 0.001
+            && Math.abs(newValue - oldValue) / oldValue < 0.001) {
+            results.push(`SKIP ${asset.id}: no significant change`);
             continue;
           }
 
