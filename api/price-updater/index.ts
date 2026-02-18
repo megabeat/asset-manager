@@ -85,6 +85,27 @@ async function fetchUsdKrwRate(): Promise<number | null> {
   return fetchStooqPrice("usdkrw");
 }
 
+async function fetchNaverPrice(symbol: string): Promise<number | null> {
+  const url = `https://m.stock.naver.com/api/stock/${encodeURIComponent(symbol)}/basic`;
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), DEFAULT_TIMEOUT_MS);
+  try {
+    const resp = await fetch(url, {
+      signal: controller.signal,
+      headers: { "User-Agent": "Mozilla/5.0" }
+    });
+    if (!resp.ok) return null;
+    const data = await resp.json() as Record<string, unknown>;
+    const raw = String(data.closePrice ?? "").replace(/,/g, "");
+    const price = Number(raw);
+    return (Number.isNaN(price) || price <= 0) ? null : price;
+  } catch {
+    return null;
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
 export async function priceUpdater(context: InvocationContext, req: HttpRequest): Promise<HttpResponseInit> {
   const h = req.headers as unknown as Record<string, string | undefined>;
   try {
@@ -175,7 +196,7 @@ export async function priceUpdater(context: InvocationContext, req: HttpRequest)
           continue;
         }
 
-        const price = await fetchStooqPrice(asset.symbol, "KRX");
+        const price = await fetchNaverPrice(asset.symbol);
         if (price === null) {
           results.push(`SKIP ${asset.id}: KR price fetch failed for ${asset.symbol}`);
           continue;
