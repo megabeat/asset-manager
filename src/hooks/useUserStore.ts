@@ -3,13 +3,13 @@
 import { useCallback, useSyncExternalStore } from 'react';
 
 const STORAGE_KEY = 'asset-app-user-id';
-const DEFAULT_USER = 'kevin';
+const DEFAULT_USER = 'demo-user';
 
 type UserOption = { id: string; label: string; description?: string };
 
 export const USER_OPTIONS: UserOption[] = [
-  { id: 'kevin', label: 'Kevin', description: '실제 데이터' },
-  { id: 'demo-user', label: 'Demo User', description: '데모 데이터' },
+  { id: 'demo-user', label: 'Kevin', description: '실제 데이터' },
+  { id: 'demo-visitor', label: 'Demo User', description: '데모 데이터' },
 ];
 
 // ---------- tiny pub-sub for cross-component sync ----------

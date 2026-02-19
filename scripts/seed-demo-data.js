@@ -21,7 +21,7 @@ const { CosmosClient } = require("@azure/cosmos");
 const endpoint = process.env.COSMOS_ENDPOINT || "";
 const key = process.env.COSMOS_KEY || "";
 const databaseId = process.env.COSMOS_DATABASE_ID || "AssetManagement";
-const userId = process.env.DEMO_USER_ID || "demo-user";
+const userId = process.env.DEMO_USER_ID || "demo-visitor";
 const doClean = process.argv.includes("--clean");
 
 if (!endpoint || !key) {
