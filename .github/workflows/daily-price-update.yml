@@ -2,8 +2,9 @@ name: Daily Price Update
 
 on:
   schedule:
-    # Run at 22:30 UTC (07:30 KST next day) on weekdays (Mon-Fri)
-    # This captures US market close (4PM ET = ~6-7AM KST)
+    # Run at 07:00 UTC (16:00 KST) on weekdays — captures KRX close (15:30 KST)
+    - cron: '0 7 * * 1-5'
+    # Run at 22:30 UTC (07:30 KST next day) on weekdays — captures US market close (4PM ET)
     - cron: '30 22 * * 1-5'
   workflow_dispatch:
 
